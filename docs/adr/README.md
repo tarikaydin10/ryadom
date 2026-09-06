@@ -23,6 +23,7 @@ diesem Tag gefallen.
 | [0010](0010-ios-tastatur-viewport-bug.md) | Umgang mit dem iOS-Tastatur-Viewport-Bug | **Vorläufig — auf dem Gerät nicht bestätigt** |
 | [0011](0011-sprache-russisch-englisch.md) | Sprache: Russisch und Englisch, Systemsprache entscheidet | Gültig |
 | [0012](0012-runden-statt-einer-frage-pro-tag.md) | Runden statt einer Frage pro Tag, und eigene Fragen | Gültig |
+| [0013](0013-push-benachrichtigungen.md) | Push-Benachrichtigungen, serverseitig und ohne Inhalt | Gültig |
 
 ## Vorlage
 

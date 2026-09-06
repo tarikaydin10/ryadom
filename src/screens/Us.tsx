@@ -10,6 +10,7 @@ import { CITIES, type CityId } from '../content/cities';
 import { timeOfDay } from '../lib/format';
 import type { Settings } from '../data/settings';
 import { Diagnostics } from '../components/Diagnostics';
+import { disablePush, enablePush, pushStatus, type PushStatus } from '../data/push';
 
 /**
  * Settings, and only settings.
@@ -35,6 +36,28 @@ export function Us() {
    * misbehaving phone in another country (TD-05).
    */
   const [taps, setTaps] = useState(0);
+
+  /**
+   * Notifications are a property of this device, not of the pair: each phone
+   * subscribes for itself, and the server knows only where to knock.
+   */
+  const [push, setPush] = useState<PushStatus>('unsupported');
+  const [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => {
+    void pushStatus().then(setPush);
+  }, []);
+
+  const togglePush = () => {
+    setPushBusy(true);
+    const next = push === 'on' ? disablePush() : enablePush(locale);
+    void next
+      .then(setPush)
+      // A refusal, a browser that only pretended to support it, a server that
+      // did not answer: whatever it was, the switch has to end up telling the
+      // truth rather than staying mid-flight.
+      .catch(() => void pushStatus().then(setPush))
+      .finally(() => setPushBusy(false));
+  };
 
   useEffect(() => setDraft(settings), [settings]);
 
@@ -123,6 +146,29 @@ export function Us() {
         {syncConfigured && (
           <button className="button button--ghost" style={{ alignSelf: 'flex-start' }} onClick={() => void syncNow()}>
             {t('settings.syncNow')}
+          </button>
+        )}
+      </div>
+
+      <div className="section">
+        <span className="section__title">{t('settings.notifications')}</span>
+        <p className="hint">
+          {push === 'on'
+            ? t('settings.pushOnHint')
+            : push === 'denied'
+              ? t('settings.pushDeniedHint')
+              : push === 'unsupported'
+                ? t('settings.pushUnsupportedHint')
+                : t('settings.pushOffHint')}
+        </p>
+        {(push === 'on' || push === 'off') && (
+          <button
+            className="button button--ghost"
+            style={{ alignSelf: 'flex-start' }}
+            disabled={pushBusy}
+            onClick={togglePush}
+          >
+            {push === 'on' ? t('settings.pushOff') : t('settings.pushOn')}
           </button>
         )}
       </div>

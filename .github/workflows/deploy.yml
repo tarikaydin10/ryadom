@@ -82,8 +82,10 @@ jobs:
           # The built app replaces the old one wholesale; stale hashed assets
           # would otherwise pile up forever.
           rsync -az --delete -e "$SSH" dist/ "$TARGET:/srv/ryadom/app/dist/"
-          # The server is a single file with no dependencies.
-          rsync -az -e "$SSH" server/index.mjs "$TARGET:/srv/ryadom/app/server/index.mjs"
+          # The server has no dependencies — but it is no longer a single file:
+          # push.mjs sits next to index.mjs. Only the modules travel, so a local
+          # server/data/ from a development run can never reach the VPS.
+          rsync -az -e "$SSH" server/*.mjs "$TARGET:/srv/ryadom/app/server/"
 
       - name: Restart
         env:

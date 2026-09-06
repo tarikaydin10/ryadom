@@ -39,6 +39,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // The notification listeners, added to the generated worker instead of
+        // replacing it: the caching strategy below is what makes the app work
+        // offline, and push has no business rewriting it.
+        importScripts: ['/push-sw.js'],
         globPatterns: ['**/*.{js,css,html,woff2,png,svg,ico}'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,

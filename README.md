@@ -290,6 +290,8 @@ scripts/          Icons zeichnen, Schriften holen
 | `PUT /api/days/:date/answer` | Antwort schreiben (Feld `slot` = Runde, ohne Angabe die erste), gibt denselben Tag zurück |
 | `GET /api/questions` | Die eigenen Fragen des Paares, immer vollständig |
 | `PUT /api/questions/:id` | Eigene Frage anlegen, ändern oder zurückziehen; Antwort ist wieder die ganze Liste |
+| `GET /api/push` | Der öffentliche VAPID-Schlüssel, mit dem das Telefon ein Abo löst |
+| `PUT /api/push` | Abo hinterlegen — oder mit `{ remove: true }` wieder entfernen |
 
 Auth über `x-pair-member: a|b` und `x-pair-secret`. Konflikte lösen sich per
 *last write wins* über `updatedAt` — und da jede Seite nur ihren eigenen Eintrag

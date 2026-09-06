@@ -146,6 +146,15 @@ export const en = {
     dayBoundary: 'The shared day starts at midnight in {tz}, so you both get the same question at the same moment.',
     // Reached by tapping the heading five times. The wording assumes the reader
     // is looking at a phone that is currently drawing itself wrong.
+    notifications: 'Notifications',
+    // Says what arrives and, just as importantly, what does not: the lock-in is
+    // the app's promise and a notification must not be the way around it.
+    pushOffHint: 'A quiet word when the other one has written. Never what they wrote — that stays behind your own answer.',
+    pushOnHint: 'On for this device. Turning it off here stops it for this device only.',
+    pushDeniedHint: 'Refused once, and only the phone can undo that: Settings → Notifications → Ryadom.',
+    pushUnsupportedHint: 'Only in the app on your home screen. Add it there first, then open this screen again.',
+    pushOn: 'Turn on',
+    pushOff: 'Turn off',
     diagnostics: 'Diagnostics',
     diagnosticsHint: 'What this phone measures right now. Copy it and send it over when the bar sits in the wrong place.',
     copy: 'Copy',
@@ -310,6 +319,13 @@ export const ru: DeepStringShape<typeof en> = {
     forget: 'Забыть это устройство',
     forgetHint: 'Пароль удалится с устройства. Ответы останутся на сервере.',
     dayBoundary: 'Общий день начинается в полночь по зоне {tz} — так вопрос у вас обоих меняется одновременно.',
+    notifications: 'Уведомления',
+    pushOffHint: 'Тихая весточка, когда другой написал. Никогда — сам ответ: он остаётся за твоим.',
+    pushOnHint: 'Включено на этом устройстве. Выключение здесь касается только его.',
+    pushDeniedHint: 'Один раз отказано, и вернуть это может только телефон: Настройки → Уведомления → «Рядом».',
+    pushUnsupportedHint: 'Только в приложении с домашнего экрана. Добавь его туда и открой этот экран снова.',
+    pushOn: 'Включить',
+    pushOff: 'Выключить',
     diagnostics: 'Диагностика',
     diagnosticsHint: 'Что этот телефон измеряет прямо сейчас. Скопируй и пришли, если полоса стоит не на месте.',
     copy: 'Скопировать',

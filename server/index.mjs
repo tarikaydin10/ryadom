@@ -19,6 +19,7 @@ import { createReadStream } from 'node:fs';
 import { timingSafeEqual, randomUUID } from 'node:crypto';
 import { extname, join, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { push, vapidKeys } from './push.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -113,8 +114,10 @@ async function loadStore() {
     store.days ??= {};
     store.questions ??= [];
     store.settings ??= null;
+    store.push ??= { keys: null, subscriptions: { a: [], b: [] } };
+    store.push.subscriptions ??= { a: [], b: [] };
   } catch {
-    store = { days: {}, questions: [], settings: null };
+    store = { days: {}, questions: [], settings: null, push: { keys: null, subscriptions: { a: [], b: [] } } };
   }
 }
 
@@ -414,6 +417,56 @@ function dayResponse(date, member) {
   return { date, rounds, you: rounds[0].you, partner: rounds[0].partner };
 }
 
+/* ------------------------------------------------------------------- push */
+
+/**
+ * What a notification says.
+ *
+ * Two sentences, and neither of them contains anything that was written. The
+ * lock-in is the point of this app: a notification quoting an answer would put
+ * her words on his lock screen before he had written his own, which is exactly
+ * what this process refuses to do everywhere else.
+ *
+ * No names either, and no verbs that would have to agree with a gender. The
+ * same build runs on both phones and «ответила» is wrong on one of them half
+ * the time — the same reason the sky's status lines are written as they are.
+ */
+const NOTIFICATIONS = {
+  en: {
+    answered: { title: 'Ryadom', body: 'An answer arrived — your turn.' },
+    unlocked: { title: 'Ryadom', body: 'The answer is open, and there is a new question.' },
+  },
+  ru: {
+    answered: { title: 'Рядом', body: 'Пришёл ответ — твоя очередь.' },
+    unlocked: { title: 'Рядом', body: 'Ответ открыт, и есть новый вопрос.' },
+  },
+};
+
+/**
+ * Tell one side that something happened on the other.
+ *
+ * Never awaited by a request: the person who just wrote should not wait for
+ * Apple. A subscription the push service calls gone is dropped — the app was
+ * deleted or the phone was wiped, and it will never work again.
+ */
+async function notify(member, kind) {
+  const box = store.push?.subscriptions?.[member];
+  if (!Array.isArray(box) || box.length === 0) return;
+  const { keys, made } = vapidKeys(store);
+  if (made) await persist();
+
+  let dropped = false;
+  for (const subscription of [...box]) {
+    const text = NOTIFICATIONS[subscription.lang === 'ru' ? 'ru' : 'en'][kind];
+    const result = await push(subscription, { kind, ...text }, keys);
+    if (result !== 'gone') continue;
+    const at = box.indexOf(subscription);
+    if (at >= 0) box.splice(at, 1);
+    dropped = true;
+  }
+  if (dropped) await persist();
+}
+
 /* ------------------------------------------------------------------- http */
 
 function send(res, status, body, extraHeaders = {}) {
@@ -603,6 +656,76 @@ const server = createServer(async (req, res) => {
   }
 
   /**
+   * Notifications: the key to subscribe with, and the subscriptions themselves.
+   *
+   * A GET hands out the public half of the pair's signing key — the phone needs
+   * it to ask its own push service for a subscription. A PUT stores what comes
+   * back, or takes it away again with { remove: true }, which keeps this to the
+   * two methods everything else here uses.
+   */
+  if (url.pathname === '/api/push') {
+    if (req.method === 'GET') {
+      const { keys, made } = vapidKeys(store);
+      if (made) await persist();
+      send(res, 200, { key: keys.publicKey });
+      return;
+    }
+    if (req.method === 'PUT') {
+      let body;
+      try {
+        body = JSON.parse(await readBody(req));
+      } catch {
+        send(res, 400, { error: 'bad body' });
+        return;
+      }
+      const endpoint = typeof body?.endpoint === 'string' ? body.endpoint : '';
+      // Only ever an https push endpoint: this is a URL the server will POST to
+      // later, and it arrives from a client.
+      if (!endpoint || endpoint.length > 1000 || !endpoint.startsWith('https://')) {
+        send(res, 400, { error: 'bad endpoint' });
+        return;
+      }
+      const box = (store.push.subscriptions[member] ??= []);
+      const at = box.findIndex((subscription) => subscription.endpoint === endpoint);
+
+      if (body.remove === true) {
+        if (at >= 0) {
+          box.splice(at, 1);
+          await persist();
+        }
+        send(res, 200, { ok: true, subscribed: false });
+        return;
+      }
+
+      const p256dh = typeof body?.keys?.p256dh === 'string' ? body.keys.p256dh : '';
+      const auth = typeof body?.keys?.auth === 'string' ? body.keys.auth : '';
+      if (!p256dh || !auth) {
+        send(res, 400, { error: 'bad keys' });
+        return;
+      }
+      const subscription = {
+        endpoint,
+        keys: { p256dh, auth },
+        lang: body?.lang === 'ru' ? 'ru' : 'en',
+        updatedAt: Date.now(),
+      };
+      // One entry per endpoint: a phone that re-subscribes replaces itself
+      // rather than piling up, which is how one device ends up buzzing four
+      // times.
+      if (at >= 0) box[at] = { ...box[at], ...subscription };
+      else box.push(subscription);
+      // Two people with a phone and maybe a tablet each. The cap only exists so
+      // a bug cannot grow the file without end.
+      if (box.length > 8) box.shift();
+      await persist();
+      send(res, 200, { ok: true, subscribed: true });
+      return;
+    }
+    send(res, 405, { error: 'method not allowed' });
+    return;
+  }
+
+  /**
    * The questions the two of you write yourselves.
    *
    * Whole list on every call, read or write: there are dozens of these at most,
@@ -732,6 +855,10 @@ const server = createServer(async (req, res) => {
 
     const round = day.rounds[slot];
     const existing = round[member];
+    // Only the first answer to a round is news. An edit is somebody choosing a
+    // better word, and a phone that buzzes for that is a phone you turn off.
+    const first = !existing;
+    const theyHadAnswered = Boolean(round[otherMember(member)]);
     // Last write wins, but never let a slow retry overwrite a newer edit.
     if (!existing || existing.updatedAt <= updatedAt) {
       round[member] = {
@@ -743,6 +870,12 @@ const server = createServer(async (req, res) => {
       store.days[date] = day;
       openRounds(date, day);
       await persist();
+      // Not awaited: whoever just wrote should not wait for Apple. If they had
+      // already answered this round, their own answer has just come unlocked and
+      // a new question is open — different news from a nudge.
+      if (first && date === pairDay()) {
+        void notify(otherMember(member), theyHadAnswered ? 'unlocked' : 'answered').catch(() => undefined);
+      }
     }
     send(res, 200, dayResponse(date, member));
     return;

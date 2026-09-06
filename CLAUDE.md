@@ -14,8 +14,11 @@ Deutsch in README, Commits und Docs; Englisch in Code und Code-Kommentaren.
 Zwei harte Rahmenbedingungen, die jede Änderung einhalten muss:
 
 1. **Ein Hostname, sonst nichts.** Kein CDN, keine Fremd-Schriften, kein
-   Analytics, kein Push, keine neue Runtime-Abhängigkeit. Die App muss aus
-   Russland erreichbar bleiben ([ADR-0001](docs/adr/0001-ein-hostname-keine-fremd-hosts.md)).
+   Analytics, keine neue Runtime-Abhängigkeit. Die App muss aus Russland
+   erreichbar bleiben ([ADR-0001](docs/adr/0001-ein-hostname-keine-fremd-hosts.md)).
+   Einzige Ausnahme, und nur serverseitig: Push-Benachrichtigungen — das Telefon
+   spricht weiter nur mit einem Hostnamen, der Server mit dem Push-Dienst
+   ([ADR-0013](docs/adr/0013-push-benachrichtigungen.md)).
 2. **Privat für zwei.** Kein Text verlässt den Server, den die Gegenseite nicht
    freigeschaltet hat ([ADR-0003](docs/adr/0003-passphrase-pro-seite-lock-in-serverseitig.md)).
    `noindex` bleibt.
@@ -88,6 +91,8 @@ src/data/         IndexedDB (Wahrheit), Outbox, Sync, Passphrase, Settings, Frag
 src/i18n/         Wörterbücher en/ru, Spracherkennung
 src/styles.css    Eine Datei. Layout-Modell: siehe Kopf der Datei und ADR-0008
 server/index.mjs  Referenz-Server, keine Abhängigkeiten, JSON-Store
+server/push.mjs   VAPID und aes128gcm von Hand, für die Benachrichtigungen
+public/push-sw.js Die zwei Listener, die der generierte Worker importiert
 deploy/           Caddy, systemd bzw. Docker; Anleitung in deploy/README.md
 docs/adr/         Entscheidungen, mit verworfenen Alternativen
 docs/tech-debt.md Was bekannt und offen ist

@@ -210,6 +210,24 @@ export async function verifyPair(secret: string): Promise<PairMember | null> {
   return body.member === 'b' ? 'b' : 'a';
 }
 
+/**
+ * Notifications. The key is the public half of the pair's own signing key —
+ * the phone hands it to its push service so that only this server can send to
+ * the subscription that comes back.
+ */
+export function fetchPushKey(): Promise<{ key: string }> {
+  return request<{ key: string }>('/api/push');
+}
+
+export function putPushSubscription(body: {
+  endpoint: string;
+  keys?: { p256dh: string; auth: string };
+  lang?: Locale;
+  remove?: boolean;
+}): Promise<{ ok: boolean; subscribed: boolean }> {
+  return request<{ ok: boolean; subscribed: boolean }>('/api/push', { method: 'PUT', body: JSON.stringify(body) });
+}
+
 export interface RemoteSettings {
   settings: unknown | null;
   updatedAt: number;
