@@ -592,8 +592,14 @@ textarea {
      so that nothing about it (its width, its overflow) can ever count toward
      the document or the viewport. */
   contain: layout paint;
-  /* Horizontal here, vertical to the page — the same division the band makes. */
-  touch-action: pan-y;
+  /* The rail takes the whole gesture, unlike the band above it.
+     `pan-y` is not an either/or: the browser keeps panning the page vertically
+     for the length of the drag while the strip scrubs horizontally, so a thumb
+     crossing the rail with the least drift wound time and slid the page under
+     it at the same time, and the screen wobbled. A slider owns its gesture,
+     and this is a slider. The price is a 46px strip you cannot begin a scroll
+     on — the same price every slider on a page charges. */
+  touch-action: none;
   cursor: grab;
 }
 

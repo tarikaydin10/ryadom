@@ -109,9 +109,12 @@ export function TimeRail({ now, ms, live, limitMs, onScrubTo, onNow }: Props) {
 
   const drag = useRef<{
     x: number;
+    y: number;
     ms: number;
     width: number;
     engaged: boolean;
+    /** The gesture went up or down first. It belongs to nobody; see `endDrag`. */
+    vertical: boolean;
     /** The previous sample, for the flick that may follow. */
     lastX: number;
     lastAt: number;
@@ -207,9 +210,11 @@ export function TimeRail({ now, ms, live, limitMs, onScrubTo, onNow }: Props) {
     const rect = event.currentTarget.getBoundingClientRect();
     drag.current = {
       x: event.clientX,
+      y: event.clientY,
       ms,
       width: rect.width,
       engaged: false,
+      vertical: false,
       lastX: event.clientX,
       lastAt: event.timeStamp,
       velocity: 0,
@@ -221,7 +226,19 @@ export function TimeRail({ now, ms, live, limitMs, onScrubTo, onNow }: Props) {
     const state = drag.current;
     if (!state) return;
     const dx = event.clientX - state.x;
+    if (state.vertical) return;
     if (!state.engaged) {
+      // Somebody meaning to scroll and landing on the rail: the page cannot
+      // take the gesture any more (the track owns it, see `touch-action`), but
+      // the rail must not take it either. Without this the finger lifts having
+      // never engaged, and the tap below reads it as an aim and glides the sky
+      // to wherever the thumb happened to be.
+      const dy = event.clientY - state.y;
+      if (Math.abs(dy) > DRAG_THRESHOLD_PX && Math.abs(dy) > Math.abs(dx)) {
+        state.vertical = true;
+        setActive(false);
+        return;
+      }
       if (Math.abs(dx) < DRAG_THRESHOLD_PX) return;
       state.engaged = true;
       capture(event.currentTarget, event.pointerId, true);
@@ -308,6 +325,12 @@ export function TimeRail({ now, ms, live, limitMs, onScrubTo, onNow }: Props) {
     if (!state) return;
     capture(event.currentTarget, event.pointerId, false);
 
+    // A gesture the rail declined, and one the system took away, are both not
+    // taps. An unengaged cancel used to fall through to the aim below, so a
+    // swipe that the browser turned into a scroll landed as a tap and glided
+    // the sky to wherever the thumb had been.
+    if (state.vertical || event.type === 'pointercancel') return;
+
     if (!state.engaged) {
       // A tap is an aim: the strip goes to the spot that was touched.
       const rect = event.currentTarget.getBoundingClientRect();
@@ -318,7 +341,6 @@ export function TimeRail({ now, ms, live, limitMs, onScrubTo, onNow }: Props) {
       return;
     }
 
-    if (event.type === 'pointercancel') return;
     // A thumb that came to rest before lifting is not a flick, whatever the
     // last few samples said. Holding still is how you place something exactly.
     const stale = event.timeStamp - state.lastAt > 80;
