@@ -5,7 +5,7 @@ Was bekannt und offen ist. Jeder Eintrag sagt, **woher** die Schuld kommt,
 zufällig entdeckt und für einen Fehler hält, und damit niemand sie „mal eben"
 mit mehr Code zudeckt. Erledigte Einträge streichen, nicht löschen.
 
-Stand: 2026-09-05.
+Stand: 2026-09-06.
 
 ---
 
@@ -115,12 +115,16 @@ synchron vor dem ersten Render.
 **Abbau:** Nach dem Umzug auf `ryadom.net`. Neuer Origin = leerer Speicher =
 nichts mehr zu tragen. Dann Datei und Aufruf in `main.tsx` löschen.
 
-## TD-10 · Karte und Chronik sind Platzhalter
+## TD-10 · Karte ist Platzhalter, Chronik heißt anders als sie ist
 
 **Woher:** Keine Design-Vorlage (README „Was bewusst offen ist").
-**Was es riskiert:** Zwei von vier Tabs führen ins Leere.
-**Abbau:** Erst mit Vorlage. Bis dahin ehrliche Platzhalter statt geratener
-Screens — das ist die Entscheidung, nicht ein Versäumnis.
+**Was es riskiert:** Die Karte führt ins Leere. Der Chronik-Tab zeigt seit
+[ADR-0012](adr/0012-runden-statt-einer-frage-pro-tag.md) die eigenen Fragen —
+inhaltlich richtig einsortiert, aber der Tab heißt weiter „Chronik"/«Хроника»,
+und eine Chronik der Antworten ist es nicht.
+**Abbau:** Erst mit Vorlage. Dann entweder die Chronik bauen und die Fragen
+darin einbetten, oder den Tab umbenennen. Bis dahin ehrliche Platzhalter statt
+geratener Screens — das ist die Entscheidung, nicht ein Versäumnis.
 
 ## TD-11 · Backup der Serverdaten ist nicht Teil des Repos
 
@@ -150,3 +154,14 @@ Russisch), bevor die Wahl im Provider steht.
 **Was es riskiert:** Zwei Übersetzungspfade, die auseinanderlaufen können.
 **Abbau:** Beim nächsten Umbau des Lock-Screens den Provider eine
 `locale`-Überschreibung annehmen lassen; klein, kein Druck.
+
+## TD-14 · Fragentabelle ist für Runden zu klein
+
+**Woher:** [ADR-0012](adr/0012-runden-statt-einer-frage-pro-tag.md). 56
+gebündelte Fragen reichten bei einer Frage pro Tag für knapp zwei Monate; bei
+drei Runden am Tag ist die Tabelle in neunzehn Tagen einmal durch.
+**Was es riskiert:** Wiederholungen, und zwar früh genug, dass sie auffallen —
+was den Eindruck macht, die App habe nichts mehr zu fragen.
+**Abbau:** Fragen schreiben, nicht Code. Der eigene Pool federt das ab, ersetzt
+es aber nicht: er hängt daran, dass jemand Lust hat zu schreiben. Ziel wären
+150 bis 200 gebündelte Fragen in `src/content/questions.ts`, in beiden Sprachen.

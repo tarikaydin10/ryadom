@@ -77,11 +77,24 @@ export const QUESTIONS: Question[] = [
 ];
 
 /**
- * Deterministic and stable: the same date gives the same question on both
- * phones, without either of them asking a server.
+ * How far apart two rounds of the same day sit in the table.
+ *
+ * Neighbouring rounds should not be neighbouring questions: the table has runs
+ * of related ones, and being asked "what was hard today?" and "what are you
+ * tired of?" within the hour reads as one question asked twice. Seventeen is
+ * coprime with fifty-six, so the rounds of a day never collide.
  */
-export function questionFor(date: string): Question {
-  const days = Math.floor(dateKeyToMs(date) / 86400000);
+const SLOT_STRIDE = 17;
+
+/**
+ * Deterministic and stable: the same date and round give the same question on
+ * both phones, without either of them asking a server.
+ *
+ * Slot 0 is the question of the day and is deliberately unchanged by the
+ * arrival of rounds — whatever today was going to ask, it still asks.
+ */
+export function questionFor(date: string, slot = 0): Question {
+  const days = Math.floor(dateKeyToMs(date) / 86400000) + slot * SLOT_STRIDE;
   const index = ((days % QUESTIONS.length) + QUESTIONS.length) % QUESTIONS.length;
   return QUESTIONS[index] ?? QUESTIONS[0]!;
 }

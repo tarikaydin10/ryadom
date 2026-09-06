@@ -63,6 +63,14 @@ export const en = {
   question: {
     kickerPlain: 'Today',
     loading: 'Loading the question …',
+    // A day can hold more than one question now: the next one opens once you
+    // have both answered the last. The kicker says which kind of moment this
+    // is, so the second question does not read as the first one repeating.
+    kickerMore: 'One more',
+    dayFull: 'That is the day. Tomorrow there is more.',
+    askedBy: '{name} asked this',
+    askedByYou: 'Your question',
+    machine: 'translated by machine',
   },
 
   answer: {
@@ -145,9 +153,26 @@ export const en = {
     caveat: 'A lock, not encryption: whoever holds this phone unlocked can read the answers.',
   },
 
+  questions: {
+    title: 'Your questions',
+    intro: 'Write a question and it will be asked next — yours come before the built-in ones.',
+    add: 'A new question',
+    yours: 'Your question',
+    placeholder: 'What do you want to ask?',
+    // Optional, and said so plainly: an empty second field means the other side
+    // reads the sentence in the language it was written in, which is honest.
+    translation: 'The same question in the other language',
+    translationHint: 'Optional — leave it empty and it stays as you wrote it.',
+    save: 'Add',
+    list: 'Written so far',
+    empty: 'Nothing yet.',
+    waiting: 'waiting to be asked',
+    asked: 'asked on {date}',
+    remove: 'Take it back',
+  },
+
   soon: {
     map: 'The map comes later.',
-    chronicle: 'The chronicle of your answers comes later.',
   },
 } as const;
 
@@ -200,6 +225,11 @@ export const ru: DeepStringShape<typeof en> = {
   question: {
     kickerPlain: 'Сегодня',
     loading: 'Загружаем вопрос …',
+    kickerMore: 'Ещё вопрос',
+    dayFull: 'На сегодня всё. Завтра будет ещё.',
+    askedBy: 'Спрашивает {name}',
+    askedByYou: 'Твой вопрос',
+    machine: 'машинный перевод',
   },
 
   answer: {
@@ -275,9 +305,24 @@ export const ru: DeepStringShape<typeof en> = {
     caveat: 'Это замок, а не шифрование: кто держит разблокированный телефон, тот читает ответы.',
   },
 
+  questions: {
+    title: 'Ваши вопросы',
+    intro: 'Напиши вопрос — его зададут следующим: ваши идут раньше встроенных.',
+    add: 'Новый вопрос',
+    yours: 'Твой вопрос',
+    placeholder: 'О чём ты хочешь спросить?',
+    translation: 'Тот же вопрос на другом языке',
+    translationHint: 'Необязательно — оставь пустым, и он останется как написан.',
+    save: 'Добавить',
+    list: 'Уже написано',
+    empty: 'Пока ничего.',
+    waiting: 'ждёт своей очереди',
+    asked: 'задан {date}',
+    remove: 'Забрать назад',
+  },
+
   soon: {
     map: 'Карта появится позже.',
-    chronicle: 'Хроника ваших ответов появится позже.',
   },
 };
 

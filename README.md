@@ -1,8 +1,9 @@
 # Ryadom · Рядом
 
 Eine private PWA für zwei Menschen in Hamburg und Kaliningrad: ein astronomisch
-korrekter Himmel über beiden Städten, die Frage des Tages mit Lock-In, und der
-Countdown bis zum Wiedersehen.
+korrekter Himmel über beiden Städten, die Frage des Tages mit Lock-In — und noch
+eine, sobald beide geantwortet haben —, eigene Fragen, und der Countdown bis zum
+Wiedersehen.
 
 Umgesetzt nach dem Design-Handoff „Zwei — Home-Screen (Variante 2d)". Das Design
 ist übernommen, die Sprache ist neu: die App spricht **Russisch und Englisch**,
@@ -127,7 +128,10 @@ Die lokale Datenbank ist die Wahrheit, nicht ein Cache des Servers.
   alter Wert mit Zeitstempel ist besser als eine leere Zeile.
 * **Fragen sind eingebaut**, nicht abgerufen. Sonst wäre ausgerechnet das
   wichtigste Element des Screens das einzige, das ohne Netz fehlt. Beide Geräte
-  leiten dieselbe Frage aus demselben Datum ab.
+  leiten die erste Frage des Tages aus demselben Datum ab. Jede weitere Runde
+  öffnet der Server, sobald beide geantwortet haben — dafür braucht es ihn
+  ohnehin, denn nur er weiß, ob die Gegenseite geschrieben hat
+  ([ADR-0012](docs/adr/0012-runden-statt-einer-frage-pro-tag.md)).
 * Der Service Worker cacht die gesamte App-Shell samt Schriften, also startet sie
   auch offline.
 
@@ -267,12 +271,12 @@ selbst, setze `WEATHER_ORIGIN` auf dem Server passend zu `VITE_WEATHER_BASE_URL`
 ```
 src/
   i18n/           Wörterbücher (en/ru) und Sprachlogik
-  content/        Städte, Fragenkatalog
+  content/        Städte, Fragenkatalog, Auflösung der Rundenfrage
   sky/            Himmelsband: Tagestabelle, Farben, Positionen (SunCalc)
   weather/        Open-Meteo: Abruf, Cache, WMO-Codes
   data/           IndexedDB, Einstellungen, Outbox, Sync, Passphrase
   components/     Himmelsband, Frage, Antwortpaar, Countdown, Tabs
-  screens/        Heute, Mы (Einstellungen), Sperrbildschirm, Platzhalter
+  screens/        Heute, Mы (Einstellungen), Eigene Fragen, Sperrbildschirm, Platzhalter
 server/           Referenz-Sync-Server, ohne Abhängigkeiten
 scripts/          Icons zeichnen, Schriften holen
 ```
@@ -282,8 +286,10 @@ scripts/          Icons zeichnen, Schriften holen
 | Route | Zweck |
 |---|---|
 | `GET /api/session` | Prüft die Passphrase (für den Sperrbildschirm) |
-| `GET /api/days/:date` | Eigene Antwort; die der anderen Seite nur, wenn die eigene existiert |
-| `PUT /api/days/:date/answer` | Antwort schreiben, gibt denselben Tag zurück |
+| `GET /api/days/:date` | Die Runden des Tages; die Antwort der anderen Seite je Runde nur, wenn die eigene existiert |
+| `PUT /api/days/:date/answer` | Antwort schreiben (Feld `slot` = Runde, ohne Angabe die erste), gibt denselben Tag zurück |
+| `GET /api/questions` | Die eigenen Fragen des Paares, immer vollständig |
+| `PUT /api/questions/:id` | Eigene Frage anlegen, ändern oder zurückziehen; Antwort ist wieder die ganze Liste |
 
 Auth über `x-pair-member: a|b` und `x-pair-secret`. Konflikte lösen sich per
 *last write wins* über `updatedAt` — und da jede Seite nur ihren eigenen Eintrag

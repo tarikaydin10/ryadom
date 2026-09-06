@@ -1,12 +1,15 @@
 import {
   ApiError,
   fetchDay,
+  fetchQuestions,
   fetchSettings,
   putAnswer as putRemoteAnswer,
+  putQuestion as putRemoteQuestion,
   putSettings,
   syncConfigured,
   syncEnabled,
   type DayResponse,
+  type RemoteQuestion,
 } from './api';
 import { loadSettings, mergeRemoteSettings } from './settings';
 import {
@@ -16,7 +19,9 @@ import {
   outbox,
   outboxCount,
   putAnswer as putLocalAnswer,
-  putPartnerState,
+  putQuestion as putLocalQuestion,
+  putRound,
+  roundId,
   updateOutboxItem,
   kvGet,
   kvSet,
@@ -73,36 +78,72 @@ async function refreshPending(): Promise<number> {
   return pending;
 }
 
-/** Fold a server response into the local store. */
+/** A question as it travels, in the shape the local store keeps. */
+const asRecord = (question: RemoteQuestion, now: number) => ({ ...question, syncedAt: now });
+
+/** Fold a server response into the local store, round by round. */
 async function applyDay(response: DayResponse): Promise<void> {
   const now = Date.now();
+  const date = response.date;
 
-  if (response.you) {
-    const mine = await getAnswer(response.date, 'me');
-    if (mine && mine.updatedAt <= response.you.updatedAt) {
-      await putLocalAnswer({ ...mine, syncedAt: now });
+  for (const round of response.rounds) {
+    // A question of your own arrives with the round that asks it, so a device
+    // that has never fetched the pool can still draw the day.
+    if (round.question.kind === 'pool') await putLocalQuestion(asRecord(round.question.question, now));
+
+    await putRound({
+      id: roundId(date, round.slot),
+      date,
+      slot: round.slot,
+      question: round.question.kind === 'pool' ? { kind: 'pool', id: round.question.question.id } : { kind: 'bundled' },
+      answered: round.partner.answered,
+      answeredAt: round.partner.answeredAt,
+      fetchedAt: now,
+    });
+
+    if (round.you) {
+      const mine = await getAnswer(date, round.slot, 'me');
+      if (mine) {
+        if (mine.updatedAt <= round.you.updatedAt) await putLocalAnswer({ ...mine, syncedAt: now });
+      } else {
+        // Your own answer, written on your other device or on this one before it
+        // was wiped. Without this the round would sit there asking to be
+        // answered while the server has long since unlocked theirs — which is
+        // what a phone reinstalled mid-day used to look like.
+        await putLocalAnswer({
+          id: answerId(date, round.slot, 'me'),
+          date,
+          slot: round.slot,
+          questionId: '',
+          author: 'me',
+          text: round.you.text,
+          createdAt: round.you.updatedAt,
+          updatedAt: round.you.updatedAt,
+          syncedAt: now,
+        });
+      }
+    }
+
+    if (typeof round.partner.text === 'string') {
+      await putLocalAnswer({
+        id: answerId(date, round.slot, 'them'),
+        date,
+        slot: round.slot,
+        questionId: '',
+        author: 'them',
+        text: round.partner.text,
+        createdAt: round.partner.answeredAt ?? now,
+        updatedAt: round.partner.updatedAt ?? round.partner.answeredAt ?? now,
+        syncedAt: now,
+      });
     }
   }
+}
 
-  await putPartnerState({
-    date: response.date,
-    answered: response.partner.answered,
-    answeredAt: response.partner.answeredAt,
-    fetchedAt: now,
-  });
-
-  if (typeof response.partner.text === 'string') {
-    await putLocalAnswer({
-      id: answerId(response.date, 'them'),
-      date: response.date,
-      questionId: '',
-      author: 'them',
-      text: response.partner.text,
-      createdAt: response.partner.answeredAt ?? now,
-      updatedAt: response.partner.updatedAt ?? response.partner.answeredAt ?? now,
-      syncedAt: now,
-    });
-  }
+/** The pair's own questions, whole list in, whole list stored. */
+async function applyQuestions(questions: RemoteQuestion[]): Promise<void> {
+  const now = Date.now();
+  for (const question of questions) await putLocalQuestion(asRecord(question, now));
 }
 
 const MAX_ATTEMPTS = 8;
@@ -110,8 +151,11 @@ const MAX_ATTEMPTS = 8;
 async function flushOutbox(): Promise<void> {
   for (const item of await outbox()) {
     try {
-      const response = await putRemoteAnswer(item.date, item.payload);
-      await applyDay(response);
+      if (item.kind === 'answer') {
+        await applyDay(await putRemoteAnswer(item.date, { slot: item.slot, ...item.payload }));
+      } else {
+        await applyQuestions((await putRemoteQuestion(item.questionId, item.payload)).questions);
+      }
       if (item.id !== undefined) await dequeue(item.id);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -169,6 +213,7 @@ export function syncNow(dates: string[] = activeDates()): Promise<void> {
       for (const date of dates) {
         await applyDay(await fetchDay(date));
       }
+      await applyQuestions((await fetchQuestions()).questions);
       await syncSharedSettings();
       const now = Date.now();
       await kvSet(LAST_SYNC_KEY, now);

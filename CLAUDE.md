@@ -6,7 +6,8 @@ Projekts steht im [README](README.md) — hier steht, wie man daran arbeitet.
 ## Was das ist
 
 Eine private PWA für zwei Menschen (Hamburg ↔ Kaliningrad): Himmelsband über
-beiden Städten, Frage des Tages mit serverseitigem Lock-In, Countdown zum
+beiden Städten, Frage des Tages mit serverseitigem Lock-In — und bis zu zwei
+weiteren Runden, sobald beide geantwortet haben —, eigene Fragen, Countdown zum
 Wiedersehen. Sprache der App: Russisch und Englisch. Sprache des Repos:
 Deutsch in README, Commits und Docs; Englisch in Code und Code-Kommentaren.
 
@@ -77,11 +78,12 @@ verifiziert, wenn Aydin es auf dem Gerät gesehen hat. Sag das ausdrücklich.
 ## Wo was liegt
 
 ```
-src/screens/      Today, Us (Einstellungen), Lock, Placeholder (Map, Chronicle)
+src/screens/      Today, Us (Einstellungen), Questions (eigene Fragen), Lock, Placeholder (Map)
 src/components/   SkyBand, TimeRail, QuestionBlock, AnswerPair, CountdownCard, TabBar
+src/content/      Städte, Fragentabelle, Auflösung der Rundenfrage (prompt.ts)
 src/sky/          Tagestabelle, Farben, Sonne/Mond (SunCalc) — rechnet lokal
 src/weather/      Open-Meteo, 7 Tage stündlich, ein Request für beide Städte
-src/data/         IndexedDB (Wahrheit), Outbox, Sync, Passphrase, Settings
+src/data/         IndexedDB (Wahrheit), Outbox, Sync, Passphrase, Settings, Fragen-Pool
 src/i18n/         Wörterbücher en/ru, Spracherkennung
 src/styles.css    Eine Datei. Layout-Modell: siehe Kopf der Datei und ADR-0008
 server/index.mjs  Referenz-Server, keine Abhängigkeiten, JSON-Store
@@ -92,7 +94,7 @@ docs/design-handoff/  Vorlage „Zwei — Home-Screen (Variante 2d)"
 ```
 
 Produktionsdaten liegen auf dem VPS in `/var/lib/ryadom/answers.json`
-(`days` + `settings`), außerhalb des Deploy-Pfads. Der Server hält sie im
+(`days` mit Runden, `questions`, `settings`), außerhalb des Deploy-Pfads. Der Server hält sie im
 Speicher und schreibt bei jeder Änderung — für Eingriffe an der Datei den
 Dienst stoppen. Kein SSH-Zugang von hier; Skripte für Aydin schreiben.
 

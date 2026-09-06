@@ -84,19 +84,67 @@ const MAX_BODY_BYTES = 8 * 1024;
 const MAX_TEXT_CHARS = 4000;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** The two languages the app speaks, and the ids the devices make for a question. */
+const LANGS = new Set(['en', 'ru']);
+const QUESTION_ID_RE = /^p-[A-Za-z0-9_-]{1,64}$/;
+const MAX_QUESTION_CHARS = 300;
+const MAX_QUESTIONS = 200;
+
+/**
+ * A translation is optional, and it says where it came from — a person who
+ * typed it or a machine that guessed it. Anything else in that field is
+ * dropped rather than believed.
+ */
+function readTranslation(value) {
+  if (!value || typeof value !== 'object') return null;
+  const text = typeof value.text === 'string' ? value.text.trim() : '';
+  if (!text || text.length > MAX_QUESTION_CHARS || !LANGS.has(value.lang)) return null;
+  return { lang: value.lang, text, by: value.by === 'machine' ? 'machine' : 'author' };
+}
+
 /* ---------------------------------------------------------------- storage */
 
-let store = { days: {}, settings: null };
+let store = { days: {}, questions: [], settings: null };
 let writeChain = Promise.resolve();
 
 async function loadStore() {
   try {
     store = JSON.parse(await readFile(DATA_FILE, 'utf8'));
     store.days ??= {};
+    store.questions ??= [];
     store.settings ??= null;
   } catch {
-    store = { days: {}, settings: null };
+    store = { days: {}, questions: [], settings: null };
   }
+}
+
+/**
+ * A day used to be one question and two answers. It is a list of rounds now.
+ *
+ * Everything already written belongs to round zero — that is what a day was
+ * when it was written — so the answers move across untouched and only the shape
+ * around them changes. The file as it stood is written next to itself first,
+ * because this runs unattended on a deploy and the only copy of what two people
+ * wrote to each other is not a thing to rewrite without a way back.
+ */
+async function toRounds() {
+  const stale = Object.entries(store.days).filter(([, day]) => day && !Array.isArray(day.rounds));
+  if (stale.length === 0) return;
+
+  await mkdir(DATA_DIR, { recursive: true });
+  await writeFile(join(DATA_DIR, 'answers.before-rounds.json'), JSON.stringify(store, null, 2), 'utf8');
+
+  for (const [date, day] of stale) {
+    const round = { question: { kind: 'bundled' }, openedAt: 0 };
+    const written = [day.a?.createdAt, day.b?.createdAt].filter((at) => Number.isFinite(at));
+    round.openedAt = written.length > 0 ? Math.min(...written) : 0;
+    if (day.a) round.a = day.a;
+    if (day.b) round.b = day.b;
+    store.days[date] = { rounds: [round] };
+  }
+
+  await persist();
+  console.log(`rounds: migrated ${stale.length} day(s): ${stale.map(([date]) => date).join(', ')}`);
 }
 
 /**
@@ -242,16 +290,58 @@ function authenticate(req) {
 const otherMember = (member) => (member === 'a' ? 'b' : 'a');
 
 /**
+ * How many questions one day may hold.
+ *
+ * Not a throttle — a shape. One a day was too few to say anything back to;
+ * unlimited would be a chat with a question on top, and they have a chat. Three
+ * is a day that can go on when both of you are here and still ends.
+ */
+const MAX_ROUNDS = 3;
+
+/** A day nobody has written in yet: the question of the day, and nothing else. */
+const firstRound = () => ({ question: { kind: 'bundled' }, openedAt: 0 });
+
+const roundsFor = (date) => {
+  const rounds = store.days[date]?.rounds;
+  return Array.isArray(rounds) && rounds.length > 0 ? rounds : [firstRound()];
+};
+
+const bothAnswered = (round) => Boolean(round && round.a && round.b);
+
+/**
+ * The next round is earned, not scheduled.
+ *
+ * It opens the moment both of you have answered the one before — which is a
+ * fact only this process holds, and the reason rounds past the first are a
+ * server's business at all. The question is chosen and frozen here too, so two
+ * phones cannot end up answering different things.
+ */
+function openRounds(date, day) {
+  while (day.rounds.length < MAX_ROUNDS && bothAnswered(day.rounds[day.rounds.length - 1])) {
+    day.rounds.push({ question: nextQuestion(date), openedAt: Date.now() });
+  }
+}
+
+/** Yours before mine: a question one of you wrote is asked before the table's. */
+function nextQuestion(date) {
+  const own = store.questions
+    .filter((question) => !question.deleted && question.usedOn === null)
+    .sort((left, right) => left.createdAt - right.createdAt || (left.id < right.id ? -1 : 1))[0];
+  if (!own) return { kind: 'bundled' };
+  own.usedOn = date;
+  return { kind: 'pool', id: own.id };
+}
+
+/**
  * The lock-in rule, enforced here rather than in the client.
  *
  * Until you have written, their text does not leave this process — the response
  * carries only the fact that they answered and when. A client-side blur would
  * put the words on the other phone and merely hide them; this does not.
  */
-function dayResponse(date, member) {
-  const day = store.days[date] ?? {};
-  const mine = day[member] ?? null;
-  const theirs = day[otherMember(member)] ?? null;
+function roundResponse(round, slot, member) {
+  const mine = round[member] ?? null;
+  const theirs = round[otherMember(member)] ?? null;
 
   const partner = {
     answered: Boolean(theirs),
@@ -263,10 +353,31 @@ function dayResponse(date, member) {
   }
 
   return {
-    date,
+    slot,
+    question: questionResponse(round.question),
     you: mine ? { text: mine.text, updatedAt: mine.updatedAt } : null,
     partner,
   };
+}
+
+/**
+ * A bundled round names no question: both phones derive it from the date and
+ * the slot, which is what lets the first round of a day be read with no server
+ * in reach. One of your own travels in full — nothing else could show it.
+ */
+function questionResponse(question) {
+  if (question?.kind !== 'pool') return { kind: 'bundled' };
+  const own = store.questions.find((candidate) => candidate.id === question.id);
+  return own ? { kind: 'pool', question: own } : { kind: 'bundled' };
+}
+
+function dayResponse(date, member) {
+  const rounds = roundsFor(date).map((round, slot) => roundResponse(round, slot, member));
+  // Round zero also travels under the names it had before rounds existed. A
+  // phone that has not picked up the new bundle keeps answering the question of
+  // the day and notices nothing; the deploy is not a moment anybody has to
+  // stand still for.
+  return { date, rounds, you: rounds[0].you, partner: rounds[0].partner };
 }
 
 /* ------------------------------------------------------------------- http */
@@ -457,6 +568,88 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  /**
+   * The questions the two of you write yourselves.
+   *
+   * Whole list on every call, read or write: there are dozens of these at most,
+   * each is one sentence, and a client that always gets everything can never be
+   * half-converged. The author is the passphrase that was used, never a claim
+   * in the body — the same rule that makes a side a fact everywhere else here.
+   */
+  if (url.pathname === '/api/questions' && req.method === 'GET') {
+    send(res, 200, { questions: store.questions });
+    return;
+  }
+
+  const questionMatch = /^\/api\/questions\/([^/]+)$/.exec(url.pathname);
+  if (questionMatch) {
+    if (req.method !== 'PUT') {
+      send(res, 405, { error: 'method not allowed' });
+      return;
+    }
+    const id = decodeURIComponent(questionMatch[1]);
+    if (!QUESTION_ID_RE.test(id)) {
+      send(res, 400, { error: 'bad id' });
+      return;
+    }
+    let body;
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch {
+      send(res, 400, { error: 'bad body' });
+      return;
+    }
+
+    const lang = LANGS.has(body?.lang) ? body.lang : null;
+    const text = typeof body?.text === 'string' ? body.text.trim() : '';
+    const deleted = body?.deleted === true;
+    if (!lang || (!deleted && (!text || text.length > MAX_QUESTION_CHARS))) {
+      send(res, 400, { error: 'bad question' });
+      return;
+    }
+    const updatedAt = Number.isFinite(body?.updatedAt) ? Number(body.updatedAt) : Date.now();
+    const existing = store.questions.find((question) => question.id === id);
+
+    if (existing && existing.author !== member) {
+      send(res, 403, { error: 'not yours' });
+      return;
+    }
+    // A question that has been asked is part of a day, and days are not edited.
+    if (existing?.usedOn && deleted) {
+      send(res, 409, { error: 'already asked' });
+      return;
+    }
+    if (!existing && store.questions.filter((question) => !question.deleted).length >= MAX_QUESTIONS) {
+      send(res, 409, { error: 'too many questions' });
+      return;
+    }
+
+    if (existing) {
+      if (existing.updatedAt <= updatedAt) {
+        if (!deleted) existing.text = text;
+        existing.lang = lang;
+        existing.translation = readTranslation(body?.translation);
+        existing.deleted = deleted;
+        existing.updatedAt = updatedAt;
+      }
+    } else {
+      store.questions.push({
+        id,
+        author: member,
+        lang,
+        text,
+        translation: readTranslation(body?.translation),
+        createdAt: Number.isFinite(body?.createdAt) ? Number(body.createdAt) : Date.now(),
+        updatedAt,
+        usedOn: null,
+        deleted,
+      });
+    }
+    await persist();
+    send(res, 200, { questions: store.questions });
+    return;
+  }
+
   const match = /^\/api\/days\/([^/]+)(\/answer)?$/.exec(url.pathname);
   if (!match) {
     send(res, 404, { error: 'not found' });
@@ -489,16 +682,31 @@ const server = createServer(async (req, res) => {
     }
     const updatedAt = Number.isFinite(body?.updatedAt) ? Number(body.updatedAt) : Date.now();
 
-    const day = (store.days[date] ??= {});
-    const existing = day[member];
+    // No slot is round zero: that is what every request from the bundle before
+    // rounds looks like, and it is exactly what it means.
+    const slot = Number.isInteger(body?.slot) ? Number(body.slot) : 0;
+
+    const day = store.days[date] ?? { rounds: [firstRound()] };
+    if (!Array.isArray(day.rounds) || day.rounds.length === 0) day.rounds = [firstRound()];
+    if (slot < 0 || slot >= day.rounds.length) {
+      // A round nobody has opened. The answer stays where it was written — the
+      // device keeps its own copy — but it does not get to invent a round here.
+      send(res, 409, { error: 'round not open' });
+      return;
+    }
+
+    const round = day.rounds[slot];
+    const existing = round[member];
     // Last write wins, but never let a slow retry overwrite a newer edit.
     if (!existing || existing.updatedAt <= updatedAt) {
-      day[member] = {
+      round[member] = {
         text,
         questionId: typeof body?.questionId === 'string' ? body.questionId : '',
         createdAt: existing?.createdAt ?? Date.now(),
         updatedAt,
       };
+      store.days[date] = day;
+      openRounds(date, day);
       await persist();
     }
     send(res, 200, dayResponse(date, member));
@@ -510,4 +718,5 @@ const server = createServer(async (req, res) => {
 
 await loadStore();
 await launchReset();
+await toRounds();
 server.listen(PORT, HOST, () => console.log(`ryadom server on ${HOST}:${PORT}`));

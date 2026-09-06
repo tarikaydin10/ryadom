@@ -10,6 +10,8 @@
  */
 
 import { getPair, type PairMember } from './pair';
+import type { Side } from './db';
+import type { Locale } from '../i18n';
 
 /**
  * Empty means "same origin", which is the recommended deployment: the app and
@@ -36,8 +38,27 @@ export interface RemoteAnswer {
   updatedAt: number;
 }
 
-export interface DayResponse {
-  date: string;
+/** A question one of you wrote, as it travels. Mirrors `QuestionRecord`. */
+export interface RemoteQuestion {
+  id: string;
+  author: Side;
+  lang: Locale;
+  text: string;
+  translation: { lang: Locale; text: string; by: 'author' | 'machine' } | null;
+  createdAt: number;
+  updatedAt: number;
+  usedOn: string | null;
+  deleted: boolean;
+}
+
+export interface RemoteRound {
+  slot: number;
+  /**
+   * Bundled rounds name no question: both phones derive it from the date and
+   * the slot, which is what keeps round 0 readable with no server in reach. A
+   * question of your own travels in full, because nothing else could show it.
+   */
+  question: { kind: 'bundled' } | { kind: 'pool'; question: RemoteQuestion };
   you: RemoteAnswer | null;
   partner: {
     /** Always known: that they wrote, and when. */
@@ -51,6 +72,19 @@ export interface DayResponse {
     text?: string;
     updatedAt?: number;
   };
+}
+
+/**
+ * The day, in rounds.
+ *
+ * The response also carries round 0 under the old `you`/`partner` names, which
+ * this client no longer reads. They are there for a phone that has not picked
+ * up the new bundle yet: it goes on answering the question of the day and
+ * notices nothing, rather than facing a screen it cannot parse.
+ */
+export interface DayResponse {
+  date: string;
+  rounds: RemoteRound[];
 }
 
 /**
@@ -112,9 +146,42 @@ export function fetchDay(date: string): Promise<DayResponse> {
 
 export function putAnswer(
   date: string,
-  body: { text: string; questionId: string; updatedAt: number },
+  body: { slot: number; text: string; questionId: string; updatedAt: number },
 ): Promise<DayResponse> {
   return request<DayResponse>(`/api/days/${date}/answer`, { method: 'PUT', body: JSON.stringify(body) });
+}
+
+export interface QuestionsResponse {
+  questions: RemoteQuestion[];
+}
+
+/**
+ * The pair's own questions, all of them, on every call.
+ *
+ * There are dozens of these at most and each is one sentence, so paging or a
+ * changed-since parameter would be machinery for a problem nobody has. Both
+ * writes and reads answer with the whole list, which means one call is always
+ * enough to converge.
+ */
+export function fetchQuestions(): Promise<QuestionsResponse> {
+  return request<QuestionsResponse>('/api/questions');
+}
+
+export function putQuestion(
+  id: string,
+  body: {
+    lang: Locale;
+    text: string;
+    translation: RemoteQuestion['translation'];
+    createdAt: number;
+    updatedAt: number;
+    deleted: boolean;
+  },
+): Promise<QuestionsResponse> {
+  return request<QuestionsResponse>(`/api/questions/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
 }
 
 /**

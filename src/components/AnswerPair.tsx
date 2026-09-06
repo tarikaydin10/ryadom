@@ -1,15 +1,22 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n';
 import { clock } from '../lib/format';
+import { promptId } from '../content/prompt';
 import { PAIR_TIMEZONE } from '../lib/day';
-import type { DayAnswers } from '../data/answers';
+import type { RoundView } from '../data/answers';
 import type { AnswerRecord } from '../data/db';
 
 interface Props {
-  day: DayAnswers;
+  round: RoundView;
   partnerName: string;
   saving: boolean;
-  onSave(text: string): void;
+  /**
+   * Stable across renders, and told which round it is writing into rather than
+   * closing over it — a fresh closure per round would re-render every card on
+   * every frame of a scrub, which is the one thing the page below the band must
+   * not do.
+   */
+  onSave(slot: number, questionId: string, text: string): void;
 }
 
 interface TheirsProps {
@@ -63,7 +70,7 @@ function TheirAnswer({ theirs, partnerAnswered, partnerName, partnerAt }: Theirs
  * inspector. What is shown before unlocking is only what is fair to show: that
  * they wrote, and when.
  */
-export const AnswerPair = memo(function AnswerPair({ day, partnerName, saving, onSave }: Props) {
+export const AnswerPair = memo(function AnswerPair({ round, partnerName, saving, onSave }: Props) {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -73,10 +80,7 @@ export const AnswerPair = memo(function AnswerPair({ day, partnerName, saving, o
     if (editing) editor.current?.focus();
   }, [editing]);
 
-  const mine = day.mine;
-  const theirs = day.theirs;
-  const partnerAnswered = day.partner?.answered ?? theirs !== null;
-  const partnerAt = theirs?.createdAt ?? day.partner?.answeredAt ?? null;
+  const { mine, theirs, partnerAnswered, partnerAt } = round;
   const their = { theirs, partnerAnswered, partnerName, partnerAt };
 
   const beginEdit = () => {
@@ -90,7 +94,7 @@ export const AnswerPair = memo(function AnswerPair({ day, partnerName, saving, o
       setEditing(false);
       return;
     }
-    onSave(text);
+    onSave(round.slot, promptId(round.prompt), text);
     setEditing(false);
   };
 
