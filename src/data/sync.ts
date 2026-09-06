@@ -1,6 +1,7 @@
 import {
   ApiError,
   fetchDay,
+  fetchDaysSince,
   fetchQuestions,
   fetchSettings,
   putAnswer as putRemoteAnswer,
@@ -71,6 +72,8 @@ function emit(patch: Partial<SyncStatus>): void {
 }
 
 const LAST_SYNC_KEY = 'lastSyncAt';
+/** Server clock of the last history pull; zero means "everything, please". */
+const HISTORY_CURSOR_KEY = 'historySince';
 
 async function refreshPending(): Promise<number> {
   const pending = await outboxCount();
@@ -195,6 +198,22 @@ async function syncSharedSettings(): Promise<void> {
   if (local.updatedAt > remote.updatedAt) await putSettings(local, local.updatedAt);
 }
 
+/**
+ * The chronicle's half of the courier: pull whatever changed since last time.
+ *
+ * `fetchDay` for today and yesterday keeps the home screen honest; this keeps
+ * the past complete — a reinstall, a second device, or an answer that landed a
+ * week late all come back through here. The cursor is the server's clock, not
+ * this device's, so the two never have to agree on the time. Pool questions
+ * ride along with the rounds that asked them, so `applyDay` is all it takes.
+ */
+async function pullHistory(): Promise<void> {
+  const since = (await kvGet<number>(HISTORY_CURSOR_KEY)) ?? 0;
+  const response = await fetchDaysSince(since);
+  for (const day of response.days) await applyDay(day);
+  await kvSet(HISTORY_CURSOR_KEY, response.now);
+}
+
 let running: Promise<void> | null = null;
 
 export function syncNow(dates: string[] = activeDates()): Promise<void> {
@@ -213,6 +232,7 @@ export function syncNow(dates: string[] = activeDates()): Promise<void> {
       for (const date of dates) {
         await applyDay(await fetchDay(date));
       }
+      await pullHistory();
       await applyQuestions((await fetchQuestions()).questions);
       await syncSharedSettings();
       const now = Date.now();

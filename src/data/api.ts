@@ -87,6 +87,12 @@ export interface DayResponse {
   rounds: RemoteRound[];
 }
 
+export interface DaysResponse {
+  /** The server's clock at the time of the answer — the next call's `since`. */
+  now: number;
+  days: DayResponse[];
+}
+
 /**
  * The passphrase travels base64-encoded, and not for secrecy — TLS handles that.
  *
@@ -142,6 +148,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function fetchDay(date: string): Promise<DayResponse> {
   return request<DayResponse>(`/api/days/${date}`);
+}
+
+/** Every day either of you touched since `since` (server clock, ms). */
+export function fetchDaysSince(since: number): Promise<DaysResponse> {
+  return request<DaysResponse>(`/api/days?since=${encodeURIComponent(String(since))}`);
 }
 
 export function putAnswer(

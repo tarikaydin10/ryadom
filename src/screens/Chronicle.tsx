@@ -24,9 +24,10 @@ import { dateKeyToMs } from '../lib/day';
  * answers are quoted as they were written, in whatever language that was —
  * they are not translated anywhere, ever.
  *
- * Only what this device has: the courier pulls today and yesterday, so days
- * from before this phone existed are not here. The server has them all and
- * could hand over a range later.
+ * Complete, not just what this phone was around for: the courier pulls every
+ * day that changed since its last look (`pullHistory` in sync.ts), so a
+ * reinstall or a second device shows the same record as the first. What stays
+ * closed stays closed — the lock-in holds for the past as it does for today.
  */
 export function Chronicle() {
   const { t, locale, other } = useI18n();

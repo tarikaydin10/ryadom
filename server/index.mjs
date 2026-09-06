@@ -417,6 +417,31 @@ function dayResponse(date, member) {
   return { date, rounds, you: rounds[0].you, partner: rounds[0].partner };
 }
 
+/**
+ * The chronicle's feed: every day that changed since a moment the client names.
+ *
+ * A day changes when either side writes in a round or when a round opens. Your
+ * own answer counts too — it is what unlocks the other text for you. The client
+ * keeps the `now` it is handed as its next cursor, so the first pull after
+ * unlocking is the whole history and every later one is a few days at most.
+ * Each day goes through `dayResponse`, so the lock-in holds for the past exactly
+ * as it does for today: a round you never answered stays closed in the chronicle.
+ *
+ * Answers from before `touchedAt` existed fall back to `updatedAt`; they are
+ * all older than any cursor a client can hold, and a cursor of zero gets them
+ * regardless.
+ */
+function daysChangedSince(since, member) {
+  const touched = (round) =>
+    (round.openedAt ?? 0) > since ||
+    ['a', 'b'].some((side) => round[side] && (round[side].touchedAt ?? round[side].updatedAt) > since);
+  const days = Object.entries(store.days)
+    .filter(([, day]) => Array.isArray(day.rounds) && day.rounds.some(touched))
+    .map(([date]) => date)
+    .sort();
+  return { now: Date.now(), days: days.map((date) => dayResponse(date, member)) };
+}
+
 /* ------------------------------------------------------------------- push */
 
 /**
@@ -807,6 +832,12 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === '/api/days' && req.method === 'GET') {
+    const since = Number(url.searchParams.get('since') ?? 0);
+    send(res, 200, daysChangedSince(Number.isFinite(since) && since > 0 ? since : 0, member));
+    return;
+  }
+
   const match = /^\/api\/days\/([^/]+)(\/answer)?$/.exec(url.pathname);
   if (!match) {
     send(res, 404, { error: 'not found' });
@@ -866,6 +897,12 @@ const server = createServer(async (req, res) => {
         questionId: typeof body?.questionId === 'string' ? body.questionId : '',
         createdAt: existing?.createdAt ?? Date.now(),
         updatedAt,
+        // By this clock, not the phone's: `updatedAt` is when the words were
+        // typed, on a device whose clock nobody checks. The chronicle's cursor
+        // (`daysChangedSince`) compares against this one, so a phone running
+        // two minutes slow cannot slip a write in "before" the other side's
+        // last pull and have it never arrive.
+        touchedAt: Date.now(),
       };
       store.days[date] = day;
       openRounds(date, day);

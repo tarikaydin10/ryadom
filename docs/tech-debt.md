@@ -129,9 +129,10 @@ nichts mehr zu tragen. Dann Datei und Aufruf in `main.tsx` löschen.
 gestolpert („warum steht da *nichts geschrieben*, wir haben doch geantwortet").
 Jetzt zeigt er, was er heißt: die vergangenen Tage mit Frage und beiden
 Antworten, die eigenen Fragen als Abschnitt darunter, und von „Heute" führt eine
-Zeile dorthin. Offen bleibt, dass er nur zeigt, was **dieses Gerät** gesehen
-hat: der Sync holt heute und gestern. Ein Bereichs-Endpunkt (`GET /api/days?
-from=…`) wäre der Abbau, sobald die Lücke jemanden stört.
+Zeile dorthin. ~~Offen bleibt, dass er nur zeigt, was dieses Gerät gesehen
+hat.~~ Seit [ADR-0014](adr/0014-chronik-verlauf-vom-server.md) holt der Sync
+den Verlauf cursorbasiert nach (`GET /api/days?since=…`); ein frisches Gerät
+zeigt nach dem ersten Sync alles.
 **Abbau (Karte):** Erst mit Vorlage. Bis dahin ehrlicher Platzhalter statt
 geratener Screen — das ist die Entscheidung, nicht ein Versäumnis.
 
@@ -174,3 +175,16 @@ was den Eindruck macht, die App habe nichts mehr zu fragen.
 **Abbau:** Fragen schreiben, nicht Code. Der eigene Pool federt das ab, ersetzt
 es aber nicht: er hängt daran, dass jemand Lust hat zu schreiben. Ziel wären
 150 bis 200 gebündelte Fragen in `src/content/questions.ts`, in beiden Sprachen.
+
+## TD-15 · Eine verpasste Runde bleibt für immer geschlossen
+
+**Woher:** Today nimmt nur Antworten für *heute*; die Chronik zeigt eine Runde,
+an der nur die andere Seite schrieb, als „erscheint, wenn du schreibst" — für
+immer, weil es keinen Weg gibt, nachträglich zu schreiben.
+**Was es riskiert:** Die andere Seite hat ins Leere geschrieben, und die
+Chronik zeigt das als Lücke, die niemand mehr schließen kann. Mit bis zu drei
+Runden am Tag passiert das öfter als mit einer.
+**Abbau:** Roadmap-Punkt „Nachschreiben" in [docs/produkt.md](produkt.md).
+`PUT /api/days/:date/answer` kann es schon; nur die Oberfläche fehlt — und
+die Entscheidung, ob eine nachgetragene Antwort eine Runde öffnen darf
+(heute: nur am selben Tag, `settle`).

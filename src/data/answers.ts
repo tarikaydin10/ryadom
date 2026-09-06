@@ -91,10 +91,9 @@ export async function loadDay(date: string): Promise<RoundView[]> {
 /**
  * Every day this device has kept, newest first.
  *
- * Only what is here: the courier pulls today and yesterday, so the chronicle
- * knows what this phone was around for. The server has all of it and could hand
- * over a range one day; until then this is an honest record rather than a
- * complete one.
+ * Reads the local store only; the courier keeps it complete by pulling every
+ * day that changed on the server since its last look (`pullHistory`). Offline,
+ * the chronicle shows what the device has, which after one sync is all of it.
  */
 export async function loadHistory(): Promise<DayHistory[]> {
   const [rounds, answers, questions] = await Promise.all([getAllRounds(), getAllAnswers(), getQuestions()]);

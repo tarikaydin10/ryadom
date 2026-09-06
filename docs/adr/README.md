@@ -24,6 +24,7 @@ diesem Tag gefallen.
 | [0011](0011-sprache-russisch-englisch.md) | Sprache: Russisch und Englisch, Systemsprache entscheidet | Gültig |
 | [0012](0012-runden-statt-einer-frage-pro-tag.md) | Runden statt einer Frage pro Tag, und eigene Fragen | Gültig |
 | [0013](0013-push-benachrichtigungen.md) | Push-Benachrichtigungen, serverseitig und ohne Inhalt | Gültig |
+| [0014](0014-chronik-verlauf-vom-server.md) | Chronik: Verlauf vom Server nachladen, Lock-In gilt rückwirkend | Gültig |
 
 ## Vorlage
 
