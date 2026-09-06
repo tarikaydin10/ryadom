@@ -131,7 +131,9 @@ Die lokale Datenbank ist die Wahrheit, nicht ein Cache des Servers.
   leiten die erste Frage des Tages aus demselben Datum ab. Jede weitere Runde
   öffnet der Server, sobald beide geantwortet haben — dafür braucht es ihn
   ohnehin, denn nur er weiß, ob die Gegenseite geschrieben hat
-  ([ADR-0012](docs/adr/0012-runden-statt-einer-frage-pro-tag.md)).
+  ([ADR-0012](docs/adr/0012-runden-statt-einer-frage-pro-tag.md)). Wartet eine
+  eigene Frage, wird sie die Frage des Tages; die Tabelle füllt nur auf
+  ([ADR-0016](docs/adr/0016-eigene-fragen-zuerst-auch-als-frage-des-tages.md)).
 * Der Service Worker cacht die gesamte App-Shell samt Schriften, also startet sie
   auch offline.
 

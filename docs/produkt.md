@@ -61,7 +61,7 @@ offline zuerst, weniger Code — gelten unverändert. Dazu drei Produkt-Grundsä
 | Himmelsband, Sonne/Mond, Wetter | Fertig. Wischen durch ±14 Tage. |
 | Frage des Tages, Lock-In | Fertig, serverseitig. |
 | Runden | Bis zu drei am Tag; jede weitere öffnet der Server, wenn beide geschrieben haben. |
-| Eigene Fragen | Pool auf dem Server, älteste zuerst, optional mit Übersetzung. |
+| Eigene Fragen | Pool auf dem Server, älteste zuerst, optional mit Übersetzung. Seit ADR-0016 auch als Frage des Tages: eure zuerst, die Tabelle füllt auf. |
 | Push | Serverseitig, ohne Inhalt, nur in der installierten App. Auf dem iPhone bestätigt. |
 | Chronik | Vergangene Tage mit allen Runden, vollständig auf jedem Gerät (ADR-0014); verpasste Runden lassen sich nachschreiben (ADR-0015). |
 | Backup | Täglich durch den Server, dreißig Tage; Anleitung für die Kopie nach außen in deploy/README.md. |
@@ -142,6 +142,7 @@ Selbstverständlichkeit.
 | Reaktionen, Likes | Die Antwort ist die Reaktion. |
 | Fotos | Größe, Server, Backup, Löschen — verdoppelt die Komplexität für etwas, das jeder Messenger besser kann. Vielleicht einmal *ein* Foto pro Tag, klein. Nicht jetzt. |
 | Eigene Fragen mit Datum | Macht aus einem Einfall eine Terminplanung (ADR-0012). |
+| Frage des Tages und eigene Fragen als zwei Spiele | Zweimal Lock-In oder einmal keiner. Eine Liste, eure zuerst (ADR-0016). |
 | Antworten übersetzen | Nie. Fragen sind kurz und an beide gerichtet; Antworten sind das Intime. |
 | Mehr als zwei Nutzer, Konten | Die App ist für zwei; jede Verallgemeinerung kostet die Einfachheit, die sie erreichbar hält. |
 | Analytics | Zwei Nutzer, die man fragen kann. |

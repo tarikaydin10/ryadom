@@ -22,10 +22,11 @@ diesem Tag gefallen.
 | [0009](0009-viewport-meta.md) | Viewport-Meta: cover, kein Zoom, kein resizes-content | Gültig |
 | [0010](0010-ios-tastatur-viewport-bug.md) | Umgang mit dem iOS-Tastatur-Viewport-Bug | **Vorläufig — auf dem Gerät nicht bestätigt** |
 | [0011](0011-sprache-russisch-englisch.md) | Sprache: Russisch und Englisch, Systemsprache entscheidet | Gültig |
-| [0012](0012-runden-statt-einer-frage-pro-tag.md) | Runden statt einer Frage pro Tag, und eigene Fragen | Gültig |
+| [0012](0012-runden-statt-einer-frage-pro-tag.md) | Runden statt einer Frage pro Tag, und eigene Fragen | Gültig, ergänzt durch 0016 |
 | [0013](0013-push-benachrichtigungen.md) | Push-Benachrichtigungen, serverseitig und ohne Inhalt | Gültig |
 | [0014](0014-chronik-verlauf-vom-server.md) | Chronik: Verlauf vom Server nachladen, Lock-In gilt rückwirkend | Gültig |
 | [0015](0015-nachschreiben-ohne-frist-ohne-runde.md) | Nachschreiben: ohne Frist, ohne neue Runde | Gültig |
+| [0016](0016-eigene-fragen-zuerst-auch-als-frage-des-tages.md) | Eigene Fragen zuerst — auch als Frage des Tages | Gültig |
 
 ## Vorlage
 

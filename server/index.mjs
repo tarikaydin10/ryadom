@@ -401,18 +401,68 @@ const pairDay = () => new Intl.DateTimeFormat('en-CA', { timeZone: PAIR_TIMEZONE
  */
 async function settle(date) {
   if (date !== pairDay()) return;
-  const day = store.days[date];
-  if (!day || !Array.isArray(day.rounds) || day.rounds.length === 0) return;
+  let changed = false;
+  let day = store.days[date];
+
+  // The question of the day is one of yours whenever one is waiting — the
+  // table only fills in. This is the moment it is decided: the first look at
+  // today. A day is created for it if need be, which is the one exception to
+  // "a read never invents a day", and it is made for a question somebody wrote.
+  if (!day || !Array.isArray(day.rounds) || day.rounds.length === 0) {
+    const own = pendingOwnQuestion(date);
+    if (!own) return;
+    own.usedOn = date;
+    day = { rounds: [{ question: { kind: 'pool', id: own.id }, openedAt: Date.now() }] };
+    store.days[date] = day;
+    changed = true;
+  } else if (day.rounds[0].question?.kind !== 'pool' && !day.rounds[0].a && !day.rounds[0].b) {
+    // Created by a write that went to the table (a phone that wrote before it
+    // synced, then edited it away) — an untouched round zero can still switch.
+    const own = pendingOwnQuestion(date);
+    if (own) {
+      own.usedOn = date;
+      day.rounds[0] = { question: { kind: 'pool', id: own.id }, openedAt: Date.now() };
+      changed = true;
+    }
+  }
+
   const before = day.rounds.length;
   openRounds(date, day);
-  if (day.rounds.length !== before) await persist();
+  if (changed || day.rounds.length !== before) await persist();
+}
+
+/**
+ * The oldest of your questions that has not really been asked yet.
+ *
+ * "Asked" means somebody answered it. One that was put on a day nobody wrote
+ * on — a day that passed in silence — comes back to the front of the queue
+ * rather than being spent on an empty room; the round it sat in is dropped, so
+ * the chronicle does not keep a day nobody lived.
+ */
+function pendingOwnQuestion(today) {
+  for (const question of store.questions) {
+    if (question.deleted || question.usedOn === null || question.usedOn >= today) continue;
+    const day = store.days[question.usedOn];
+    const slot = day?.rounds?.findIndex((round) => round.question?.kind === 'pool' && round.question.id === question.id) ?? -1;
+    const round = slot >= 0 ? day.rounds[slot] : null;
+    if (round && (round.a || round.b)) continue;
+    const usedOn = question.usedOn;
+    question.usedOn = null;
+    if (round) {
+      day.rounds.splice(slot, 1);
+      if (day.rounds.length === 0) delete store.days[usedOn];
+    }
+  }
+  return (
+    store.questions
+      .filter((question) => !question.deleted && question.usedOn === null)
+      .sort((left, right) => left.createdAt - right.createdAt || (left.id < right.id ? -1 : 1))[0] ?? null
+  );
 }
 
 /** Yours before mine: a question one of you wrote is asked before the table's. */
 function nextQuestion(date) {
-  const own = store.questions
-    .filter((question) => !question.deleted && question.usedOn === null)
-    .sort((left, right) => left.createdAt - right.createdAt || (left.id < right.id ? -1 : 1))[0];
+  const own = pendingOwnQuestion(date);
   if (!own) return { kind: 'bundled' };
   own.usedOn = date;
   return { kind: 'pool', id: own.id };
@@ -934,6 +984,23 @@ const server = createServer(async (req, res) => {
     }
 
     const round = day.rounds[slot];
+    // A phone that answered round zero before it had synced today answered the
+    // table's question — its questionId says so — while this process may since
+    // have given the slot to one of your own. Whoever wrote first decides: if
+    // nobody has answered the pool version yet, the round goes back to the
+    // table and the question returns to the front of the queue. If somebody
+    // has, the two of you are looking at different questions and this answer
+    // cannot be taken; the phone keeps its copy and says so.
+    const bundledId = typeof body?.questionId === 'string' && /^q\d+$/.test(body.questionId);
+    if (slot === 0 && round.question?.kind === 'pool' && bundledId) {
+      if (round.a || round.b) {
+        send(res, 409, { error: 'question changed' });
+        return;
+      }
+      const own = store.questions.find((question) => question.id === round.question.id);
+      if (own) own.usedOn = null;
+      round.question = { kind: 'bundled' };
+    }
     const existing = round[member];
     // Only the first answer to a round is news. An edit is somebody choosing a
     // better word, and a phone that buzzes for that is a phone you turn off.
