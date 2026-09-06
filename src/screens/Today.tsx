@@ -3,11 +3,12 @@ import { SkyBand } from '../components/SkyBand';
 import { TimeRail } from '../components/TimeRail';
 import { QuestionBlock } from '../components/QuestionBlock';
 import { AnswerPair } from '../components/AnswerPair';
+import { RoundDone } from '../components/RoundDone';
 import { CountdownCard } from '../components/CountdownCard';
 import { useI18n } from '../i18n';
 import { useNow, useOnline, useSyncStatus, useWeather } from '../lib/hooks';
 import { useSettings } from '../data/settings-context';
-import { BAND_ORDER } from '../content/cities';
+import { BAND_ORDER, CITIES } from '../content/cities';
 import { rowAt, skyDay, statusFor } from '../sky/engine';
 import { dateKey } from '../lib/day';
 import { useScrub, SCRUB_LIMIT_MS } from '../lib/scrub';
@@ -16,6 +17,7 @@ import { MAX_ROUNDS, promptAuthor } from '../content/prompt';
 import { displayName, sidesFor } from '../data/settings';
 import { getPair } from '../data/pair';
 import { loadDay, saveMyAnswer, type RoundView } from '../data/answers';
+import { pruneDrafts } from '../data/drafts';
 
 import { subscribeSync } from '../data/sync';
 
@@ -75,6 +77,7 @@ export function Today({ onAsk }: Props) {
   useEffect(() => {
     fromStore.current = false;
     setRounds(openingRound(today));
+    pruneDrafts(today);
   }, [today]);
   useEffect(refresh, [refresh]);
   // Whatever the courier brings in — their answer, an acknowledgement — shows up
@@ -88,8 +91,12 @@ export function Today({ onAsk }: Props) {
   const sides = sidesFor(member, settings);
   const yourCity = sides.yours;
   const partnerName = displayName(sides.partnerName, locale);
+  const partnerTz = CITIES[sides.theirs].tz;
 
-
+  // Finished rounds unfolded by a tap, by slot. Never folded again by the page:
+  // see RoundDone.
+  const [unfolded, setUnfolded] = useState<number[]>([]);
+  const onOpen = useCallback((slot: number) => setUnfolded((slots) => [...slots, slot]), []);
 
   // Stable across renders, so winding the sky does not re-render the answers.
   // Which round is being written into travels as an argument rather than in a
@@ -207,18 +214,32 @@ export function Today({ onAsk }: Props) {
 
             A day is several of those now, oldest first, so the page reads
             downward the way the day went: what was asked this morning and what
-            you both said, and at the bottom the one still open. */}
+            you both said, folded to the words once both of you have said them,
+            and at the bottom, at full size, the one still open. */}
         <section className="daily" aria-label={t('question.kickerPlain')} ref={daily}>
-          {rounds.map((round) => (
-            <div className="round" key={round.slot}>
-              <QuestionBlock
-                prompt={round.prompt}
-                kicker={round.slot === 0 ? t('question.kickerPlain') : t('question.kickerMore')}
-                byline={byline(round)}
-              />
-              <AnswerPair round={round} partnerName={partnerName} saving={saving} onSave={onSave} />
-            </div>
-          ))}
+          {rounds.map((round) =>
+            round.mine && round.theirs && !unfolded.includes(round.slot) ? (
+              <div className="round" key={round.slot}>
+                <RoundDone round={round} partnerName={partnerName} onOpen={onOpen} />
+              </div>
+            ) : (
+              <div className="round" key={round.slot}>
+                <QuestionBlock
+                  prompt={round.prompt}
+                  kicker={round.slot === 0 ? t('question.kickerPlain') : t('question.kickerMore')}
+                  byline={byline(round)}
+                />
+                <AnswerPair
+                  round={round}
+                  date={today}
+                  partnerName={partnerName}
+                  partnerTz={partnerTz}
+                  saving={saving}
+                  onSave={onSave}
+                />
+              </div>
+            ),
+          )}
           {note && <p className="daily__note">{note}</p>}
           <button className="daily__ask" onClick={onAsk}>
             {t('question.askSomething')}
