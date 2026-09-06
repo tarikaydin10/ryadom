@@ -1210,9 +1210,11 @@ textarea {
 
 /* Every screen except Today starts with a heading, and a heading behind the
    island is a heading nobody reads. Today is exempt on purpose: its sky is meant
-   to run up under the island. */
+   to run up under the island.
+
+   `1 0 auto`, not `1`: see .screen-scroll — the same lesson, the same fix. */
 .screen {
-  flex: 1;
+  flex: 1 0 auto;
   padding: calc(24px + var(--safe-top)) var(--gutter) 24px;
   display: flex;
   flex-direction: column;
@@ -1235,9 +1237,20 @@ textarea {
 }
 
 /* The Today column: the band, then the page under it. Not a scroller of its
-   own — the document scrolls, see html/body. */
+   own — the document scrolls, see html/body.
+
+   `flex: 1 0 auto`, and the `auto` is the whole point. With plain `flex: 1` the
+   basis is 0, and on the phone WebKit laid the column out at nothing and
+   stretched it to what was spare: the .app column stayed exactly one viewport
+   tall, the day's rounds ran out of the bottom of it in plain sight, and the
+   sticky tab bar — which can never leave its own column — sat at the column's
+   end, one screen height down, and scrolled away with the page like any other
+   block (2026-09-06, the first day Today was taller than a screen). Chromium
+   never showed it, which is why it shipped. `.content` below learned the same
+   thing on 2026-09-05 for the same reason; measure the content first, then
+   fill what is spare. */
 .screen-scroll {
-  flex: 1;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
 }

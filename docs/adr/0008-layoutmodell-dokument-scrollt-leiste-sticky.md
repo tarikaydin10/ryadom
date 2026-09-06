@@ -68,3 +68,25 @@ Vorsorge stehen ([TD-03](../tech-debt.md)).
 - Verifiziert im Desktop-Browser bei 402×874, 402×600 (Scrollen), Map-Screen
   und 1200×800; auf dem Gerät initial korrekt. Was auf dem Gerät **nicht**
   gelöst ist, steht in ADR-0010.
+
+## Nachtrag 2026-09-06 · `flex: 1 0 auto` für die Screens
+
+Am ersten Tag, an dem Today länger als ein Bildschirm war (drei Runden), fuhr
+die Leiste auf dem iPhone beim Scrollen 1:1 mit dem Inhalt nach oben, und der
+Inhalt lief unter ihr weiter. Die Screenshots zeigten: `.app` war exakt
+874 pt hoch, also `100dvh`, obwohl der Inhalt länger war. Die Spalte war nicht
+gewachsen; der Screen war auf den Rest neben der Leiste gestaucht worden, der
+Inhalt lief sichtbar aus der Spalte, und die sticky Leiste — die ihre eigene
+Spalte nie verlassen kann — saß am Spaltenende bei einer Bildschirmhöhe.
+
+Ursache: `.screen` und `.screen-scroll` hatten `flex: 1`, also
+`flex-basis: 0`. WebKit legt so ein Kind mit nichts an und streckt es nur auf
+den freien Platz; die Spalte bleibt bei ihrer `min-height`. Chromium rechnet
+das Minimum aus dem Inhalt und zeigte den Fehler nie — deshalb war er in der
+Verifikation oben unsichtbar. `.content` hatte dieselbe Lektion einen Tag
+vorher im alten Scroller-Modell gelernt (Kommentar im Stylesheet).
+
+Behoben mit `flex: 1 0 auto` an beiden Stellen: Inhalt zuerst messen, dann
+den Rest füllen. Im Chromium unverändert korrekt (Leistenlücke 0 in allen
+drei Größen, `.app` so hoch wie das Dokument). Auf dem Gerät noch zu
+bestätigen — eine Hypothese, ein Deploy.
