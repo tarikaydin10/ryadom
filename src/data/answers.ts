@@ -39,7 +39,8 @@ export interface DayHistory {
  * `withEmpty` is the difference between the two readers of this. Today needs
  * the open round even when nobody has written in it yet — that is the whole
  * point of the screen. The chronicle does not: a round nobody answered is not a
- * memory, it is an empty chair.
+ * memory, it is an empty chair. One they answered and you did not is kept,
+ * closed — that is a memory, just not yours yet.
  */
 function viewsFor(
   date: string,
@@ -70,7 +71,10 @@ function viewsFor(
         partnerAt: theirs?.createdAt ?? round?.answeredAt ?? null,
       };
     })
-    .filter((view) => withEmpty || view.mine !== null || view.theirs !== null);
+    // A round they answered and you did not is still part of the record — the
+    // chronicle says so in as many words, and it is the day that nachschreiben
+    // will one day reopen. Only a round nobody touched is an empty chair.
+    .filter((view) => withEmpty || view.mine !== null || view.theirs !== null || view.partnerAnswered);
 }
 
 /**
@@ -99,7 +103,11 @@ export async function loadHistory(): Promise<DayHistory[]> {
   const [rounds, answers, questions] = await Promise.all([getAllRounds(), getAllAnswers(), getQuestions()]);
   const pool = new Map(questions.map((question) => [question.id, question]));
 
-  const dates = [...new Set(answers.map((answer) => answer.date))].sort().reverse();
+  const dates = [
+    ...new Set([...answers.map((answer) => answer.date), ...rounds.filter((round) => round.answered).map((round) => round.date)]),
+  ]
+    .sort()
+    .reverse();
   return dates
     .map((date) => ({
       date,

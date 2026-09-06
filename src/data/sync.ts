@@ -15,6 +15,7 @@ import {
 import { loadSettings, mergeRemoteSettings } from './settings';
 import {
   answerId,
+  clearDayStores,
   dequeue,
   getAnswer,
   outbox,
@@ -28,6 +29,7 @@ import {
   kvSet,
 } from './db';
 import { dateKey } from '../lib/day';
+import { getPair } from './pair';
 
 /**
  * The courier.
@@ -74,6 +76,8 @@ function emit(patch: Partial<SyncStatus>): void {
 const LAST_SYNC_KEY = 'lastSyncAt';
 /** Server clock of the last history pull; zero means "everything, please". */
 const HISTORY_CURSOR_KEY = 'historySince';
+/** Which side of the pair the answers in this store are "me" for. */
+const STORE_OWNER_KEY = 'storeOwner';
 
 async function refreshPending(): Promise<number> {
   const pending = await outboxCount();
@@ -208,8 +212,33 @@ async function syncSharedSettings(): Promise<void> {
  * ride along with the rounds that asked them, so `applyDay` is all it takes.
  */
 async function pullHistory(): Promise<void> {
-  const since = (await kvGet<number>(HISTORY_CURSOR_KEY)) ?? 0;
-  const response = await fetchDaysSince(since);
+  const member = getPair()?.member;
+  if (!member) return;
+
+  // "Me" and "them" are written into every record from the side that fetched
+  // it. Forgetting the device only drops the passphrase, so unlocking again as
+  // the other side would read the whole record mirror-imaged. When the store
+  // belongs to the other side, it is cleared and pulled afresh — the outbox is
+  // already empty by this point, so nothing unsent is lost. A store from
+  // before this key existed is simply adopted: it was filled from this side.
+  let since = (await kvGet<number>(HISTORY_CURSOR_KEY)) ?? 0;
+  const owner = await kvGet<string>(STORE_OWNER_KEY);
+  if (owner !== undefined && owner !== member) {
+    await clearDayStores();
+    since = 0;
+  }
+  if (owner !== member) await kvSet(STORE_OWNER_KEY, member);
+
+  let response;
+  try {
+    response = await fetchDaysSince(since);
+  } catch (error) {
+    // A server that predates this route, for the minutes a deploy takes to
+    // reach both halves. Today and yesterday are already in; the past can wait
+    // for the next sync rather than paint the whole thing red.
+    if (error instanceof ApiError && error.status === 404) return;
+    throw error;
+  }
   for (const day of response.days) await applyDay(day);
   await kvSet(HISTORY_CURSOR_KEY, response.now);
 }

@@ -296,6 +296,17 @@ export async function getAllRounds(): Promise<RoundRecord[]> {
   return (await db()).getAll('rounds');
 }
 
+/**
+ * Everything the server can say again — answers and rounds — but not the
+ * outbox, which holds words that have not reached it yet, and not `kv`.
+ * Used when the store turns out to belong to the other side of the pair.
+ */
+export async function clearDayStores(): Promise<void> {
+  const store = await db();
+  const tx = store.transaction(['answers', 'rounds'], 'readwrite');
+  await Promise.all([tx.objectStore('answers').clear(), tx.objectStore('rounds').clear(), tx.done]);
+}
+
 export async function putRound(record: RoundRecord): Promise<void> {
   await (await db()).put('rounds', record);
 }
