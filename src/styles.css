@@ -791,9 +791,10 @@ textarea {
   border-top: 1px solid var(--border);
 }
 
-/* The end of the day, said once and quietly, so that "nothing more today" is
-   something the page says rather than something it withholds. */
-.daily__closed {
+/* The line under the open round that says what it leads to — the next question,
+   the last one, or the end of the day. Set like a footnote and never louder:
+   it explains the rhythm, it does not push anybody to keep it. */
+.daily__note {
   margin: 2px 0 0;
   font-size: 13px;
   font-style: italic;

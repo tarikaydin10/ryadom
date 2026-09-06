@@ -68,7 +68,15 @@ export const en = {
     // is, so the second question does not read as the first one repeating.
     kickerMore: 'One more',
     dayFull: 'That is the day. Tomorrow there is more.',
+    // When the next question comes is the one thing the page cannot show, so
+    // it is said under every open round: it is not a time, it is the two of
+    // you. The second line is for when they have written and you have not —
+    // then the wait is yours alone, and the sentence says what one tap buys.
     nextWhenBoth: 'The next question opens once you have both answered.',
+    nextWhenYou: 'Write, and the answer opens — and with it the next question.',
+    // The third round is the last one; saying so up front spares the wait for
+    // a fourth question that is not coming.
+    lastOfDay: 'The last one for today.',
     askedBy: '{name} asked this',
     askedByYou: 'Your question',
     machine: 'translated by machine',
@@ -265,6 +273,8 @@ export const ru: DeepStringShape<typeof en> = {
     kickerMore: 'Ещё вопрос',
     dayFull: 'На сегодня всё. Завтра будет ещё.',
     nextWhenBoth: 'Следующий вопрос откроется, когда ответите оба.',
+    nextWhenYou: 'Напиши — и ответ откроется, а с ним и следующий вопрос.',
+    lastOfDay: 'Последний на сегодня.',
     askedBy: 'Спрашивает {name}',
     askedByYou: 'Твой вопрос',
     machine: 'машинный перевод',

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SkyBand } from '../components/SkyBand';
 import { TimeRail } from '../components/TimeRail';
 import { QuestionBlock } from '../components/QuestionBlock';
@@ -56,16 +56,26 @@ export function Today({ onAsk }: Props) {
   const { scrubMs, shownMs, scrubTo, backToNow } = useScrub(now);
   const [rounds, setRounds] = useState<RoundView[]>(() => openingRound(dateKey(now)));
   const [saving, setSaving] = useState(false);
+  // Whether `rounds` is the store's word or the opening guess — see the scroll
+  // effect below, which must not treat the first real answer as a round opening.
+  const fromStore = useRef(false);
 
   const today = dateKey(now);
 
   const refresh = useCallback(() => {
-    void loadDay(today).then(setRounds);
+    void loadDay(today).then((loaded) => {
+      fromStore.current = true;
+      setRounds(loaded);
+    });
   }, [today]);
 
-  // Midnight: the day starts again from its own first question rather than
-  // leaving yesterday's answers on the screen until the store has answered.
-  useEffect(() => setRounds(openingRound(today)), [today]);
+  // Four in the morning: the day starts again from its own first question
+  // rather than leaving yesterday's answers on the screen until the store has
+  // answered.
+  useEffect(() => {
+    fromStore.current = false;
+    setRounds(openingRound(today));
+  }, [today]);
   useEffect(refresh, [refresh]);
   // Whatever the courier brings in — their answer, an acknowledgement — shows up
   // without the user doing anything.
@@ -106,16 +116,51 @@ export function Today({ onAsk }: Props) {
   };
 
   const last = rounds[rounds.length - 1];
+  const lastClosed = Boolean(last?.mine) && (last?.partnerAnswered ?? false);
   /**
-   * You have written, they have not, and the day could still hold another
-   * question. That is the one moment where nothing visibly happens and the
-   * reason is invisible — so it is said out loud, once, in place.
+   * What the open round leads to, said in one line under it.
+   *
+   * "When does the next question come?" is the question this page cannot
+   * answer by showing, because the answer is not a time — it is the other one
+   * of you. It used to be said only once you had written and they had not,
+   * which left the two commoner moments silent: a fresh question with nothing
+   * under it, where nobody has been told that answering opens another; and
+   * their answer waiting behind your empty card, where a tap buys more than the
+   * card admits. So the line is there for as long as the round is open, and it
+   * changes with whose move it is. The third round is the day's last, which is
+   * worth knowing before rather than after. And once the day is full, it says
+   * so — quietly, so "nothing more today" is a fact on the page rather than the
+   * absence of one.
    */
-  const waitingForNext = rounds.length < MAX_ROUNDS && Boolean(last?.mine) && !(last?.partnerAnswered ?? false);
-  // The day is full: three rounds, and the last one closed. Said once, quietly,
-  // so that "nothing more today" is a fact on the page rather than the absence
-  // of one.
-  const closed = rounds.length >= MAX_ROUNDS && Boolean(last?.mine) && (last?.partnerAnswered ?? false);
+  const footnote = (): string | null => {
+    if (!last) return null;
+    if (lastClosed) return rounds.length >= MAX_ROUNDS ? t('question.dayFull') : null;
+    if (rounds.length >= MAX_ROUNDS) return t('question.lastOfDay');
+    return last.partnerAnswered ? t('question.nextWhenYou') : t('question.nextWhenBoth');
+  };
+
+  /**
+   * A round that opens while you are looking is shown, not merely appended.
+   *
+   * It opens under the round you both just finished, and that round — a
+   * question in two languages and two answers — is a screen tall on a phone. So
+   * the best moment of the day, her answer unlocked and a new question with it,
+   * happened below the fold with nothing to say it had. This scrolls the new
+   * round to the top once the page holds more rounds than it did a moment ago.
+   * Only then: a launch that lands on an afternoon's third question stays where
+   * every launch starts, with the sky, and the day is read downward from there.
+   * `known` is null until the store has answered, so the first load — one
+   * opening round becoming the day's real list — is not mistaken for news.
+   */
+  const daily = useRef<HTMLElement>(null);
+  const known = useRef<number | null>(null);
+  useEffect(() => {
+    if (known.current !== null && rounds.length > known.current) {
+      const opened = daily.current?.querySelectorAll<HTMLElement>('.round');
+      opened?.[opened.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    known.current = fromStore.current ? rounds.length : null;
+  }, [rounds]);
 
   const netline = (): string | null => {
     if (!online) return t('net.offline');
@@ -126,6 +171,7 @@ export function Today({ onAsk }: Props) {
   };
 
   const line = netline();
+  const note = footnote();
 
   return (
     <div className="screen-scroll">
@@ -162,7 +208,7 @@ export function Today({ onAsk }: Props) {
             A day is several of those now, oldest first, so the page reads
             downward the way the day went: what was asked this morning and what
             you both said, and at the bottom the one still open. */}
-        <section className="daily" aria-label={t('question.kickerPlain')}>
+        <section className="daily" aria-label={t('question.kickerPlain')} ref={daily}>
           {rounds.map((round) => (
             <div className="round" key={round.slot}>
               <QuestionBlock
@@ -173,8 +219,7 @@ export function Today({ onAsk }: Props) {
               <AnswerPair round={round} partnerName={partnerName} saving={saving} onSave={onSave} />
             </div>
           ))}
-          {waitingForNext && <p className="daily__closed">{t('question.nextWhenBoth')}</p>}
-          {closed && <p className="daily__closed">{t('question.dayFull')}</p>}
+          {note && <p className="daily__note">{note}</p>}
           <button className="daily__ask" onClick={onAsk}>
             {t('question.askSomething')}
           </button>
