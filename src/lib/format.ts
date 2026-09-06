@@ -36,3 +36,10 @@ export function timeOfDay(ms: number, locale: Locale): string {
 export function roundTemp(value: number): string {
   return `${Math.round(value)}°`;
 }
+
+/** "Saturday, 6 September" / «суббота, 6 сентября» — a day in the chronicle. */
+export function longDate(ms: number, locale: Locale): string {
+  return new Intl.DateTimeFormat(intlTag(locale), { weekday: 'long', day: 'numeric', month: 'long' }).format(
+    new Date(ms),
+  );
+}

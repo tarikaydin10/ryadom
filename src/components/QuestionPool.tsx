@@ -21,8 +21,11 @@ import { dateKeyToMs } from '../lib/day';
  * nobody typed: the second field is optional and, when it is left empty, the
  * other side simply reads the sentence as it was written. That is honest, and
  * it is one sentence.
+ *
+ * Lives at the foot of the chronicle, because that is where the questions asked
+ * so far are: the ones you write are the same subject, seen from the other end.
  */
-export function Questions() {
+export function QuestionPool() {
   const { t, locale, other } = useI18n();
   const { settings } = useSettings();
   const [questions, setQuestions] = useState<QuestionRecord[]>([]);
@@ -67,12 +70,10 @@ export function Questions() {
   const mine = questions.filter((question) => !question.deleted).sort((left, right) => right.createdAt - left.createdAt);
 
   return (
-    <div className="screen">
-      <h1 className="screen__title">{t('questions.title')}</h1>
-      <p className="screen__note">{t('questions.intro')}</p>
-
-      <div className="section">
-        <span className="section__title">{t('questions.add')}</span>
+    <>
+      <div className="section" id="questions">
+        <span className="section__title">{t('questions.title')}</span>
+        <p className="hint">{t('questions.intro')}</p>
         <div className="field">
           <label className="field__label" htmlFor="question-text">
             {t('questions.yours')}
@@ -106,7 +107,7 @@ export function Questions() {
 
       <div className="section">
         <span className="section__title">{t('questions.list')}</span>
-        {mine.length === 0 && <p className="screen__note">{t('questions.empty')}</p>}
+        {mine.length === 0 && <p className="hint">{t('questions.empty')}</p>}
         {mine.map((question) => (
           <div className="questions__item" key={question.id}>
             <span className="questions__text" lang={question.lang}>
@@ -130,6 +131,6 @@ export function Questions() {
           </div>
         ))}
       </div>
-    </div>
+    </>
   );
 }

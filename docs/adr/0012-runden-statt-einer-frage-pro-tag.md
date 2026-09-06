@@ -73,7 +73,9 @@ gebündelte Fragen sind bei drei Runden am Tag in neunzehn Tagen einmal durch.
   IndexedDB steigt auf Version 2 und schreibt bestehende Antworten auf Runde 0
   um. Die Tagesantwort trägt die alten Feldnamen `you`/`partner` weiter, damit
   ein Telefon mit altem Bundle während des Deploys normal weiterarbeitet.
-- Die Chronik-Seite zeigt vorerst die eigenen Fragen. Der Tab heißt weiter
-  „Chronik"; das ist eine offene Kante ([TD-10](../tech-debt.md)).
+- Die Chronik zeigt die vergangenen Tage mit Frage und beiden Antworten; die
+  eigenen Fragen stehen als Abschnitt darunter, und von „Heute" führt eine Zeile
+  dorthin. Sie kennt nur, was das jeweilige Gerät gesehen hat
+  ([TD-10](../tech-debt.md)).
 - Die Fragentabelle ist für drei Runden am Tag zu klein
   ([TD-14](../tech-debt.md)).

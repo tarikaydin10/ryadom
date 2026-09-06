@@ -71,6 +71,9 @@ export const en = {
     askedBy: '{name} asked this',
     askedByYou: 'Your question',
     machine: 'translated by machine',
+    // The way to your own questions, from the place where wanting to ask one
+    // actually happens.
+    askSomething: 'Ask something of your own →',
   },
 
   answer: {
@@ -159,9 +162,13 @@ export const en = {
     caveat: 'A lock, not encryption: whoever holds this phone unlocked can read the answers.',
   },
 
+  chronicle: {
+    empty: 'Nothing written down yet. Whatever you answer today will be here tomorrow.',
+  },
+
   questions: {
-    title: 'Your questions',
-    intro: 'Write a question and it will be asked next — yours come before the built-in ones.',
+    title: 'Questions of your own',
+    intro: 'Write one and it is asked in the next round — yours come before the built-in ones.',
     add: 'A new question',
     yours: 'Your question',
     placeholder: 'What do you want to ask?',
@@ -170,8 +177,10 @@ export const en = {
     translation: 'The same question in the other language',
     translationHint: 'Optional — leave it empty and it stays as you wrote it.',
     save: 'Add',
-    list: 'Written so far',
-    empty: 'Nothing yet.',
+    list: 'Written by the two of you',
+    // Says what the emptiness means, rather than only that it is empty: until
+    // one of you writes one, the day's questions come out of the table.
+    empty: 'Neither of you has written one yet — until then the questions come from the built-in list.',
     waiting: 'waiting to be asked',
     asked: 'asked on {date}',
     remove: 'Take it back',
@@ -236,6 +245,7 @@ export const ru: DeepStringShape<typeof en> = {
     askedBy: 'Спрашивает {name}',
     askedByYou: 'Твой вопрос',
     machine: 'машинный перевод',
+    askSomething: 'Спросить о своём →',
   },
 
   answer: {
@@ -315,17 +325,21 @@ export const ru: DeepStringShape<typeof en> = {
     caveat: 'Это замок, а не шифрование: кто держит разблокированный телефон, тот читает ответы.',
   },
 
+  chronicle: {
+    empty: 'Пока ничего не записано. То, что вы ответите сегодня, будет здесь завтра.',
+  },
+
   questions: {
-    title: 'Ваши вопросы',
-    intro: 'Напиши вопрос — его зададут следующим: ваши идут раньше встроенных.',
+    title: 'Ваши собственные вопросы',
+    intro: 'Напиши свой — его зададут в следующем раунде: ваши идут раньше встроенных.',
     add: 'Новый вопрос',
     yours: 'Твой вопрос',
     placeholder: 'О чём ты хочешь спросить?',
     translation: 'Тот же вопрос на другом языке',
     translationHint: 'Необязательно — оставь пустым, и он останется как написан.',
     save: 'Добавить',
-    list: 'Уже написано',
-    empty: 'Пока ничего.',
+    list: 'Написанное вами',
+    empty: 'Никто из вас ещё не написал — пока их нет, вопросы приходят из встроенного списка.',
     waiting: 'ждёт своей очереди',
     asked: 'задан {date}',
     remove: 'Забрать назад',

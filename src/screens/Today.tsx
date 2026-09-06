@@ -42,7 +42,16 @@ const openingRound = (date: string): RoundView[] => [
  */
 const SCRUB_LIMIT_MS = 14 * DAY_MS;
 
-export function Today() {
+interface Props {
+  /**
+   * The way to the questions you write yourselves. It is a tab away, and a tab
+   * called "Chronicle" is not where anybody looks for it — the wish to ask
+   * something arrives here, under the question that just came.
+   */
+  onAsk(): void;
+}
+
+export function Today({ onAsk }: Props) {
   const { t, locale } = useI18n();
   const { settings } = useSettings();
   const now = useNow();
@@ -222,6 +231,9 @@ export function Today() {
             </div>
           ))}
           {closed && <p className="daily__closed">{t('question.dayFull')}</p>}
+          <button className="daily__ask" onClick={onAsk}>
+            {t('question.askSomething')}
+          </button>
         </section>
 
         <CountdownCard />

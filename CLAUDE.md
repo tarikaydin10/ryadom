@@ -78,8 +78,9 @@ verifiziert, wenn Aydin es auf dem Gerät gesehen hat. Sag das ausdrücklich.
 ## Wo was liegt
 
 ```
-src/screens/      Today, Us (Einstellungen), Questions (eigene Fragen), Lock, Placeholder (Map)
-src/components/   SkyBand, TimeRail, QuestionBlock, AnswerPair, CountdownCard, TabBar
+src/screens/      Today, Chronicle (Rückblick + eigene Fragen), Us, Lock, Placeholder (Map)
+src/components/   SkyBand, TimeRail, QuestionBlock, AnswerPair, CountdownCard, TabBar,
+                  QuestionPool (eigene Fragen), Diagnostics (versteckt unter „Us")
 src/content/      Städte, Fragentabelle, Auflösung der Rundenfrage (prompt.ts)
 src/sky/          Tagestabelle, Farben, Sonne/Mond (SunCalc) — rechnet lokal
 src/weather/      Open-Meteo, 7 Tage stündlich, ein Request für beide Städte

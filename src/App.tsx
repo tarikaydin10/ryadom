@@ -3,7 +3,7 @@ import { TabBar, type TabId } from './components/TabBar';
 import { Today } from './screens/Today';
 import { Us } from './screens/Us';
 import { Placeholder } from './screens/Placeholder';
-import { Questions } from './screens/Questions';
+import { Chronicle } from './screens/Chronicle';
 import { Lock } from './screens/Lock';
 import { isUnlocked, subscribePair } from './data/pair';
 import { startSync } from './data/sync';
@@ -36,12 +36,9 @@ export function App() {
 
   return (
     <div className="app">
-      {tab === 'today' && <Today />}
+      {tab === 'today' && <Today onAsk={() => setTab('chronicle')} />}
       {tab === 'map' && <Placeholder title="tabs.map" note="soon.map" />}
-      {/* The chronicle is still to be designed; the questions the two of them
-          write live here in the meantime, which is the part of a chronicle that
-          already has something to show. */}
-      {tab === 'chronicle' && <Questions />}
+      {tab === 'chronicle' && <Chronicle />}
       {tab === 'us' && <Us />}
       <TabBar active={tab} onChange={setTab} />
     </div>

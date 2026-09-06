@@ -276,7 +276,7 @@ src/
   weather/        Open-Meteo: Abruf, Cache, WMO-Codes
   data/           IndexedDB, Einstellungen, Outbox, Sync, Passphrase
   components/     Himmelsband, Frage, Antwortpaar, Countdown, Tabs
-  screens/        Heute, Mы (Einstellungen), Eigene Fragen, Sperrbildschirm, Platzhalter
+  screens/        Heute, Chronik (Rückblick + eigene Fragen), Mы, Sperrbildschirm, Platzhalter
 server/           Referenz-Sync-Server, ohne Abhängigkeiten
 scripts/          Icons zeichnen, Schriften holen
 ```

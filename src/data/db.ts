@@ -268,6 +268,16 @@ export async function getAnswers(date: string): Promise<AnswerRecord[]> {
   return (await db()).getAllFromIndex('answers', 'by-date', date);
 }
 
+/**
+ * Everything this device has ever held, for the chronicle.
+ *
+ * Two people writing a few sentences a day will not outgrow one read; when they
+ * do, this becomes a cursor over the date index.
+ */
+export async function getAllAnswers(): Promise<AnswerRecord[]> {
+  return (await db()).getAll('answers');
+}
+
 export async function putAnswer(record: AnswerRecord): Promise<void> {
   const store = await db();
   const existing = await store.get('answers', record.id);
@@ -280,6 +290,10 @@ export async function putAnswer(record: AnswerRecord): Promise<void> {
 
 export async function getRounds(date: string): Promise<RoundRecord[]> {
   return (await db()).getAllFromIndex('rounds', 'by-date', date);
+}
+
+export async function getAllRounds(): Promise<RoundRecord[]> {
+  return (await db()).getAll('rounds');
 }
 
 export async function putRound(record: RoundRecord): Promise<void> {

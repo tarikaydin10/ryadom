@@ -120,16 +120,20 @@ synchron vor dem ersten Render.
 **Abbau:** Nach dem Umzug auf `ryadom.net`. Neuer Origin = leerer Speicher =
 nichts mehr zu tragen. Dann Datei und Aufruf in `main.tsx` löschen.
 
-## TD-10 · Karte ist Platzhalter, Chronik heißt anders als sie ist
+## TD-10 · Karte ist Platzhalter — Chronik erledigt 2026-09-06
 
 **Woher:** Keine Design-Vorlage (README „Was bewusst offen ist").
-**Was es riskiert:** Die Karte führt ins Leere. Der Chronik-Tab zeigt seit
-[ADR-0012](adr/0012-runden-statt-einer-frage-pro-tag.md) die eigenen Fragen —
-inhaltlich richtig einsortiert, aber der Tab heißt weiter „Chronik"/«Хроника»,
-und eine Chronik der Antworten ist es nicht.
-**Abbau:** Erst mit Vorlage. Dann entweder die Chronik bauen und die Fragen
-darin einbetten, oder den Tab umbenennen. Bis dahin ehrliche Platzhalter statt
-geratener Screens — das ist die Entscheidung, nicht ein Versäumnis.
+**Was es riskiert:** Die Karte führt weiterhin ins Leere.
+**Chronik:** Der Tab zeigte einen Tag lang nur die eigenen Fragen unter einer
+Überschrift, die einen Rückblick versprach — Tarik ist prompt darüber
+gestolpert („warum steht da *nichts geschrieben*, wir haben doch geantwortet").
+Jetzt zeigt er, was er heißt: die vergangenen Tage mit Frage und beiden
+Antworten, die eigenen Fragen als Abschnitt darunter, und von „Heute" führt eine
+Zeile dorthin. Offen bleibt, dass er nur zeigt, was **dieses Gerät** gesehen
+hat: der Sync holt heute und gestern. Ein Bereichs-Endpunkt (`GET /api/days?
+from=…`) wäre der Abbau, sobald die Lücke jemanden stört.
+**Abbau (Karte):** Erst mit Vorlage. Bis dahin ehrlicher Platzhalter statt
+geratener Screen — das ist die Entscheidung, nicht ein Versäumnis.
 
 ## TD-11 · Backup der Serverdaten ist nicht Teil des Repos
 

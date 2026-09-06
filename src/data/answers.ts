@@ -1,12 +1,16 @@
 import {
   answerId,
   enqueue,
+  getAllAnswers,
+  getAllRounds,
   getAnswer,
   getAnswers,
   getQuestions,
   getRounds,
   putAnswer,
   type AnswerRecord,
+  type QuestionRecord,
+  type RoundRecord,
 } from './db';
 import { syncNow } from './sync';
 import { syncEnabled } from './api';
@@ -23,6 +27,52 @@ export interface RoundView {
   partnerAt: number | null;
 }
 
+/** A day as it will be remembered: its rounds, in the order they were asked. */
+export interface DayHistory {
+  date: string;
+  rounds: RoundView[];
+}
+
+/**
+ * Turn what is stored into what is shown.
+ *
+ * `withEmpty` is the difference between the two readers of this. Today needs
+ * the open round even when nobody has written in it yet — that is the whole
+ * point of the screen. The chronicle does not: a round nobody answered is not a
+ * memory, it is an empty chair.
+ */
+function viewsFor(
+  date: string,
+  described: RoundRecord[],
+  answers: AnswerRecord[],
+  pool: Map<string, QuestionRecord>,
+  withEmpty: boolean,
+): RoundView[] {
+  const bySlot = new Map(described.map((round) => [round.slot, round]));
+  const slots = new Set<number>([
+    ...(withEmpty ? [0] : []),
+    ...described.map((round) => round.slot),
+    ...answers.map((answer) => answer.slot),
+  ]);
+
+  return [...slots]
+    .sort((left, right) => left - right)
+    .map((slot) => {
+      const round = bySlot.get(slot);
+      const mine = answers.find((answer) => answer.slot === slot && answer.author === 'me') ?? null;
+      const theirs = answers.find((answer) => answer.slot === slot && answer.author === 'them') ?? null;
+      return {
+        slot,
+        prompt: promptFor(date, slot, round?.question ?? { kind: 'bundled' }, pool),
+        mine,
+        theirs,
+        partnerAnswered: round?.answered ?? theirs !== null,
+        partnerAt: theirs?.createdAt ?? round?.answeredAt ?? null,
+      };
+    })
+    .filter((view) => withEmpty || view.mine !== null || view.theirs !== null);
+}
+
 /**
  * The day as rounds, oldest first.
  *
@@ -35,24 +85,34 @@ export interface RoundView {
 export async function loadDay(date: string): Promise<RoundView[]> {
   const [rounds, answers, questions] = await Promise.all([getRounds(date), getAnswers(date), getQuestions()]);
   const pool = new Map(questions.map((question) => [question.id, question]));
-  const described = new Map(rounds.map((round) => [round.slot, round]));
+  return viewsFor(date, rounds, answers, pool, true);
+}
 
-  const slots = new Set<number>([0, ...rounds.map((round) => round.slot), ...answers.map((answer) => answer.slot)]);
-  return [...slots]
-    .sort((left, right) => left - right)
-    .map((slot) => {
-      const round = described.get(slot);
-      const mine = answers.find((answer) => answer.slot === slot && answer.author === 'me') ?? null;
-      const theirs = answers.find((answer) => answer.slot === slot && answer.author === 'them') ?? null;
-      return {
-        slot,
-        prompt: promptFor(date, slot, round?.question ?? { kind: 'bundled' }, pool),
-        mine,
-        theirs,
-        partnerAnswered: round?.answered ?? theirs !== null,
-        partnerAt: theirs?.createdAt ?? round?.answeredAt ?? null,
-      };
-    });
+/**
+ * Every day this device has kept, newest first.
+ *
+ * Only what is here: the courier pulls today and yesterday, so the chronicle
+ * knows what this phone was around for. The server has all of it and could hand
+ * over a range one day; until then this is an honest record rather than a
+ * complete one.
+ */
+export async function loadHistory(): Promise<DayHistory[]> {
+  const [rounds, answers, questions] = await Promise.all([getAllRounds(), getAllAnswers(), getQuestions()]);
+  const pool = new Map(questions.map((question) => [question.id, question]));
+
+  const dates = [...new Set(answers.map((answer) => answer.date))].sort().reverse();
+  return dates
+    .map((date) => ({
+      date,
+      rounds: viewsFor(
+        date,
+        rounds.filter((round) => round.date === date),
+        answers.filter((answer) => answer.date === date),
+        pool,
+        false,
+      ),
+    }))
+    .filter((day) => day.rounds.length > 0);
 }
 
 /**
