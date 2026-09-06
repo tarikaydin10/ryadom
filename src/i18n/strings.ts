@@ -140,6 +140,12 @@ export const en = {
     forget: 'Forget this device',
     forgetHint: 'Removes the passphrase from this device. Your answers stay on the server.',
     dayBoundary: 'The shared day starts at midnight in {tz}, so you both get the same question at the same moment.',
+    // Reached by tapping the heading five times. The wording assumes the reader
+    // is looking at a phone that is currently drawing itself wrong.
+    diagnostics: 'Diagnostics',
+    diagnosticsHint: 'What this phone measures right now. Copy it and send it over when the bar sits in the wrong place.',
+    copy: 'Copy',
+    copied: 'Copied',
   },
 
   lock: {
@@ -292,6 +298,10 @@ export const ru: DeepStringShape<typeof en> = {
     forget: 'Забыть это устройство',
     forgetHint: 'Пароль удалится с устройства. Ответы останутся на сервере.',
     dayBoundary: 'Общий день начинается в полночь по зоне {tz} — так вопрос у вас обоих меняется одновременно.',
+    diagnostics: 'Диагностика',
+    diagnosticsHint: 'Что этот телефон измеряет прямо сейчас. Скопируй и пришли, если полоса стоит не на месте.',
+    copy: 'Скопировать',
+    copied: 'Скопировано',
   },
 
   lock: {

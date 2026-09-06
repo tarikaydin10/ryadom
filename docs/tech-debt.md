@@ -39,7 +39,7 @@ kamen und dort harmlos, aber unbegründet stehen:
 |---|---|---|
 | `shrink-to-fit=no` | `index.html` | Seit iOS 13 wirkungslos; kam gegen einen vermuteten Shrink-to-fit, der keiner war. |
 | `contain: layout paint` | `.rail__track`, `styles.css` | Kam gegen dieselbe Vermutung. Sachlich sinnvoll (ein 1555-px-Kind soll nie zählen), aber nie als nötig belegt. |
-| `healViewport()` | `src/main.tsx` | Sicherung für TD-01; unbestätigt. ~35 Zeilen. |
+| `healViewport()` | `src/lib/viewport.ts` | Sicherung für TD-01; unbestätigt. Seit 2026-09-06 protokolliert es seine Entscheidungen, siehe TD-05. |
 
 **Abbau:** Mit TD-01. `healViewport()` fliegt, sobald der Fehler ohne sie
 nicht auftritt. Die beiden anderen können bleiben, wenn der Kommentar ehrlich
@@ -68,15 +68,20 @@ und Server-Auth fallen erst auf dem Telefon auf.
 `server/index.mjs` (`authenticate`, `dayResponse`, Rate-Limit). Layout und
 iOS-Verhalten sind damit nicht testbar — das bleibt Gerätearbeit.
 
-## TD-05 · Keine eingebaute Gerätediagnose
+## TD-05 · Keine eingebaute Gerätediagnose — **erledigt 2026-09-06**
 
-**Woher:** Heute wurde ein Wegwerf-Overlay (`ViewportDebug`) eingebaut,
+**Woher:** Am 2026-09-05 wurde ein Wegwerf-Overlay (`ViewportDebug`) eingebaut,
 deployt, abgelesen, entfernt. Ohne ein solches Werkzeug sind iOS-Fehler von
 außen nur zu raten — und geraten wurde tagelang.
-**Was es riskiert:** Beim nächsten Gerätefehler beginnt das Raten von vorn.
-**Abbau (Option, keine Pflicht):** Ein versteckter Schalter unter „Us", der die
-Messwerte aus ADR-0010 anzeigt. ~40 Zeilen, ohne Nebenwirkung. Nur bauen, wenn
-TD-01 nicht in einem Zyklus zu lösen ist.
+**Was es riskierte:** Beim nächsten Gerätefehler beginnt das Raten von vorn.
+Genau das trat am 2026-09-06 ein: die Leiste stand wieder zu hoch, diesmal um
+grob das Dreifache der 62 pt aus ADR-0010, und es gab nichts abzulesen.
+**Erledigt durch:** `Diagnostics` unter „Us", sichtbar nach fünf Tipp auf die
+Überschrift: die Messwerte aus ADR-0010 plus ein Protokoll der letzten zwölf
+`healViewport()`-Entscheidungen (ausgelöst? Tastatur oben? zu kurz? geheilt?)
+und ein Kopieren-Knopf. Liest nur, ändert nichts.
+**Bleibt offen:** ADR-0010 mit echten Zahlen abschließen — dann fliegt entweder
+`healViewport()` oder die Diagnose mit ihm.
 
 ## TD-06 · Sync kennt kein Löschen
 

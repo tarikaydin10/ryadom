@@ -9,6 +9,7 @@ import { useSyncStatus } from '../lib/hooks';
 import { CITIES, type CityId } from '../content/cities';
 import { timeOfDay } from '../lib/format';
 import type { Settings } from '../data/settings';
+import { Diagnostics } from '../components/Diagnostics';
 
 /**
  * Settings, and only settings.
@@ -26,6 +27,14 @@ export function Us() {
   const pair = getPair();
   const [draft, setDraft] = useState<Settings>(settings);
   const [saved, setSaved] = useState(false);
+  /**
+   * The way into the diagnosis: five taps on the heading.
+   *
+   * Hidden, because it is a block of numbers and this screen is otherwise part
+   * of the picture. Not hidden hard, because whoever needs it is holding a
+   * misbehaving phone in another country (TD-05).
+   */
+  const [taps, setTaps] = useState(0);
 
   useEffect(() => setDraft(settings), [settings]);
 
@@ -46,7 +55,9 @@ export function Us() {
 
   return (
     <div className="screen">
-      <h1 className="screen__title">{t('settings.title')}</h1>
+      <h1 className="screen__title" onClick={() => setTaps((count) => count + 1)}>
+        {t('settings.title')}
+      </h1>
 
       <div className="section">
         <span className="section__title">{t('settings.language')}</span>
@@ -126,6 +137,8 @@ export function Us() {
           </button>
         </div>
       )}
+
+      {taps >= 5 && <Diagnostics />}
 
       <div className="answer__actions">
         <button className="button" onClick={commit}>

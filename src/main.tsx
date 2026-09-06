@@ -4,6 +4,7 @@ import { App } from './App';
 import { I18nProvider } from './i18n';
 import { SettingsProvider } from './data/settings-context';
 import { carryOverStorage } from './data/carry-over';
+import { healViewport } from './lib/viewport';
 import './styles.css';
 
 /**
@@ -69,62 +70,9 @@ function keepFresh(): void {
 
 keepFresh();
 
-/**
- * Give the screen back to iOS after the keyboard.
- *
- * In a home-screen app the first keyboard takes the top inset off the layout
- * viewport — 62pt on a Dynamic Island phone — and iOS does not put it back
- * when the keyboard goes. The viewport stays that much shorter than the screen
- * until the app is force-quit, and everything measured against it (dvh, a
- * sticky tab bar) stops that far above the bottom edge, with bare background
- * beneath. No meta tag prevents it; a scrolling document does not either.
- *
- * What works is making iOS measure again: hide the root for one frame and show
- * it. Done only when the viewport really is shorter than the screen — in
- * standalone with viewport-fit=cover the two are the same height — so a page
- * that never lost anything never blinks.
- *
- * Watched through the visual viewport, not through focus. The keyboard's own
- * dismiss key leaves the field focused, and a field that unmounts (the
- * passphrase, on unlock) never blurs at all — neither would have fired. The
- * visual viewport resizes whenever the keyboard comes or goes; the check runs
- * once it has been still for a moment, and never while the keyboard is up.
- */
-function healViewport(): void {
-  if (!window.matchMedia('(display-mode: standalone)').matches) return;
-
-  const short = (): boolean => {
-    const scale = window.visualViewport?.scale ?? 1;
-    const viewport = Math.max(window.innerWidth, window.innerHeight) * scale;
-    const screen = Math.max(window.screen.width, window.screen.height);
-    return viewport < screen - 2;
-  };
-
-  const keyboardUp = (): boolean => {
-    const visual = window.visualViewport;
-    return visual !== null && visual.height < window.innerHeight - 80;
-  };
-
-  const heal = () => {
-    if (keyboardUp() || !short()) return;
-    const root = document.getElementById('root');
-    if (!root) return;
-    const y = window.scrollY;
-    root.style.display = 'none';
-    void root.offsetHeight;
-    root.style.display = '';
-    window.scrollTo(0, y);
-  };
-
-  let pending = 0;
-  const settle = () => {
-    window.clearTimeout(pending);
-    pending = window.setTimeout(heal, 300);
-  };
-  window.visualViewport?.addEventListener('resize', settle);
-  document.addEventListener('focusout', settle);
-}
-
+// The keyboard's leftovers, and the record of what was done about them — both
+// live in `lib/viewport.ts` now, because the second is only readable next to
+// the first. See ADR-0010.
 healViewport();
 
 // Before the first render, because the passphrase and the language are both
