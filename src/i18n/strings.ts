@@ -174,6 +174,13 @@ export const en = {
 
   chronicle: {
     empty: 'Nothing written down yet. Whatever you answer today will be here tomorrow.',
+    // A round you missed is not closed for good. Writing late buys the right
+    // to read what they wrote; it does not open another round — the day is over.
+    writeLate: 'Write now — their answer opens.',
+    writeLateAlone: 'Write now.',
+    // Shown under an answer that was written on a later day than the question.
+    // Honesty about when, never a reproach.
+    late: 'written later, on {date}',
   },
 
   questions: {
@@ -345,6 +352,9 @@ export const ru: DeepStringShape<typeof en> = {
 
   chronicle: {
     empty: 'Пока ничего не записано. То, что вы ответите сегодня, будет здесь завтра.',
+    writeLate: 'Написать сейчас — и ответ откроется.',
+    writeLateAlone: 'Написать сейчас.',
+    late: 'написано позже, {date}',
   },
 
   questions: {

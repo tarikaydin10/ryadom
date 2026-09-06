@@ -25,6 +25,7 @@ diesem Tag gefallen.
 | [0012](0012-runden-statt-einer-frage-pro-tag.md) | Runden statt einer Frage pro Tag, und eigene Fragen | Gültig |
 | [0013](0013-push-benachrichtigungen.md) | Push-Benachrichtigungen, serverseitig und ohne Inhalt | Gültig |
 | [0014](0014-chronik-verlauf-vom-server.md) | Chronik: Verlauf vom Server nachladen, Lock-In gilt rückwirkend | Gültig |
+| [0015](0015-nachschreiben-ohne-frist-ohne-runde.md) | Nachschreiben: ohne Frist, ohne neue Runde | Gültig |
 
 ## Vorlage
 

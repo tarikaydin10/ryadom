@@ -1,6 +1,6 @@
 # ADR-0013 · Push-Benachrichtigungen, serverseitig und ohne Inhalt
 
-**Status:** Gültig
+**Status:** Gültig — auf dem iPhone bestätigt (2026-09-06)
 **Datum:** 2026-09-06
 
 ## Kontext

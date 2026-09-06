@@ -62,8 +62,9 @@ offline zuerst, weniger Code — gelten unverändert. Dazu drei Produkt-Grundsä
 | Frage des Tages, Lock-In | Fertig, serverseitig. |
 | Runden | Bis zu drei am Tag; jede weitere öffnet der Server, wenn beide geschrieben haben. |
 | Eigene Fragen | Pool auf dem Server, älteste zuerst, optional mit Übersetzung. |
-| Push | Serverseitig, ohne Inhalt, nur in der installierten App. Auf dem Gerät noch nicht bestätigt. |
-| Chronik | Vergangene Tage mit allen Runden; Verlauf wird vollständig nachgeladen (ADR-0014). |
+| Push | Serverseitig, ohne Inhalt, nur in der installierten App. Auf dem iPhone bestätigt. |
+| Chronik | Vergangene Tage mit allen Runden, vollständig auf jedem Gerät (ADR-0014); verpasste Runden lassen sich nachschreiben (ADR-0015). |
+| Backup | Täglich durch den Server, dreißig Tage; Anleitung für die Kopie nach außen in deploy/README.md. |
 | Countdown | Fertig, Datum wird geteilt. |
 | Karte | Platzhalter. Kein Design, kein Konzept ohne Fremd-Host (s. u.). |
 | iOS | Zwei offene Punkte ([TD-01](tech-debt.md), [TD-02](tech-debt.md)); Diagnose jetzt unter „Us". |
@@ -82,29 +83,18 @@ von euch — wenn eine schief klingt oder auf Russisch nicht sitzt, ist das eine
 Zeile in `src/content/questions.ts`. Und der eigene Pool ist weiterhin die
 bessere Quelle.
 
-### 2 · Nachschreiben
+### 2 · Nachschreiben — *erledigt 2026-09-06*
 
-Heute kann nur *heute* beantwortet werden. Wer eine Runde verpasst, sieht in
-der Chronik für immer „erscheint, wenn du schreibst" — und die andere Seite hat
-ins Leere geschrieben ([TD-15](tech-debt.md)). Das ist der eine Ort, an dem
-die App hart ist, ohne dass die Härte etwas schützt.
+Ohne Frist, ohne neue Runde, mit „nachgetragen am …"
+([ADR-0015](adr/0015-nachschreiben-ohne-frist-ohne-runde.md)).
 
-**Vorschlag:** Eine eigene leere Runde in der Chronik ist antippbar und öffnet
-denselben Editor wie auf Today. Die Antwort trägt das Datum der Runde;
-der Lock-In öffnet sich wie sonst. Kein Umbau am Protokoll.
-**Offen:** Darf eine nachgetragene Antwort noch eine Runde öffnen? Empfehlung:
-nein — `settle` bleibt auf heute beschränkt, der Tag ist vorbei; nachschreiben
-heißt lesen dürfen, nicht weiterspielen. Und: Frist oder keine? Empfehlung:
-**keine**, aber die Chronik zeigt „nachgetragen am …".
+### 3 · Push auf dem Gerät bestätigen — *erledigt 2026-09-06*
 
-### 3 · Push auf dem Gerät bestätigen
+Erlaubnis, Zustellung im Hintergrund: auf dem iPhone gesehen.
 
-Gebaut, aber wie alles iOS-Spezifische erst dann verifiziert, wenn Aydin es auf
-dem Telefon gesehen hat: Erlaubnis in der Home-Screen-App, Zustellung nach
-Stunden im Hintergrund, Verhalten bei abgelaufenem Abo. Kein Feature, aber die
-Voraussetzung für 4.
+### 4 · Karte — Konzept liegt vor, Design fehlt
 
-### 4 · Karte — braucht zuerst ein Konzept, dann ein Design
+Ausgearbeitet in [docs/konzepte/karte.md](konzepte/karte.md). Kurzfassung:
 
 Der Tab existiert, weil der Handoff ihn vorsah; was er zeigen soll, wurde nie
 entschieden. Zwei Dinge sind klar:
@@ -126,7 +116,9 @@ Sobald Daten da sind: „Heute vor einem Jahr", das erste Wiedersehen als
 Marke in der Chronik, die Frage mit den längsten Antworten. Erst ab einem Jahr
 Daten; vorher gibt es nichts zurückzublicken.
 
-### 6 · Export
+### 6 · Export — Konzept liegt vor
+
+Ausgearbeitet in [docs/konzepte/export.md](konzepte/export.md). Kurzfassung:
 
 Eine Datei mit allem — beide Seiten, alle Tage, alle Runden, Klartext, in einem
 Format, das man in zehn Jahren noch öffnet (JSON *und* eine lesbare
@@ -158,12 +150,13 @@ Selbstverständlichkeit.
 
 Für Aydin, in der Reihenfolge, in der sie anstehen:
 
-1. **Nachschreiben: Frist ja/nein, Runde öffnen ja/nein** (Roadmap 2;
-   Empfehlung: keine Frist, keine Runde).
-2. **Maschinelle Übersetzung eigener Fragen** — in ADR-0012 offen gelassen.
+1. **Karte: das Konzept freigeben** ([docs/konzepte/karte.md](konzepte/karte.md))
+   und eine Vorlage zeichnen — oder zeichnen lassen. Vorher kein Code.
+2. **Export: Form und Ort** ([docs/konzepte/export.md](konzepte/export.md)) —
+   Empfehlung: ein Knopf unter „Us", der eine Textdatei und eine JSON-Datei
+   über den Teilen-Dialog liefert.
+3. **Maschinelle Übersetzung eigener Fragen** — in ADR-0012 offen gelassen.
    Berührt ADR-0003 (Text verlässt den Server). Empfehlung: erst, wenn eine
-   von beiden eine Frage nicht versteht; die Übersetzung durch den Autor
-   reicht vermutlich.
-3. **Was die Karte zeigt** — Vorlage nötig, bevor Code entsteht.
-4. **Backup auf dem VPS** ([TD-11](tech-debt.md)) — unabhängig von allem hier,
-   aber seit heute mit echten Daten dringlicher als jede Funktion.
+   von beiden eine Frage nicht versteht.
+4. **Kopie der Backups nach außen** — einmal einrichten, nach
+   `deploy/README.md` „Sicherung".

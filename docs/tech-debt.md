@@ -136,16 +136,19 @@ zeigt nach dem ersten Sync alles.
 **Abbau (Karte):** Erst mit Vorlage. Bis dahin ehrlicher Platzhalter statt
 geratener Screen — das ist die Entscheidung, nicht ein Versäumnis.
 
-## TD-11 · Backup der Serverdaten ist nicht Teil des Repos
+## TD-11 · Backup der Serverdaten ist nicht Teil des Repos — **erledigt 2026-09-06**
 
 **Woher:** [ADR-0004](adr/0004-server-ohne-abhaengigkeiten-deploy-per-rsync.md).
 `/var/lib/ryadom/answers.json` ist eine Datei; atomar geschrieben, aber ohne
 beschriebene Sicherung. Ob der VPS Snapshots macht, ist hier nicht bekannt.
 **Was es riskiert:** Ein kaputtes Dateisystem oder ein `rm` löscht die
 gemeinsame Geschichte der beiden.
-**Abbau:** Auf dem Server prüfen. Reicht ein täglicher `cp` mit Datum in ein
-zweites Verzeichnis plus Hetzner-Snapshot? Ergebnis in `deploy/README.md`
-eintragen.
+**Abbau:** ~~Auf dem Server prüfen.~~ Der Server selbst legt einmal am Tag
+eine Kopie nach `DATA_DIR/backups/answers-JJJJ-MM-TT.json` und behält dreißig
+(`backupDaily` in `server/index.mjs`) — kein Cron, nichts einzurichten. Das
+deckt den Fehler (ein `rm`, ein schlechtes Skript); die Platte deckt nur ein
+Snapshot des VPS, siehe `deploy/README.md` „Sicherung". Ein Export für die
+beiden ist als Konzept beschrieben ([docs/konzepte/export.md](konzepte/export.md)).
 
 ## TD-12 · Querformat ungetestet
 
@@ -179,7 +182,7 @@ laufen drei Runden am Tag durch alle 200 mit Schrittweite 37 — 66 Tage ohne
 Wiederholung. Wer die Tabelle erneut vergrößert, hängt **hinten an** und zieht
 den Stichtag in `questionFor` nach; nie mittendrin einfügen, nie umsortieren.
 
-## TD-15 · Eine verpasste Runde bleibt für immer geschlossen
+## TD-15 · Eine verpasste Runde bleibt für immer geschlossen — **erledigt 2026-09-06**
 
 **Woher:** Today nimmt nur Antworten für *heute*; die Chronik zeigt eine Runde,
 an der nur die andere Seite schrieb, als „erscheint, wenn du schreibst" — für
@@ -187,7 +190,5 @@ immer, weil es keinen Weg gibt, nachträglich zu schreiben.
 **Was es riskiert:** Die andere Seite hat ins Leere geschrieben, und die
 Chronik zeigt das als Lücke, die niemand mehr schließen kann. Mit bis zu drei
 Runden am Tag passiert das öfter als mit einer.
-**Abbau:** Roadmap-Punkt „Nachschreiben" in [docs/produkt.md](produkt.md).
-`PUT /api/days/:date/answer` kann es schon; nur die Oberfläche fehlt — und
-die Entscheidung, ob eine nachgetragene Antwort eine Runde öffnen darf
-(heute: nur am selben Tag, `settle`).
+**Abbau:** [ADR-0015](adr/0015-nachschreiben-ohne-frist-ohne-runde.md): in
+der Chronik nachschreiben, ohne Frist, ohne neue Runde, mit „nachgetragen am".

@@ -97,6 +97,7 @@ deploy/           Caddy, systemd bzw. Docker; Anleitung in deploy/README.md
 docs/adr/         Entscheidungen, mit verworfenen Alternativen
 docs/tech-debt.md Was bekannt und offen ist
 docs/produkt.md   Produktkonzept, Roadmap, bewusst nicht Gebautes, offene Entscheidungen
+docs/konzepte/    Ausgearbeitete Feature-Konzepte vor dem Bau (Karte, Export)
 docs/design-handoff/  Vorlage „Zwei — Home-Screen (Variante 2d)"
 ```
 

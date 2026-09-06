@@ -307,11 +307,24 @@ Notiz-App.
 
 ## Sicherung
 
-Alles, was nicht wiederherstellbar ist, liegt an zwei Stellen:
+Drei Schichten, von innen nach außen:
 
-```bash
-tar czf /root/ryadom-$(date +%F).tar.gz /var/lib/ryadom /etc/ryadom.env
-```
+1. **Der Server sichert sich selbst.** Einmal am Tag kopiert er
+   `answers.json` nach `/var/lib/ryadom/backups/answers-JJJJ-MM-TT.json` und
+   behält dreißig Tage. Nichts einzurichten; steht im Log als `backup: …`.
+   Zurückspielen: Dienst stoppen, Datei nach `answers.json` kopieren, starten.
+2. **Eine Kopie außerhalb der Maschine.** Alles, was nicht wiederherstellbar
+   ist, liegt an zwei Stellen — von deinem Rechner aus, gelegentlich:
+
+   ```bash
+   scp -r ryadom@<vps>:/var/lib/ryadom/backups ./ryadom-backups/
+   ```
+
+   Und einmal, an einem Ort, den du wiederfindest: `/etc/ryadom.env`, denn
+   die Passphrasen stehen sonst nirgends.
+3. **Snapshot des VPS** (Hetzner Cloud → Server → Snapshots). Deckt die
+   Platte, nicht den Fehler; die Kopien aus 1 decken den Fehler, nicht die
+   Platte. Beides zusammen reicht für zwei Menschen.
 
 ## Erreichbarkeit aus Russland
 

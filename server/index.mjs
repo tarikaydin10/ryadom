@@ -14,7 +14,7 @@
  *   PAIR_SECRET=<long random string> node server/index.js
  */
 import { createServer } from 'node:http';
-import { readFile, writeFile, mkdir, rename, stat } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, rename, stat, readdir, unlink, copyFile } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import { timingSafeEqual, randomUUID } from 'node:crypto';
 import { extname, join, normalize, dirname } from 'node:path';
@@ -183,6 +183,55 @@ function persist() {
     await rename(temporary, DATA_FILE);
   });
   return writeChain;
+}
+
+/* ----------------------------------------------------------------- backup */
+
+/**
+ * One copy a day, kept for a month, made by the only process allowed to touch
+ * the data directory.
+ *
+ * `answers.json` is the two of them, in one file, on one disk. It is written
+ * atomically, so a crash cannot truncate it — but nothing protected it from a
+ * stray `rm`, a bad deploy script or a corrupted volume. A cron job would do
+ * this too, and would be one more thing to set up on the VPS that never gets
+ * set up. Here it needs nothing: the server checks once an hour whether today
+ * has its copy yet, and writes it if not. Thirty copies at a few kilobytes
+ * each is nothing; older ones go. Snapshots of the whole machine are still the
+ * owners' business (deploy/README.md, "Sicherung") — this covers the mistake,
+ * they cover the disk.
+ */
+const BACKUP_DIR = join(DATA_DIR, 'backups');
+const BACKUP_KEEP = 30;
+const BACKUP_CHECK_MS = 60 * 60 * 1000;
+
+async function backupDaily() {
+  try {
+    await stat(DATA_FILE);
+  } catch {
+    return; // Nothing written yet; nothing to keep.
+  }
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date());
+  const target = join(BACKUP_DIR, `answers-${today}.json`);
+  try {
+    await stat(target);
+    return; // Today's copy exists.
+  } catch {
+    // Fall through and make it.
+  }
+  await mkdir(BACKUP_DIR, { recursive: true });
+  // After any write in flight, so the copy is never of a half-written file.
+  await writeChain;
+  await copyFile(DATA_FILE, target);
+  const copies = (await readdir(BACKUP_DIR)).filter((name) => /^answers-\d{4}-\d{2}-\d{2}\.json$/.test(name)).sort();
+  for (const name of copies.slice(0, Math.max(0, copies.length - BACKUP_KEEP))) await unlink(join(BACKUP_DIR, name));
+  console.log(`backup: ${target} (${copies.length} kept)`);
+}
+
+function startBackups() {
+  const run = () => backupDaily().catch((error) => console.warn('backup failed:', error?.message ?? error));
+  run();
+  setInterval(run, BACKUP_CHECK_MS).unref();
 }
 
 /* ------------------------------------------------------------------- auth */
@@ -905,7 +954,11 @@ const server = createServer(async (req, res) => {
         touchedAt: Date.now(),
       };
       store.days[date] = day;
-      openRounds(date, day);
+      // A late answer — written days after the round, from the chronicle — buys
+      // the right to read, not the right to go on: a round that opens on a day
+      // nobody is living any more would spend one of your own questions on an
+      // empty room. Only today earns rounds.
+      if (date === pairDay()) openRounds(date, day);
       await persist();
       // Not awaited: whoever just wrote should not wait for Apple. If they had
       // already answered this round, their own answer has just come unlocked and
@@ -923,5 +976,6 @@ const server = createServer(async (req, res) => {
 
 await loadStore();
 await launchReset();
+startBackups();
 await toRounds();
 server.listen(PORT, HOST, () => console.log(`ryadom server on ${HOST}:${PORT}`));
