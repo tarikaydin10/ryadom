@@ -165,16 +165,19 @@ Russisch), bevor die Wahl im Provider steht.
 **Abbau:** Beim nächsten Umbau des Lock-Screens den Provider eine
 `locale`-Überschreibung annehmen lassen; klein, kein Druck.
 
-## TD-14 · Fragentabelle ist für Runden zu klein
+## TD-14 · Fragentabelle ist für Runden zu klein — **erledigt 2026-09-06**
 
 **Woher:** [ADR-0012](adr/0012-runden-statt-einer-frage-pro-tag.md). 56
 gebündelte Fragen reichten bei einer Frage pro Tag für knapp zwei Monate; bei
 drei Runden am Tag ist die Tabelle in neunzehn Tagen einmal durch.
 **Was es riskiert:** Wiederholungen, und zwar früh genug, dass sie auffallen —
 was den Eindruck macht, die App habe nichts mehr zu fragen.
-**Abbau:** Fragen schreiben, nicht Code. Der eigene Pool federt das ab, ersetzt
-es aber nicht: er hängt daran, dass jemand Lust hat zu schreiben. Ziel wären
-150 bis 200 gebündelte Fragen in `src/content/questions.ts`, in beiden Sprachen.
+**Abbau:** ~~Fragen schreiben, nicht Code.~~ 200 Fragen seit 2026-09-06. Die
+ersten 56 bleiben in ihrer Reihenfolge, weil jeder Tag vor dem Stichtag
+2026-09-07 nach der alten Formel aus ihnen gefragt wurde; ab dem Stichtag
+laufen drei Runden am Tag durch alle 200 mit Schrittweite 37 — 66 Tage ohne
+Wiederholung. Wer die Tabelle erneut vergrößert, hängt **hinten an** und zieht
+den Stichtag in `questionFor` nach; nie mittendrin einfügen, nie umsortieren.
 
 ## TD-15 · Eine verpasste Runde bleibt für immer geschlossen
 

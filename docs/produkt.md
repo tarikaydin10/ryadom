@@ -73,20 +73,14 @@ offline zuerst, weniger Code — gelten unverändert. Dazu drei Produkt-Grundsä
 In Reihenfolge. Jeder Schritt ist klein genug für einen Deploy und trägt für
 sich. Nummern sind Prioritäten, keine Termine.
 
-### 1 · Fragentabelle vergrößern — *dringend, seit es Runden gibt*
+### 1 · Fragentabelle vergrößern — *erledigt 2026-09-06*
 
-Bei drei Runden am Tag sind 56 Fragen in neunzehn Tagen einmal durch
-([TD-14](tech-debt.md)). Das fällt auf, und die Chronik zeigt es.
-Ziel: 150 bis 200 Fragen, zweisprachig, geschlechtsneutral wie bisher
-(`сказал(а)`), mit einigen, die nur in Ferne Sinn ergeben — die sind die
-besten. Schreiben, nicht programmieren.
-
-**Vorsicht:** `questionFor` rechnet `Tag mod Anzahl`. Fragen anhängen
-verschiebt die Zuordnung *aller* Tage — Today zeigt nach dem Deploy eine
-andere Frage als am Vortag. Die Chronik ist immun (sie liest die gespeicherte
-`questionId`), Today nicht. Deshalb den Katalog **einmal** auf Zielgröße
-bringen und die Zuordnung an einen Stichtag binden (`Tage seit Stichtag mod n`
-für Tage ab dem Stichtag, alte Formel davor), damit Vergangenes sich nicht ändert.
+200 statt 56 Fragen, ab Stichtag 2026-09-07 drei Runden am Tag ohne
+Wiederholung für 66 Tage; die Vergangenheit bleibt an ihrer alten Zuordnung
+([TD-14](tech-debt.md)). Was bleibt: die Fragen sind von mir geschrieben, nicht
+von euch — wenn eine schief klingt oder auf Russisch nicht sitzt, ist das eine
+Zeile in `src/content/questions.ts`. Und der eigene Pool ist weiterhin die
+bessere Quelle.
 
 ### 2 · Nachschreiben
 
@@ -164,14 +158,12 @@ Selbstverständlichkeit.
 
 Für Aydin, in der Reihenfolge, in der sie anstehen:
 
-1. **Stichtag für den großen Fragenkatalog** (Roadmap 1) — der Tag des
-   Deploys, damit sich Vergangenes nicht ändert.
-2. **Nachschreiben: Frist ja/nein, Runde öffnen ja/nein** (Roadmap 2;
+1. **Nachschreiben: Frist ja/nein, Runde öffnen ja/nein** (Roadmap 2;
    Empfehlung: keine Frist, keine Runde).
-3. **Maschinelle Übersetzung eigener Fragen** — in ADR-0012 offen gelassen.
+2. **Maschinelle Übersetzung eigener Fragen** — in ADR-0012 offen gelassen.
    Berührt ADR-0003 (Text verlässt den Server). Empfehlung: erst, wenn eine
    von beiden eine Frage nicht versteht; die Übersetzung durch den Autor
    reicht vermutlich.
-4. **Was die Karte zeigt** — Vorlage nötig, bevor Code entsteht.
-5. **Backup auf dem VPS** ([TD-11](tech-debt.md)) — unabhängig von allem hier,
+3. **Was die Karte zeigt** — Vorlage nötig, bevor Code entsteht.
+4. **Backup auf dem VPS** ([TD-11](tech-debt.md)) — unabhängig von allem hier,
    aber seit heute mit echten Daten dringlicher als jede Funktion.
