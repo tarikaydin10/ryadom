@@ -169,6 +169,12 @@ export function Today({ onAsk }: Props) {
   };
 
   const last = rounds[rounds.length - 1];
+  /**
+   * You have written, they have not, and the day could still hold another
+   * question. That is the one moment where nothing visibly happens and the
+   * reason is invisible — so it is said out loud, once, in place.
+   */
+  const waitingForNext = rounds.length < MAX_ROUNDS && Boolean(last?.mine) && !(last?.partnerAnswered ?? false);
   // The day is full: three rounds, and the last one closed. Said once, quietly,
   // so that "nothing more today" is a fact on the page rather than the absence
   // of one.
@@ -230,6 +236,7 @@ export function Today({ onAsk }: Props) {
               <AnswerPair round={round} partnerName={partnerName} saving={saving} onSave={onSave} />
             </div>
           ))}
+          {waitingForNext && <p className="daily__closed">{t('question.nextWhenBoth')}</p>}
           {closed && <p className="daily__closed">{t('question.dayFull')}</p>}
           <button className="daily__ask" onClick={onAsk}>
             {t('question.askSomething')}

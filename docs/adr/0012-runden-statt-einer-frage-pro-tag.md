@@ -65,9 +65,14 @@ gebündelte Fragen sind bei drei Runden am Tag in neunzehn Tagen einmal durch.
 - `MAX_ROUNDS` steht doppelt: im Server (verbindlich) und in
   `src/content/prompt.ts` (nur damit die Seite „das war der Tag" sagen kann).
   Beim Ändern beide anfassen.
-- Ein Tag, der beim Deploy schon vollständig beantwortet war, bekommt seine
-  zweite Runde nicht nachträglich — Runden öffnen nur beim Schreiben. Einmalig
-  am Umstellungstag.
+- Runden öffnen beim Schreiben — und beim Lesen des **heutigen** Tages, falls
+  eine fällig ist und niemand mehr geschrieben hat. Genau das trat am
+  Umstellungstag ein: beide hatten vor dem Deploy geantwortet, die Migration
+  machte daraus Runde 0, und die verdiente zweite Runde hing hinter einem
+  Schreibvorgang, der längst passiert war. Vergangene Tage rührt das Lesen nie
+  an, sonst verbrauchte ein Sync von gestern eine eurer eigenen Fragen.
+- Damit kennt der Server zum ersten Mal „heute" (`PAIR_TIMEZONE` steht jetzt
+  auch in `server/index.mjs`, siehe ADR-0005). Nur dafür.
 - Datenmigrationen laufen automatisch: der Server formt `days[date][a|b]` zu
   `days[date].rounds[0]` und legt vorher `answers.before-rounds.json` daneben;
   IndexedDB steigt auf Version 2 und schreibt bestehende Antworten auf Runde 0

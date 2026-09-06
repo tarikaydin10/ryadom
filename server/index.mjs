@@ -322,6 +322,40 @@ function openRounds(date, day) {
   }
 }
 
+/**
+ * The day it is, in the calendar the two of them share (ADR-0005).
+ *
+ * The server had no idea what "today" was until now — every route took the date
+ * from the client. It needs one for exactly one purpose: deciding whether a
+ * request may open a round. A poll of yesterday must not spend one of your own
+ * questions on a day nobody is looking at any more.
+ */
+const PAIR_TIMEZONE = 'Europe/Berlin';
+const pairDay = () => new Intl.DateTimeFormat('en-CA', { timeZone: PAIR_TIMEZONE }).format(new Date());
+
+/**
+ * Catch up a day whose next round was earned but never opened.
+ *
+ * Rounds normally open on the write that completes one, which covers every
+ * ordinary day. It does not cover the day rounds arrived: both of them had
+ * already answered before the deploy, the migration turned that into round
+ * zero, and nothing wrote again — so the day sat there, complete and closed,
+ * with the new question waiting behind a write that had already happened. The
+ * same gap would follow any write that got as far as memory and not as far as
+ * the file.
+ *
+ * So a look at today is also a chance to settle it. Only today, and only a day
+ * that already exists: a read never invents a day.
+ */
+async function settle(date) {
+  if (date !== pairDay()) return;
+  const day = store.days[date];
+  if (!day || !Array.isArray(day.rounds) || day.rounds.length === 0) return;
+  const before = day.rounds.length;
+  openRounds(date, day);
+  if (day.rounds.length !== before) await persist();
+}
+
 /** Yours before mine: a question one of you wrote is asked before the table's. */
 function nextQuestion(date) {
   const own = store.questions
@@ -663,6 +697,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (!match[2] && req.method === 'GET') {
+    await settle(date);
     send(res, 200, dayResponse(date, member));
     return;
   }
