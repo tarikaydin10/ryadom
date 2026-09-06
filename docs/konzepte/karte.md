@@ -1,6 +1,6 @@
 # Konzept · Karte
 
-**Stand:** Vorschlag, 2026-09-06. Kein Code, bevor eine Vorlage da ist (TD-10).
+**Stand:** Gebaut am 2026-09-06 (`src/screens/Map.tsx`, `src/map/`), auf Aydins Entscheidung ohne Vorlage. Abweichungen vom Konzept stehen am Ende.
 
 ## Was der Tab sein soll
 
@@ -76,3 +76,20 @@ nicht selbst, sie zeichnet, was die Engine liefert.
    eine Uhrzeit bekommt; bis dahin am Reisetag nur die Stadt markiert.
 
 Ein Wochenende, wenn die Vorlage steht.
+
+## Was beim Bau anders wurde
+
+- **Rahmen** 6,5°–23,5° O, 51,5°–58° N statt 8°–22°/53°–57,5°: Jütland und
+  die Kurische Nehrung sollten ganz im Bild sein. ViewBox 1000×662, auf dem
+  Telefon 402 px breit und 300 px hoch, oben und unten beschnitten statt
+  gerahmt.
+- **Nacht als Zellraster** (0,5°, ~500 Zellen mit Sonnenhöhe) unter einem
+  Gauß-Filter statt einer Terminator-Linie — so gibt es Dämmerung als Verlauf,
+  nicht als Kante, und die Rechnung ist billig genug für jede Frame eines Wischs.
+- **Luftlinie 696 km**, nicht die geschätzten 1.000. Der Bogen zeichnet sich
+  beim Öffnen einmal, dann steht er.
+- **Städte atmen**, wo die Sonne über dem Horizont steht: ein Ring, der
+  schwillt und verblasst. Die einzige Animation auf der Seite.
+- **Countdown** liegt unter der Karte, derselbe wie auf Today, damit Datum
+  und Stadt dort gesetzt werden, wo der Ring sie zeigt.
+- **Reisetag-Punkt** nicht gebaut: braucht Abfahrt und Ankunft als Uhrzeit.

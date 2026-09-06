@@ -203,8 +203,13 @@ export const en = {
     remove: 'Take it back',
   },
 
-  soon: {
-    map: 'The map comes later.',
+  map: {
+    label: 'The Baltic between both cities, with the night where it is',
+    km: '{km} km',
+    distance: 'As the crow flies',
+    kmUnit: 'kilometres between you',
+    light: 'Light',
+    minEarlier: 'min earlier in {city}',
   },
 } as const;
 
@@ -373,8 +378,13 @@ export const ru: DeepStringShape<typeof en> = {
     remove: 'Забрать назад',
   },
 
-  soon: {
-    map: 'Карта появится позже.',
+  map: {
+    label: 'Балтика между двумя городами, и ночь там, где она сейчас',
+    km: '{km} км',
+    distance: 'По прямой',
+    kmUnit: 'километров между вами',
+    light: 'Свет',
+    minEarlier: 'мин раньше в {city}',
   },
 };
 

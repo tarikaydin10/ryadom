@@ -383,7 +383,11 @@ function openRounds(date, day) {
  * questions on a day nobody is looking at any more.
  */
 const PAIR_TIMEZONE = 'Europe/Berlin';
-const pairDay = () => new Intl.DateTimeFormat('en-CA', { timeZone: PAIR_TIMEZONE }).format(new Date());
+// The day turns at four in the morning, as it does in `src/lib/day.ts`, so a
+// half-past-midnight answer still belongs to the evening it was written in.
+// Keep the two in step.
+const DAY_SHIFT_MS = 4 * 60 * 60 * 1000;
+const pairDay = () => new Intl.DateTimeFormat('en-CA', { timeZone: PAIR_TIMEZONE }).format(new Date(Date.now() - DAY_SHIFT_MS));
 
 /**
  * Catch up a day whose next round was earned but never opened.

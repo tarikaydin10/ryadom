@@ -10,6 +10,22 @@
  */
 export const PAIR_TIMEZONE = 'Europe/Berlin';
 
+/**
+ * The shared day turns at four in the morning, not at midnight.
+ *
+ * Nobody writes at four. Plenty of people write at half past midnight, and for
+ * them it is still the same evening — the day they are answering a question
+ * about. With the boundary at midnight, one of you writing at 23:50 and the
+ * other at 00:10 landed on two different questions, and the first answer sat
+ * unread until somebody went back for it. Four o'clock is the hotel's day, the
+ * diary's day: it ends when the night does. For Kaliningrad that is five or
+ * six; equally empty.
+ *
+ * Only the calendar shifts. Clocks, sunrises and the sky stay on real time.
+ */
+export const DAY_START_HOUR = 4;
+const DAY_SHIFT_MS = DAY_START_HOUR * 60 * 60 * 1000;
+
 const keyFormatters = new Map<string, Intl.DateTimeFormat>();
 
 function keyFormatter(tz: string): Intl.DateTimeFormat {
@@ -24,7 +40,7 @@ function keyFormatter(tz: string): Intl.DateTimeFormat {
 
 /** `YYYY-MM-DD` in the pair's shared timezone. */
 export function dateKey(ms: number = Date.now(), tz: string = PAIR_TIMEZONE): string {
-  return keyFormatter(tz).format(new Date(ms));
+  return keyFormatter(tz).format(new Date(ms - DAY_SHIFT_MS));
 }
 
 /** Midday UTC of a date key — a safe instant for date arithmetic. */
@@ -65,6 +81,13 @@ function zoneOffset(ms: number, tz: string): number {
  * which is the wrong one on the two nights a year when the clocks change.
  */
 export function startOfPairDay(ms: number, tz: string = PAIR_TIMEZONE): number {
+  // Four hours after the calendar midnight the shifted moment falls in. On the
+  // two nights a year the clocks change this can be an hour off four; nobody
+  // is writing then either.
+  return startOfCalendarDay(ms - DAY_SHIFT_MS, tz) + DAY_SHIFT_MS;
+}
+
+function startOfCalendarDay(ms: number, tz: string): number {
   const guess = zoneOffset(ms, tz);
   const start = Math.floor((ms + guess) / DAY_MS) * DAY_MS - guess;
   const settled = zoneOffset(start, tz);

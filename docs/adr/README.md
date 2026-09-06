@@ -15,7 +15,7 @@ diesem Tag gefallen.
 | [0002](0002-lokal-zuerst-outbox-sync.md) | Lokal zuerst: IndexedDB ist die Wahrheit, Sync per Outbox | Gültig |
 | [0003](0003-passphrase-pro-seite-lock-in-serverseitig.md) | Passphrase pro Seite, nicht im Bundle; Lock-In serverseitig | Gültig |
 | [0004](0004-server-ohne-abhaengigkeiten-deploy-per-rsync.md) | Server ohne Abhängigkeiten, Deploy per CI-Build und rsync | Gültig |
-| [0005](0005-ein-gemeinsamer-kalendertag.md) | Ein gemeinsamer Kalendertag, lokale Uhren | Gültig |
+| [0005](0005-ein-gemeinsamer-kalendertag.md) | Ein gemeinsamer Kalendertag, lokale Uhren | Gültig, ergänzt durch 0017 |
 | [0006](0006-bandausrichtung-und-geometrie.md) | Bandausrichtung fest, Geometrie hat einen Besitzer | Gültig |
 | [0007](0007-pwa-aktualisierung.md) | PWA-Aktualisierung: prüfen bei jeder Gelegenheit, neu laden nur im Leerlauf | Gültig |
 | [0008](0008-layoutmodell-dokument-scrollt-leiste-sticky.md) | Layoutmodell: Dokument scrollt, Tab-Leiste sticky, volle Breite auf dem Telefon | Gültig |
@@ -27,6 +27,7 @@ diesem Tag gefallen.
 | [0014](0014-chronik-verlauf-vom-server.md) | Chronik: Verlauf vom Server nachladen, Lock-In gilt rückwirkend | Gültig |
 | [0015](0015-nachschreiben-ohne-frist-ohne-runde.md) | Nachschreiben: ohne Frist, ohne neue Runde | Gültig |
 | [0016](0016-eigene-fragen-zuerst-auch-als-frage-des-tages.md) | Eigene Fragen zuerst — auch als Frage des Tages | Gültig |
+| [0017](0017-tagesgrenze-vier-uhr.md) | Der gemeinsame Tag wechselt um vier Uhr morgens | Gültig |
 
 ## Vorlage
 

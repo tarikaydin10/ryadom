@@ -278,7 +278,8 @@ src/
   weather/        Open-Meteo: Abruf, Cache, WMO-Codes
   data/           IndexedDB, Einstellungen, Outbox, Sync, Passphrase
   components/     Himmelsband, Frage, Antwortpaar, Countdown, Tabs
-  screens/        Heute, Chronik (Rückblick + eigene Fragen), Mы, Sperrbildschirm, Platzhalter
+  screens/        Heute, Karte, Chronik (Rückblick + eigene Fragen), Mы, Sperrbildschirm
+  map/            Küste (generiert), Projektion, Terminator, Luftlinie
 server/           Referenz-Sync-Server, ohne Abhängigkeiten
 scripts/          Icons zeichnen, Schriften holen
 ```
@@ -304,8 +305,13 @@ schreibt, entscheidet das nur zwischen Handy und Tablet derselben Person.
 
 ## Was bewusst offen ist
 
-* **Karte und Chronik** haben noch keine Design-Vorlage. Sie sind ehrliche
-  Platzhalter statt geratener Screens.
+* Die **Karte** ist ein Bild, kein Werkzeug: die Ostseeküste als Vektor-
+  Silhouette im Bundle (Natural Earth, Public Domain — keine Kacheln von
+  fremden Servern), die Nacht dort, wo die Sonne sie hinstellt, die ehrliche
+  Luftlinie, und die Stadt des nächsten Wiedersehens markiert. Zeit wird wie
+  im Band gewunden. Konzept in [docs/konzepte/karte.md](docs/konzepte/karte.md).
+* Der **gemeinsame Tag** wechselt um vier Uhr morgens, nicht um Mitternacht
+  ([ADR-0017](docs/adr/0017-tagesgrenze-vier-uhr.md)).
 * Der **Zeit-Regler** aus dem Prototyp ist, wie im Handoff vorgesehen, kein
   Bedienelement mehr: über das Himmelsband wischen fährt durch den Tag, „назад к
   сейчас / back to now" springt zurück. Die Geste behält die Regler-Konvention —

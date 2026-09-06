@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SkyBand } from '../components/SkyBand';
 import { TimeRail } from '../components/TimeRail';
 import { QuestionBlock } from '../components/QuestionBlock';
@@ -9,7 +9,8 @@ import { useNow, useOnline, useSyncStatus, useWeather } from '../lib/hooks';
 import { useSettings } from '../data/settings-context';
 import { BAND_ORDER } from '../content/cities';
 import { rowAt, skyDay, statusFor } from '../sky/engine';
-import { dateKey, DAY_MS } from '../lib/day';
+import { dateKey } from '../lib/day';
+import { useScrub, SCRUB_LIMIT_MS } from '../lib/scrub';
 import { questionFor } from '../content/questions';
 import { MAX_ROUNDS, promptAuthor } from '../content/prompt';
 import { displayName, sidesFor } from '../data/settings';
@@ -35,13 +36,6 @@ const openingRound = (date: string): RoundView[] => [
   },
 ];
 
-/**
- * How far the sky can be wound. Sun and moon are arithmetic and would happily go
- * anywhere; the weather reaches seven days, and past a fortnight this stops
- * being a gesture and starts being a date picker.
- */
-const SCRUB_LIMIT_MS = 14 * DAY_MS;
-
 interface Props {
   /**
    * The way to the questions you write yourselves. It is a tab away, and a tab
@@ -59,8 +53,7 @@ export function Today({ onAsk }: Props) {
   const weather = useWeather();
   const sync = useSyncStatus();
 
-  /** Null while the sky follows real time; a moment while a drag holds it. */
-  const [scrubMs, setScrubMs] = useState<number | null>(null);
+  const { scrubMs, shownMs, scrubTo, backToNow } = useScrub(now);
   const [rounds, setRounds] = useState<RoundView[]>(() => openingRound(dateKey(now)));
   const [saving, setSaving] = useState(false);
 
@@ -78,7 +71,6 @@ export function Today({ onAsk }: Props) {
   // without the user doing anything.
   useEffect(() => subscribeSync(() => refresh()), [refresh]);
 
-  const shownMs = scrubMs ?? now;
   const table = skyDay(shownMs);
   const row = rowAt(shownMs);
 
@@ -87,61 +79,6 @@ export function Today({ onAsk }: Props) {
   const yourCity = sides.yours;
   const partnerName = displayName(sides.partnerName, locale);
 
-  const scrubTo = (ms: number) => {
-    cancelRewind();
-    const limit = SCRUB_LIMIT_MS;
-    setScrubMs(Math.min(now + limit, Math.max(now - limit, ms)));
-  };
-
-  /**
-   * Coming back to now is a journey, not a jump.
-   *
-   * Snapping cuts from one sky to another and loses the one thing worth seeing:
-   * the light running back across both cities. So it winds — longer for a longer
-   * way, but never long enough to become a wait. A reader who has asked not to be
-   * moved gets the jump instead.
-   */
-  const rewind = useRef<number | null>(null);
-  const cancelRewind = () => {
-    if (rewind.current !== null) cancelAnimationFrame(rewind.current);
-    rewind.current = null;
-  };
-
-  const backToNow = (wind: boolean) => {
-    cancelRewind();
-    const from = scrubMs;
-    if (from === null) return;
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    // The rail catches at now on its own, within about half an hour of it.
-    // Winding back from there would be a journey of nine pixels, which is not a
-    // journey — it is a stutter.
-    if (!wind || reduced) {
-      setScrubMs(null);
-      return;
-    }
-
-    const started = performance.now();
-    const distance = Math.abs(Date.now() - from);
-    // A few hours winds back briskly; a fortnight takes a breath longer.
-    const duration = Math.min(3500, 1000 + (distance / DAY_MS) * 500);
-    const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
-
-    const step = (frame: number) => {
-      const progress = Math.min(1, (frame - started) / duration);
-      // Aimed at the live clock, not a frozen one, so it lands on now rather
-      // than on where now was when the finger lifted.
-      setScrubMs(from + (Date.now() - from) * ease(progress));
-      if (progress < 1) {
-        rewind.current = requestAnimationFrame(step);
-        return;
-      }
-      rewind.current = null;
-      setScrubMs(null);
-    };
-    rewind.current = requestAnimationFrame(step);
-  };
-
-  useEffect(() => cancelRewind, []);
 
 
   // Stable across renders, so winding the sky does not re-render the answers.

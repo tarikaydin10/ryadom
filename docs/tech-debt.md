@@ -120,10 +120,10 @@ synchron vor dem ersten Render.
 **Abbau:** Nach dem Umzug auf `ryadom.net`. Neuer Origin = leerer Speicher =
 nichts mehr zu tragen. Dann Datei und Aufruf in `main.tsx` löschen.
 
-## TD-10 · Karte ist Platzhalter — Chronik erledigt 2026-09-06
+## TD-10 · Karte und Chronik waren Platzhalter — **erledigt 2026-09-06**
 
 **Woher:** Keine Design-Vorlage (README „Was bewusst offen ist").
-**Was es riskiert:** Die Karte führt weiterhin ins Leere.
+**Was es riskiert:** ~~Die Karte führt weiterhin ins Leere.~~
 **Chronik:** Der Tab zeigte einen Tag lang nur die eigenen Fragen unter einer
 Überschrift, die einen Rückblick versprach — Tarik ist prompt darüber
 gestolpert („warum steht da *nichts geschrieben*, wir haben doch geantwortet").
@@ -133,8 +133,11 @@ Zeile dorthin. ~~Offen bleibt, dass er nur zeigt, was dieses Gerät gesehen
 hat.~~ Seit [ADR-0014](adr/0014-chronik-verlauf-vom-server.md) holt der Sync
 den Verlauf cursorbasiert nach (`GET /api/days?since=…`); ein frisches Gerät
 zeigt nach dem ersten Sync alles.
-**Abbau (Karte):** Erst mit Vorlage. Bis dahin ehrlicher Platzhalter statt
-geratener Screen — das ist die Entscheidung, nicht ein Versäumnis.
+**Karte:** Nach Konzept ([docs/konzepte/karte.md](konzepte/karte.md)) gebaut,
+ohne Vorlage — Aydins Entscheidung vom 2026-09-06. Küste aus Natural Earth
+(`scripts/make-coast.mjs`), Nacht aus SunCalc, dieselbe Wischgeste wie das
+Band. Was bleibt: der Reisetag-Punkt auf der Linie braucht eine Uhrzeit im
+Countdown, die es nicht gibt; bis dahin nur die Stadt markiert.
 
 ## TD-11 · Backup der Serverdaten ist nicht Teil des Repos — **erledigt 2026-09-06**
 

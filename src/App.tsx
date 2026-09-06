@@ -2,7 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { TabBar, type TabId } from './components/TabBar';
 import { Today } from './screens/Today';
 import { Us } from './screens/Us';
-import { Placeholder } from './screens/Placeholder';
+import { Map } from './screens/Map';
 import { Chronicle } from './screens/Chronicle';
 import { Lock } from './screens/Lock';
 import { isUnlocked, subscribePair } from './data/pair';
@@ -37,7 +37,7 @@ export function App() {
   return (
     <div className="app">
       {tab === 'today' && <Today onAsk={() => setTab('chronicle')} />}
-      {tab === 'map' && <Placeholder title="tabs.map" note="soon.map" />}
+      {tab === 'map' && <Map />}
       {tab === 'chronicle' && <Chronicle />}
       {tab === 'us' && <Us />}
       <TabBar active={tab} onChange={setTab} />

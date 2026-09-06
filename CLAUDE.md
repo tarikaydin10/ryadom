@@ -77,11 +77,16 @@ verifiziert, wenn Aydin es auf dem Gerät gesehen hat. Sag das ausdrücklich.
 - **Geometrie hat einen Besitzer.** Bandhöhe und Horizont kommen aus
   `src/sky/engine.ts` und werden von `SkyBand` als CSS-Variablen veröffentlicht.
   Nicht im Stylesheet wiederholen ([ADR-0006](docs/adr/0006-bandausrichtung-und-geometrie.md)).
+  Die Karte ebenso: Rahmen und Projektion in `src/map/geometry.ts`; wer den
+  Rahmen ändert, lässt `scripts/make-coast.mjs` neu laufen.
+- **Der Tag wechselt um vier Uhr**, nicht um Mitternacht — `dateKey` und der
+  Server sind darauf abgestimmt ([ADR-0017](docs/adr/0017-tagesgrenze-vier-uhr.md)).
 
 ## Wo was liegt
 
 ```
-src/screens/      Today, Chronicle (Rückblick + eigene Fragen), Us, Lock, Placeholder (Map)
+src/screens/      Today, Map, Chronicle (Rückblick + eigene Fragen), Us, Lock
+src/map/          Küste (von scripts/make-coast.mjs erzeugt), Projektion, Nacht, Luftlinie
 src/components/   SkyBand, TimeRail, QuestionBlock, AnswerPair, CountdownCard, TabBar,
                   QuestionPool (eigene Fragen), Diagnostics (versteckt unter „Us")
 src/content/      Städte, Fragentabelle, Auflösung der Rundenfrage (prompt.ts)
@@ -97,7 +102,7 @@ deploy/           Caddy, systemd bzw. Docker; Anleitung in deploy/README.md
 docs/adr/         Entscheidungen, mit verworfenen Alternativen
 docs/tech-debt.md Was bekannt und offen ist
 docs/produkt.md   Produktkonzept, Roadmap, bewusst nicht Gebautes, offene Entscheidungen
-docs/konzepte/    Ausgearbeitete Feature-Konzepte vor dem Bau (Karte, Export)
+docs/konzepte/    Ausgearbeitete Feature-Konzepte (Karte — gebaut, Export)
 docs/design-handoff/  Vorlage „Zwei — Home-Screen (Variante 2d)"
 ```
 

@@ -66,7 +66,7 @@ offline zuerst, weniger Code — gelten unverändert. Dazu drei Produkt-Grundsä
 | Chronik | Vergangene Tage mit allen Runden, vollständig auf jedem Gerät (ADR-0014); verpasste Runden lassen sich nachschreiben (ADR-0015). |
 | Backup | Täglich durch den Server, dreißig Tage; Anleitung für die Kopie nach außen in deploy/README.md. |
 | Countdown | Fertig, Datum wird geteilt. |
-| Karte | Platzhalter. Kein Design, kein Konzept ohne Fremd-Host (s. u.). |
+| Karte | Gebaut: Küste im Bundle, Nacht aus der Sonne, Luftlinie, Wiedersehen markiert; Zeit wie im Band gewunden. |
 | iOS | Zwei offene Punkte ([TD-01](tech-debt.md), [TD-02](tech-debt.md)); Diagnose jetzt unter „Us". |
 
 ## Roadmap
@@ -92,23 +92,10 @@ Ohne Frist, ohne neue Runde, mit „nachgetragen am …"
 
 Erlaubnis, Zustellung im Hintergrund: auf dem iPhone gesehen.
 
-### 4 · Karte — Konzept liegt vor, Design fehlt
+### 4 · Karte — *erledigt 2026-09-06*
 
-Ausgearbeitet in [docs/konzepte/karte.md](konzepte/karte.md). Kurzfassung:
-
-Der Tab existiert, weil der Handoff ihn vorsah; was er zeigen soll, wurde nie
-entschieden. Zwei Dinge sind klar:
-
-- **Keine Kacheln.** OpenStreetMap, Mapbox, Apple Maps sind Fremd-Hosts für
-  das Telefon ([ADR-0001](adr/0001-ein-hostname-keine-fremd-hosts.md)). Eine
-  Karte in Ryadom ist gezeichnet und liegt im Bundle: Ostseeküste als
-  Vektor-Silhouette, zwei Punkte, eine Linie. Das Himmelsband ist auch kein Foto.
-- **Kein Ortungsdienst.** Die Städte sind bekannt; wo genau ein Telefon
-  gerade ist, geht die App nichts an (`permissions-policy: geolocation=()` bleibt).
-
-**Vorschlag:** die Strecke — Luftlinie, die Tag-Nacht-Grenze wie im Band, aber
-von oben; am Reisetag der Fortschritt aus dem Countdown, linear, ohne Ortung.
-Ein Bild, kein Werkzeug. **Nicht bauen, bevor eine Vorlage da ist** (TD-10).
+Nach [docs/konzepte/karte.md](konzepte/karte.md), ohne Vorlage. Offen bleibt
+der Reisetag-Punkt auf der Linie: braucht eine Uhrzeit im Countdown.
 
 ### 5 · Rückblick-Momente
 
@@ -151,13 +138,11 @@ Selbstverständlichkeit.
 
 Für Aydin, in der Reihenfolge, in der sie anstehen:
 
-1. **Karte: das Konzept freigeben** ([docs/konzepte/karte.md](konzepte/karte.md))
-   und eine Vorlage zeichnen — oder zeichnen lassen. Vorher kein Code.
-2. **Export: Form und Ort** ([docs/konzepte/export.md](konzepte/export.md)) —
+1. **Export: Form und Ort** ([docs/konzepte/export.md](konzepte/export.md)) —
    Empfehlung: ein Knopf unter „Us", der eine Textdatei und eine JSON-Datei
    über den Teilen-Dialog liefert.
-3. **Maschinelle Übersetzung eigener Fragen** — in ADR-0012 offen gelassen.
+2. **Maschinelle Übersetzung eigener Fragen** — in ADR-0012 offen gelassen.
    Berührt ADR-0003 (Text verlässt den Server). Empfehlung: erst, wenn eine
    von beiden eine Frage nicht versteht.
-4. **Kopie der Backups nach außen** — einmal einrichten, nach
+3. **Kopie der Backups nach außen** — einmal einrichten, nach
    `deploy/README.md` „Sicherung".
