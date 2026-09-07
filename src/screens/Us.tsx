@@ -11,6 +11,7 @@ import { timeOfDay } from '../lib/format';
 import type { Settings } from '../data/settings';
 import { Diagnostics } from '../components/Diagnostics';
 import { disablePush, enablePush, pushStatus, type PushStatus } from '../data/push';
+import { setPaperPreference, usePaperPreference, type PaperPreference } from '../lib/paper';
 
 /**
  * Settings, and only settings.
@@ -70,6 +71,12 @@ export function Us() {
     void update(draft).then(() => setSaved(true));
   };
 
+  const paper = usePaperPreference();
+  const papers: { id: PaperPreference; label: string }[] = [
+    { id: 'sun', label: t('settings.paperSun') },
+    { id: 'light', label: t('settings.paperLight') },
+  ];
+
   const languages: { id: LocalePreference; label: string }[] = [
     { id: 'system', label: t('settings.system') },
     { id: 'en', label: t('settings.english') },
@@ -90,6 +97,22 @@ export function Us() {
               key={option.id}
               className={option.id === preference ? 'segment__item segment__item--active' : 'segment__item'}
               onClick={() => setPreference(option.id)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="section">
+        <span className="section__title">{t('settings.paper')}</span>
+        <p className="hint">{t('settings.paperHint')}</p>
+        <div className="segment">
+          {papers.map((option) => (
+            <button
+              key={option.id}
+              className={option.id === paper ? 'segment__item segment__item--active' : 'segment__item'}
+              onClick={() => setPaperPreference(option.id)}
             >
               {option.label}
             </button>

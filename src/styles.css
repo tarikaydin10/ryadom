@@ -16,6 +16,13 @@
   --terracotta: #b0563c;
   --terracotta-dark: #9a5f42;
   --night: #12111f;
+  /* The desk the phone-sized column lies on, seen only on a wide window. */
+  --desk: #ede6da;
+  /* The daily band's tint, the ground's earth at almost nothing. */
+  --daily-tint: rgba(74, 56, 42, 0.045);
+  /* The map's land is a picture, not a page: it keeps the paper's colour
+     whatever the paper does. */
+  --map-land: #f4efe6;
 
   --display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   --body: 'Spectral', Georgia, 'Times New Roman', serif;
@@ -41,6 +48,33 @@
   --safe-right: env(safe-area-inset-right, 0px);
 
   color-scheme: light;
+}
+
+/* Night paper.
+
+   Most answers are written in the evening, in bed, at the brightness of a
+   sheet of paper under a lamp. After civil dusk in the city this phone is in
+   the paper dims — warm, not black: the same palette turned over, the
+   terracotta a shade lighter for the contrast, the type a shade off white.
+   The sky band and the map are pictures and keep their own light. Every
+   colour comes from the tokens above, so this is the whole of it; nothing
+   below repeats a colour. Follows the sun by default; „Us“ can pin it light
+   for anyone who would rather read on paper at midnight too. */
+:root[data-night] {
+  --paper: #1e1a16;
+  --card: #292219;
+  --card-muted: #32291f;
+  --bar: #453a2f;
+  --border: #3a3128;
+  --ink: #ece3d6;
+  --ink-muted: #a89a8b;
+  --ink-pale: #8a7c6c;
+  --terracotta: #d4785a;
+  --terracotta-dark: #cf8c6e;
+  --desk: #14110e;
+  --daily-tint: rgba(255, 235, 200, 0.035);
+
+  color-scheme: dark;
 }
 
 * {
@@ -87,7 +121,7 @@ textarea {
 
 #root {
   /* Seen only where the window is wider than the app: the desk it lies on. */
-  background: #ede6da;
+  background: var(--desk);
 }
 
 /* A column at least one screen tall: the screen fills it, the tab bar ends it.
@@ -98,6 +132,8 @@ textarea {
   min-height: 100dvh;
   margin: 0 auto;
   background: var(--paper);
+  /* Dusk, not a switch: the paper dims over most of a second. */
+  transition: background-color 900ms ease;
   display: flex;
   flex-direction: column;
   /* Landscape rounds the corners in from the sides. */
@@ -772,7 +808,7 @@ textarea {
   gap: 12px;
   margin: 0 calc(-1 * var(--gutter));
   padding: 16px var(--gutter) 18px;
-  background: rgba(74, 56, 42, 0.045);
+  background: var(--daily-tint);
 }
 
 /* One round: a question and the two answers under it.
@@ -1594,7 +1630,7 @@ input.field__input[type='date']::-webkit-date-and-time-value {
 }
 
 .map__land {
-  fill: var(--paper);
+  fill: var(--map-land);
   stroke: rgba(74, 56, 42, 0.28);
   stroke-width: 1.2;
   stroke-linejoin: round;

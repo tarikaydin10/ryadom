@@ -8,6 +8,10 @@ import { Lock } from './screens/Lock';
 import { isUnlocked, subscribePair } from './data/pair';
 import { startSync, subscribeSync } from './data/sync';
 import { refreshBadge } from './data/badge';
+import { useNightPaper } from './lib/paper';
+import { useNow } from './lib/hooks';
+import { getPair } from './data/pair';
+import { cityOf } from './data/settings';
 import { prefetchDays } from './sky/engine';
 
 function useUnlocked(): boolean {
@@ -18,6 +22,10 @@ export function App() {
   const [tab, setTab] = useState<TabId>('today');
   const unlocked = useUnlocked();
   const [, force] = useState(0);
+  const now = useNow();
+  // The paper follows the sun of the city this phone is in; before unlocking
+  // nobody knows which, and the lock screen reads in daylight.
+  useNightPaper(cityOf(getPair()?.member ?? 'a'), unlocked ? now : 0);
 
   useEffect(() => {
     if (!unlocked) return;

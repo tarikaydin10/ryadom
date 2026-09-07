@@ -149,6 +149,12 @@ export const en = {
     system: 'System',
     english: 'English',
     russian: 'Русский',
+    // The paper dims after dusk in your city. A device preference: whether to
+    // read on dark paper at night is about the eyes holding this phone.
+    paper: 'Paper',
+    paperHint: 'After dusk where you are, the page dims to a warm dark. Pin it light if you would rather not.',
+    paperSun: 'Follows the sun',
+    paperLight: 'Always light',
     names: 'Names',
     yourName: 'Your name',
     partnerName: 'Their name',
@@ -364,6 +370,10 @@ export const ru: DeepStringShape<typeof en> = {
     system: 'Системный',
     english: 'English',
     russian: 'Русский',
+    paper: 'Бумага',
+    paperHint: 'После заката у тебя страница темнеет — тёплым, не чёрным. Если не хочется, оставь светлой.',
+    paperSun: 'Как солнце',
+    paperLight: 'Всегда светлая',
     names: 'Имена',
     yourName: 'Твоё имя',
     partnerName: 'Её или его имя',
