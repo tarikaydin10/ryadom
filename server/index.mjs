@@ -408,25 +408,36 @@ async function settle(date) {
   let changed = false;
   let day = store.days[date];
 
-  // The question of the day is one of yours whenever one is waiting — the
-  // table only fills in. This is the moment it is decided: the first look at
-  // today. A day is created for it if need be, which is the one exception to
-  // "a read never invents a day", and it is made for a question somebody wrote.
+  // The question of the day is one of the pair's own days when it is one — a
+  // birthday, the anniversary, the eve of the reunion — and otherwise one of
+  // yours whenever one is waiting; the table only fills in. This is the
+  // moment it is decided: the first look at today. A day is created for it
+  // if need be, which is the one exception to "a read never invents a day",
+  // and it is made for a day that is theirs or a question somebody wrote.
+  const special = specialQuestion(date);
+  const untouched = (round) => round && !round.a && !round.b;
   if (!day || !Array.isArray(day.rounds) || day.rounds.length === 0) {
-    const own = pendingOwnQuestion(date);
-    if (!own) return;
-    own.usedOn = date;
-    day = { rounds: [{ question: { kind: 'pool', id: own.id }, openedAt: Date.now() }] };
+    const question = special ?? ownQuestion(date);
+    if (!question) return;
+    day = { rounds: [{ question, openedAt: Date.now() }] };
     store.days[date] = day;
     changed = true;
-  } else if (day.rounds[0].question?.kind !== 'pool' && !day.rounds[0].a && !day.rounds[0].b) {
+  } else if (untouched(day.rounds[0])) {
     // Created by a write that went to the table (a phone that wrote before it
-    // synced, then edited it away) — an untouched round zero can still switch.
-    const own = pendingOwnQuestion(date);
-    if (own) {
-      own.usedOn = date;
-      day.rounds[0] = { question: { kind: 'pool', id: own.id }, openedAt: Date.now() };
+    // synced, then edited it away), or settled before the settings that name
+    // the day arrived — an untouched round zero can still switch.
+    const current = day.rounds[0].question ?? { kind: 'bundled' };
+    const isSpecial = current.kind === 'bundled' && current.id === special?.id;
+    if (special && !isSpecial) {
+      releaseQuestion(current);
+      day.rounds[0] = { question: special, openedAt: Date.now() };
       changed = true;
+    } else if (!special && current.kind !== 'pool') {
+      const question = ownQuestion(date);
+      if (question) {
+        day.rounds[0] = { question, openedAt: Date.now() };
+        changed = true;
+      }
     }
   }
 
@@ -466,10 +477,51 @@ function pendingOwnQuestion(today) {
 
 /** Yours before mine: a question one of you wrote is asked before the table's. */
 function nextQuestion(date) {
+  return ownQuestion(date) ?? { kind: 'bundled' };
+}
+
+/** The oldest waiting question of yours, taken for a date — or null. */
+function ownQuestion(date) {
   const own = pendingOwnQuestion(date);
-  if (!own) return { kind: 'bundled' };
+  if (!own) return null;
   own.usedOn = date;
   return { kind: 'pool', id: own.id };
+}
+
+/** A pool question a round is giving up goes back to the front of the queue. */
+function releaseQuestion(question) {
+  if (question?.kind !== 'pool') return;
+  const own = store.questions.find((candidate) => candidate.id === question.id);
+  if (own) own.usedOn = null;
+}
+
+/**
+ * The pair's own days, as the question of the day.
+ *
+ * A birthday, the anniversary, the eve of the reunion: none of them can be
+ * derived from the date alone the way the table's and the sky's questions
+ * are (src/content/occasions.ts), because they live in the settings — and
+ * two phones with two states of the settings would ask two questions. So
+ * this process, which holds the settings the two of them share, freezes the
+ * id on round zero exactly as it freezes one of yours, and the phone knows
+ * the words for it. Before one of yours on purpose: a birthday comes once a
+ * year, a question in the pool waits a day.
+ */
+function specialQuestion(date) {
+  const settings = store.settings?.settings;
+  if (!settings || typeof settings !== 'object') return null;
+  const monthDay = (value) => (typeof value === 'string' && DATE_RE.test(value) ? value.slice(5) : null);
+  const today = date.slice(5);
+  const birthdays = settings.dates?.birthdays ?? {};
+  if (monthDay(birthdays.hamburg) === today) return { kind: 'bundled', id: 'o-birthday-hamburg' };
+  if (monthDay(birthdays.kaliningrad) === today) return { kind: 'bundled', id: 'o-birthday-kaliningrad' };
+  if (monthDay(settings.dates?.anniversary) === today) return { kind: 'bundled', id: 'o-anniversary' };
+  const reunion = settings.reunion?.date;
+  if (typeof reunion === 'string' && DATE_RE.test(reunion)) {
+    const eve = new Date(Date.parse(`${reunion}T12:00:00Z`) - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    if (eve === date) return { kind: 'bundled', id: 'o-eve' };
+  }
+  return null;
 }
 
 /**
@@ -525,6 +577,7 @@ function roundResponse(round, slot, member) {
  * in reach. One of your own travels in full — nothing else could show it.
  */
 function questionResponse(question) {
+  if (question?.kind === 'bundled' && typeof question.id === 'string') return { kind: 'bundled', id: question.id };
   if (question?.kind !== 'pool') return { kind: 'bundled' };
   const own = store.questions.find((candidate) => candidate.id === question.id);
   return own ? { kind: 'pool', question: own } : { kind: 'bundled' };
@@ -1022,8 +1075,17 @@ const server = createServer(async (req, res) => {
         send(res, 409, { error: 'question changed' });
         return;
       }
-      const own = store.questions.find((question) => question.id === round.question.id);
-      if (own) own.usedOn = null;
+      releaseQuestion(round.question);
+      round.question = { kind: 'bundled' };
+    }
+    // The same rule for a day this process froze (a birthday, the eve): a
+    // phone that answered the table's question before its first sync of the
+    // day wins if nobody has answered the frozen one, and loses otherwise.
+    if (slot === 0 && round.question?.kind === 'bundled' && round.question.id && bundledId && body.questionId !== round.question.id) {
+      if (round.a || round.b) {
+        send(res, 409, { error: 'question changed' });
+        return;
+      }
       round.question = { kind: 'bundled' };
     }
     const existing = round[member];

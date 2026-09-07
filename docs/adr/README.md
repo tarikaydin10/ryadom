@@ -28,6 +28,9 @@ diesem Tag gefallen.
 | [0015](0015-nachschreiben-ohne-frist-ohne-runde.md) | Nachschreiben: ohne Frist, ohne neue Runde | Gültig |
 | [0016](0016-eigene-fragen-zuerst-auch-als-frage-des-tages.md) | Eigene Fragen zuerst — auch als Frage des Tages | Gültig |
 | [0017](0017-tagesgrenze-vier-uhr.md) | Der gemeinsame Tag wechselt um vier Uhr morgens | Gültig |
+| [0018](0018-fragen-aus-dem-himmel-und-tiefe.md) | Fragen aus dem Himmel, Tiefe je Runde, die Tage der beiden friert der Server ein | Gültig |
+| [0019](0019-versiegelte-fragen-und-fragen-auf-today.md) | Versiegelte Fragen der Gegenseite, Fragen dort, wo der Wunsch entsteht | Gültig |
+| [0020](0020-zaehler-statt-streak-und-nachtpapier.md) | Ein Zähler, der nur wächst; ein Fund von früher; Nachtpapier | Gültig |
 
 ## Vorlage
 

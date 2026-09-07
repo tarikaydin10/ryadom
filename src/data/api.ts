@@ -64,7 +64,7 @@ export interface RemoteRound {
    * the slot, which is what keeps round 0 readable with no server in reach. A
    * question of your own travels in full, because nothing else could show it.
    */
-  question: { kind: 'bundled' } | { kind: 'pool'; question: RemoteQuestion };
+  question: { kind: 'bundled'; id?: string } | { kind: 'pool'; question: RemoteQuestion };
   you: RemoteAnswer | null;
   partner: {
     /** Always known: that they wrote, and when. */

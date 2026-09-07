@@ -15,6 +15,7 @@ import {
 import { syncNow } from './sync';
 import { syncEnabled } from './api';
 import { promptFor, type Prompt } from '../content/prompt';
+import { loadSettings, type Settings } from './settings';
 
 /** One round of a day, with everything the screen needs to draw it. */
 export interface RoundView {
@@ -47,6 +48,7 @@ function viewsFor(
   described: RoundRecord[],
   answers: AnswerRecord[],
   pool: Map<string, QuestionRecord>,
+  names: Settings['names'],
   withEmpty: boolean,
 ): RoundView[] {
   const bySlot = new Map(described.map((round) => [round.slot, round]));
@@ -64,7 +66,7 @@ function viewsFor(
       const theirs = answers.find((answer) => answer.slot === slot && answer.author === 'them') ?? null;
       return {
         slot,
-        prompt: promptFor(date, slot, round?.question ?? { kind: 'bundled' }, pool),
+        prompt: promptFor(date, slot, round?.question ?? { kind: 'bundled' }, pool, names),
         mine,
         theirs,
         partnerAnswered: round?.answered ?? theirs !== null,
@@ -87,9 +89,9 @@ function viewsFor(
  * answered the round before, which is knowledge only it has.
  */
 export async function loadDay(date: string): Promise<RoundView[]> {
-  const [rounds, answers, questions] = await Promise.all([getRounds(date), getAnswers(date), getQuestions()]);
+  const [rounds, answers, questions, settings] = await Promise.all([getRounds(date), getAnswers(date), getQuestions(), loadSettings()]);
   const pool = new Map(questions.map((question) => [question.id, question]));
-  return viewsFor(date, rounds, answers, pool, true);
+  return viewsFor(date, rounds, answers, pool, settings.names, true);
 }
 
 /**
@@ -100,7 +102,7 @@ export async function loadDay(date: string): Promise<RoundView[]> {
  * the chronicle shows what the device has, which after one sync is all of it.
  */
 export async function loadHistory(): Promise<DayHistory[]> {
-  const [rounds, answers, questions] = await Promise.all([getAllRounds(), getAllAnswers(), getQuestions()]);
+  const [rounds, answers, questions, settings] = await Promise.all([getAllRounds(), getAllAnswers(), getQuestions(), loadSettings()]);
   const pool = new Map(questions.map((question) => [question.id, question]));
 
   const dates = [
@@ -116,6 +118,7 @@ export async function loadHistory(): Promise<DayHistory[]> {
         rounds.filter((round) => round.date === date),
         answers.filter((answer) => answer.date === date),
         pool,
+        settings.names,
         false,
       ),
     }))

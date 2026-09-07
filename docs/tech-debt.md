@@ -5,7 +5,7 @@ Was bekannt und offen ist. Jeder Eintrag sagt, **woher** die Schuld kommt,
 zufällig entdeckt und für einen Fehler hält, und damit niemand sie „mal eben"
 mit mehr Code zudeckt. Erledigte Einträge streichen, nicht löschen.
 
-Stand: 2026-09-06.
+Stand: 2026-09-07.
 
 ---
 
@@ -195,3 +195,35 @@ Chronik zeigt das als Lücke, die niemand mehr schließen kann. Mit bis zu drei
 Runden am Tag passiert das öfter als mit einer.
 **Abbau:** [ADR-0015](adr/0015-nachschreiben-ohne-frist-ohne-runde.md): in
 der Chronik nachschreiben, ohne Frist, ohne neue Runde, mit „nachgetragen am".
+
+## TD-16 · Wetterfragen brauchen den Server
+
+**Woher:** [ADR-0018](adr/0018-fragen-aus-dem-himmel-und-tiefe.md). Der
+Himmel fragt aus dem Datum; das Wetter nicht, weil zwei Telefone zwei
+Vorhersagen sehen. „Regen in beiden Städten“, „erster Schnee“ sind die
+besten Anlässe und fehlen.
+**Was es riskiert:** Nichts — es fehlt nur.
+**Abbau:** Der Server holt einmal am Tag um vier Uhr die Vorhersage für beide
+Städte (derselbe Open-Meteo-Aufruf wie im Client, serverseitig nach
+ADR-0001 erlaubt) und friert bei Treffer eine `o-…`-Id auf Runde 0 ein —
+genau der Mechanismus, den Geburtstage schon benutzen (`specialQuestion`).
+Client: die Worte in `SPECIAL`. Ein Abend.
+
+## TD-17 · `DEPTH_EPOCH` hängt am Deploy-Datum
+
+**Woher:** [ADR-0018](adr/0018-fragen-aus-dem-himmel-und-tiefe.md), dieselbe
+Regel wie TD-14: der Stichtag muss der Tag nach dem Deploy sein, sonst
+ändern sich unter schon gezeigten Tagen die Fragen. Gesetzt auf 2026-09-09.
+**Was es riskiert:** Ein Deploy nach dem 8. September verschiebt die Fragen
+der Tage dazwischen.
+**Abbau:** Vor dem Push auf `main` prüfen; bei Bedarf das Datum in
+`src/content/questions.ts` auf den Tag nach dem Deploy setzen. Danach ist der
+Eintrag erledigt.
+
+## TD-18 · Export ohne Import
+
+**Woher:** [Konzept Export](konzepte/export.md), bewusst: Import erst, wenn
+die App einmal umzieht.
+**Was es riskiert:** Nichts heute. Die JSON-Form (`days[].rounds[]` mit
+`question.id`) ist so gewählt, dass ein Import beim Umzug trivial ist.
+**Abbau:** Beim Umzug.

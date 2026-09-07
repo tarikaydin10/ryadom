@@ -220,6 +220,57 @@ const FULL_MOON_WORDINGS: Pick<Question, 'en' | 'ru'>[] = [
 /** Roughly which lunation a date falls in — enough to turn the wording. */
 const LUNATION_DAYS = 29.530589;
 
+/**
+ * The pair's own days, asked by id.
+ *
+ * A birthday, the anniversary, the eve of a reunion: none of these can be
+ * derived from the date alone, because they live in the settings, and two
+ * phones with two states of the settings would derive two questions. So the
+ * server, which holds the settings the two of them share, freezes the id on
+ * round zero the way it freezes one of yours (`settle`), and the phone only
+ * has to know the words for it. The name is filled in here, in the spelling
+ * of each language, from the settings the phone has.
+ */
+const SPECIAL: Record<string, Pick<Question, 'en' | 'ru'>> = {
+  'o-birthday-hamburg': {
+    en: 'It is {name}’s birthday. What do you wish for the year ahead — for the two of you?',
+    ru: '{name} — с днём рождения. Чего ты желаешь на год вперёд, вам обоим?',
+  },
+  'o-birthday-kaliningrad': {
+    en: 'It is {name}’s birthday. What do you wish for the year ahead — for the two of you?',
+    ru: '{name} — с днём рождения. Чего ты желаешь на год вперёд, вам обоим?',
+  },
+  'o-anniversary': {
+    en: 'A year more, today. What do you know now that you did not a year ago?',
+    ru: 'Сегодня ещё один год. Что ты знаешь теперь, чего не знал(а) год назад?',
+  },
+  'o-eve': {
+    en: 'Tomorrow you are in the same room. What is the first thing you will say?',
+    ru: 'Завтра вы в одной комнате. Что ты скажешь первым делом?',
+  },
+};
+
+/** The city a special id belongs to, for the name in it. */
+const cityIn = (id: string): 'hamburg' | 'kaliningrad' | null =>
+  id === 'o-birthday-hamburg' ? 'hamburg' : id === 'o-birthday-kaliningrad' ? 'kaliningrad' : null;
+
+/**
+ * The words for an id the server froze on a round — one of the pair's own
+ * days, or one of the sky's, which the server may name too. Null for an id
+ * this build does not know, in which case the round falls back to the table
+ * and the next update of the app will know it.
+ */
+export function occasionById(id: string, names: { en: string; ru: string } | ((city: 'hamburg' | 'kaliningrad') => { en: string; ru: string })): Question | null {
+  const special = SPECIAL[id];
+  if (special) {
+    const city = cityIn(id);
+    const name = city ? (typeof names === 'function' ? names(city) : names) : { en: '', ru: '' };
+    return { id, en: special.en.replace('{name}', name.en), ru: special.ru.replace('{name}', name.ru) };
+  }
+  const rule = RULES.find((candidate) => candidate.question.id === id);
+  return rule ? rule.question : null;
+}
+
 /** The sky's question for a date, if the sky has one. */
 export function occasionFor(date: string): Question | null {
   for (const rule of RULES) {

@@ -5,7 +5,8 @@ Nächstes kommt. Das **Warum** der bestehenden Teile steht im [README](../README
 das **Wie** in [CLAUDE.md](../CLAUDE.md), die Entscheidungen in [docs/adr](adr/README.md).
 Hier steht, wohin es geht — und was bewusst nicht gebaut wird.
 
-Stand: 2026-09-06, Tag des Livegangs. Am selben Tag kamen Runden, eigene
+Stand: 2026-09-07, der Tag nach dem Livegang — mit der ersten PM-Runde
+(unten, „Ausbau vom 2026-09-07“). Am selben Tag kamen Runden, eigene
 Fragen und Push dazu ([ADR-0012](adr/0012-runden-statt-einer-frage-pro-tag.md),
 [ADR-0013](adr/0013-push-benachrichtigungen.md)) — auf Milas Anmerkung hin,
 dass eine Frage am Tag zu wenig ist und sie selbst fragen will. Das ist der
@@ -97,13 +98,14 @@ Erlaubnis, Zustellung im Hintergrund: auf dem iPhone gesehen.
 Nach [docs/konzepte/karte.md](konzepte/karte.md), ohne Vorlage. Offen bleibt
 der Reisetag-Punkt auf der Linie: braucht eine Uhrzeit im Countdown.
 
-### 5 · Rückblick-Momente
+### 5 · Rückblick-Momente — *teilweise erledigt 2026-09-07*
 
-Sobald Daten da sind: „Heute vor einem Jahr", das erste Wiedersehen als
-Marke in der Chronik, die Frage mit den längsten Antworten. Erst ab einem Jahr
-Daten; vorher gibt es nichts zurückzublicken.
+Der Fund („Nашлось снова“) und der Zähler stehen in der Chronik ab der zweiten
+Woche ([ADR-0020](adr/0020-zaehler-statt-streak-und-nachtpapier.md)). Was
+bleibt, wenn ein Jahr voll ist: „Heute vor einem Jahr“ als eigener Fund, das
+erste Wiedersehen als Marke in der Chronik.
 
-### 6 · Export — Konzept liegt vor
+### 6 · Export — *erledigt 2026-09-07*
 
 Ausgearbeitet in [docs/konzepte/export.md](konzepte/export.md). Kurzfassung:
 
@@ -118,6 +120,30 @@ der Server liefert die eigene Sicht — der Lock-In bleibt.
 Erst wenn jemand es braucht ([TD-06](tech-debt.md)). Was gelöscht wird, war
 der anderen Seite gezeigt; in einer Chronik zu zweit ist das keine
 Selbstverständlichkeit.
+
+## Ausbau vom 2026-09-07
+
+Acht Schritte aus einer Produktrunde, jeder ein Commit, in dieser Reihenfolge
+gebaut. Der Filter dafür: Trigger, die Vorfreude, Neugier und Wert erzeugen —
+nichts, was drängt.
+
+| # | Was | Trigger | Wo |
+|---|---|---|---|
+| 1 | Der Reveal: ihre Antwort wird aus den Balken zu Text, die Runde bleibt offen, die neue kommt herein | Variable Belohnung | `AnswerPair`, `Today` |
+| 2 | Punkt auf dem Icon, wenn ihre Antwort wartet | Offener Loop | `data/badge.ts`, `push-sw.js` |
+| 3 | Ihre ungestellten Fragen versiegelt; Fragen auf Today, an Ort und Stelle | Neugier-Lücke | [ADR-0019](adr/0019-versiegelte-fragen-und-fragen-auf-today.md) |
+| 4 | Zähler, der nur wächst; Fund von früher | Besitz, Nostalgie | [ADR-0020](adr/0020-zaehler-statt-streak-und-nachtpapier.md) |
+| 5 | Fragen aus dem Himmel; der Tag wird tiefer; Geburtstage, Jahrestag, Vorabend | Kontext, Selbstoffenbarung | [ADR-0018](adr/0018-fragen-aus-dem-himmel-und-tiefe.md) |
+| 6 | Ankunftszeit, Reisepunkt auf der Karte, „seit Hamburg: 12 Tage“ | Peak-End | `CountdownCard`, `Map` |
+| 7 | Nachtpapier nach der Dämmerung | Kontext | [ADR-0020](adr/0020-zaehler-statt-streak-und-nachtpapier.md) |
+| 8 | Export als Text und JSON | Vertrauen | [Konzept](konzepte/export.md) |
+
+Dazu: „Us“ speichert Namen und Daten beim Tippen, ohne Knopf.
+
+**Vor dem Push auf `main`:** `DEPTH_EPOCH` in `src/content/questions.ts`
+muss der Tag nach dem Deploy sein ([TD-17](tech-debt.md)). Und: nichts davon
+ist auf dem iPhone gesehen — Reveal, Badge, Nachtpapier und das Zeitfeld im
+Countdown gelten erst als verifiziert, wenn Aydin sie auf dem Gerät hatte.
 
 ## Bewusst nicht gebaut
 
@@ -146,3 +172,10 @@ Für Aydin, in der Reihenfolge, in der sie anstehen:
    von beiden eine Frage nicht versteht.
 3. **Kopie der Backups nach außen** — einmal einrichten, nach
    `deploy/README.md` „Sicherung".
+4. **Anwesenheits-Glow** — ihr Stadtpunkt im Band leuchtet, wenn sie in den
+   letzten Minuten in der App war; keine Uhrzeit, kein „zuletzt online“. Der
+   stärkste Trigger aus der Runde vom 2026-09-07 und der einzige, der an
+   „nichts, was drängt“ kratzt. Empfehlung: bauen, mit Schalter pro Gerät.
+5. **Wetterfragen über den Server** ([TD-16](tech-debt.md)) — „Regen in
+   beiden Städten“, „erster Schnee“. Ein Abend, sobald die Himmelsfragen
+   sich bewährt haben.

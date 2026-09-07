@@ -1525,6 +1525,17 @@ input.field__input[type='date']::-webkit-date-and-time-value {
   margin: 0;
 }
 
+/* "Saved", under the names: there when it has just happened, gone a moment
+   later, and never a layout shift either way. */
+.us__saved {
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.us__saved--on {
+  opacity: 1;
+}
+
 /* ---------- your own questions ---------- */
 
 /* A question is a sentence, not a form field: the box is tall enough to hold

@@ -81,6 +81,13 @@ verifiziert, wenn Aydin es auf dem Gerät gesehen hat. Sag das ausdrücklich.
   Rahmen ändert, lässt `scripts/make-coast.mjs` neu laufen.
 - **Der Tag wechselt um vier Uhr**, nicht um Mitternacht — `dateKey` und der
   Server sind darauf abgestimmt ([ADR-0017](docs/adr/0017-tagesgrenze-vier-uhr.md)).
+- **Stichtage in `questionFor` sind Deploy-Daten.** Wer die Tabelle oder die
+  Pools ändert, setzt einen neuen Stichtag auf den Tag nach dem Deploy und
+  lässt die alten Formeln für die Vergangenheit stehen ([TD-14](docs/tech-debt.md),
+  [TD-17](docs/tech-debt.md)).
+- **Farben nur in den Tokens.** `:root` und `:root[data-night]` am Kopf von
+  `styles.css` sind die einzigen Stellen; Himmel und Karte sind Bilder und
+  dürfen eigene Farben haben ([ADR-0020](docs/adr/0020-zaehler-statt-streak-und-nachtpapier.md)).
 
 ## Wo was liegt
 
@@ -90,11 +97,13 @@ src/map/          Küste (von scripts/make-coast.mjs erzeugt), Projektion, Nacht
 src/components/   SkyBand, TimeRail, QuestionBlock, AnswerPair, RoundDone (fertige Runde,
                   gefaltet), CountdownCard, TabBar, QuestionPool (eigene Fragen),
                   Diagnostics (versteckt unter „Us")
-src/content/      Städte, Fragentabelle, Auflösung der Rundenfrage (prompt.ts)
+src/content/      Städte, Fragentabelle (drei Tiefen), Fragen aus dem Himmel (occasions.ts),
+                  Auflösung der Rundenfrage (prompt.ts)
 src/sky/          Tagestabelle, Farben, Sonne/Mond (SunCalc) — rechnet lokal
 src/weather/      Open-Meteo, 7 Tage stündlich, ein Request für beide Städte
 src/data/         IndexedDB (Wahrheit), Outbox, Sync, Passphrase, Settings, Fragen-Pool,
-                  Entwürfe (localStorage, bis gesendet)
+                  Entwürfe (localStorage, bis gesendet), Badge, Export
+src/lib/          Tag (dateKey, vier Uhr), Format, Hooks, Scrub, Nachtpapier (paper.ts)
 src/i18n/         Wörterbücher en/ru, Spracherkennung
 src/styles.css    Eine Datei. Layout-Modell: siehe Kopf der Datei und ADR-0008
 server/index.mjs  Referenz-Server, keine Abhängigkeiten, JSON-Store

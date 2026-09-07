@@ -1,5 +1,8 @@
 import { questionFor, questionText, type Question } from './questions';
+import { occasionById } from './occasions';
 import type { QuestionRecord, RoundQuestion, Side } from '../data/db';
+import type { CityId } from './cities';
+import { displayName, type PersonName } from '../data/settings';
 import type { Locale } from '../i18n';
 
 /**
@@ -31,8 +34,19 @@ export interface PromptLines {
   machine: boolean;
 }
 
-/** Resolve a round's question, falling back to the table if a pool id is gone. */
-export function promptFor(date: string, slot: number, question: RoundQuestion, pool: Map<string, QuestionRecord>): Prompt {
+/**
+ * Resolve a round's question, falling back to the table if a pool id is gone.
+ *
+ * `names` is for the pair's own days: a birthday question carries the name
+ * of whoever has it, in the spelling of each language.
+ */
+export function promptFor(
+  date: string,
+  slot: number,
+  question: RoundQuestion,
+  pool: Map<string, QuestionRecord>,
+  names: Record<CityId, PersonName>,
+): Prompt {
   if (question.kind === 'pool') {
     const written = pool.get(question.id);
     // A sealed copy — hers, listed as existing — is not a question to show;
@@ -41,6 +55,14 @@ export function promptFor(date: string, slot: number, question: RoundQuestion, p
     // The pool entry has not arrived on this device yet. The bundled question
     // for the slot is not what the other phone is looking at, so this is a
     // stand-in and nothing more — the next sync replaces it.
+  } else if (question.id) {
+    // The server froze one of the pair's own days on this round. Unknown to
+    // this build means the table for now; the next update knows the words.
+    const frozen = occasionById(question.id, (city) => ({
+      en: displayName(names[city], 'en'),
+      ru: displayName(names[city], 'ru'),
+    }));
+    if (frozen) return { kind: 'bundled', question: frozen };
   }
   return { kind: 'bundled', question: questionFor(date, slot) };
 }

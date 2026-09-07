@@ -102,7 +102,12 @@ async function applyDay(response: DayResponse): Promise<void> {
       id: roundId(date, round.slot),
       date,
       slot: round.slot,
-      question: round.question.kind === 'pool' ? { kind: 'pool', id: round.question.question.id } : { kind: 'bundled' },
+      question:
+        round.question.kind === 'pool'
+          ? { kind: 'pool', id: round.question.question.id }
+          : round.question.id
+            ? { kind: 'bundled', id: round.question.id }
+            : { kind: 'bundled' },
       answered: round.partner.answered,
       answeredAt: round.partner.answeredAt,
       fetchedAt: now,

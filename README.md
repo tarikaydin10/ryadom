@@ -292,7 +292,7 @@ scripts/          Icons zeichnen, Schriften holen
 | `GET /api/days/:date` | Die Runden des Tages; die Antwort der anderen Seite je Runde nur, wenn die eigene existiert |
 | `GET /api/days?since=ms` | Alle Tage, an denen seit `since` (Serveruhr) eine Runde aufging oder jemand schrieb — so holt die Chronik ihren Verlauf nach; dieselbe Lock-In-Regel je Runde ([ADR-0014](docs/adr/0014-chronik-verlauf-vom-server.md)) |
 | `PUT /api/days/:date/answer` | Antwort schreiben (Feld `slot` = Runde, ohne Angabe die erste), gibt denselben Tag zurück |
-| `GET /api/questions` | Die eigenen Fragen des Paares, immer vollständig |
+| `GET /api/questions` | Die eigenen Fragen des Paares — die noch ungestellten der Gegenseite versiegelt, ohne Text ([ADR-0019](docs/adr/0019-versiegelte-fragen-und-fragen-auf-today.md)) |
 | `PUT /api/questions/:id` | Eigene Frage anlegen, ändern oder zurückziehen; Antwort ist wieder die ganze Liste |
 | `GET /api/push` | Der öffentliche VAPID-Schlüssel, mit dem das Telefon ein Abo löst |
 | `PUT /api/push` | Abo hinterlegen — oder mit `{ remove: true }` wieder entfernen |

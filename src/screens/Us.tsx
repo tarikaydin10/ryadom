@@ -31,6 +31,26 @@ export function Us() {
   const [draft, setDraft] = useState<Settings>(settings);
   const [saved, setSaved] = useState(false);
   /**
+   * Saved as it is typed, a moment after the last keystroke.
+   *
+   * The language and the notifications took effect on the tap; the names
+   * needed a button at the foot of the page, which half the time was never
+   * pressed. Now a change is written once typing pauses, and the "saved"
+   * under the field says that it was. Compared as text so that the courier's
+   * copy of the same settings coming back does not count as an edit.
+   */
+  useEffect(() => {
+    const same = JSON.stringify({ names: draft.names, dates: draft.dates }) === JSON.stringify({ names: settings.names, dates: settings.dates });
+    if (same) return;
+    const timer = window.setTimeout(() => void update({ ...settings, names: draft.names, dates: draft.dates }).then(() => setSaved(true)), 700);
+    return () => window.clearTimeout(timer);
+  }, [draft, settings, update]);
+  useEffect(() => {
+    if (!saved) return;
+    const timer = window.setTimeout(() => setSaved(false), 2500);
+    return () => window.clearTimeout(timer);
+  }, [saved]);
+  /**
    * The way into the diagnosis: five taps on the heading.
    *
    * Hidden, because it is a block of numbers and this screen is otherwise part
@@ -89,10 +109,6 @@ export function Us() {
   const patch = (next: Partial<Settings>) => {
     setDraft((current) => ({ ...current, ...next }));
     setSaved(false);
-  };
-
-  const commit = () => {
-    void update(draft).then(() => setSaved(true));
   };
 
   const paper = usePaperPreference();
@@ -178,6 +194,37 @@ export function Us() {
             </div>
           </div>
         ))}
+        <span className={saved ? 'answer__foot us__saved us__saved--on' : 'answer__foot us__saved'}>{t('settings.saved')}</span>
+      </div>
+
+      {/* The days the two of you have. Shared like the names; on the day, the
+          question of the day is about it (the server freezes it on round
+          zero — see `specialQuestion`). */}
+      <div className="section">
+        <span className="section__title">{t('settings.dates')}</span>
+        <p className="hint">{t('settings.datesHint')}</p>
+        {(Object.keys(CITIES) as CityId[]).map((id) => (
+          <div className="field" key={id}>
+            <span className="field__label">{t('settings.birthday', { name: draft.names[id].latin || CITIES[id].label })}</span>
+            <input
+              className="field__input"
+              type="date"
+              value={draft.dates.birthdays[id] ?? ''}
+              onChange={(e) =>
+                patch({ dates: { ...draft.dates, birthdays: { ...draft.dates.birthdays, [id]: e.target.value || null } } })
+              }
+            />
+          </div>
+        ))}
+        <div className="field">
+          <span className="field__label">{t('settings.anniversary')}</span>
+          <input
+            className="field__input"
+            type="date"
+            value={draft.dates.anniversary ?? ''}
+            onChange={(e) => patch({ dates: { ...draft.dates, anniversary: e.target.value || null } })}
+          />
+        </div>
       </div>
 
       <div className="section">
@@ -243,13 +290,6 @@ export function Us() {
       )}
 
       {taps >= 5 && <Diagnostics />}
-
-      <div className="answer__actions">
-        <button className="button" onClick={commit}>
-          {t('settings.save')}
-        </button>
-        {saved && <span className="answer__foot">{t('settings.saved')}</span>}
-      </div>
     </div>
   );
 }

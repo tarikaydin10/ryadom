@@ -25,8 +25,13 @@ export type Side = 'a' | 'b';
  * that arrived over the wire.
  */
 export type RoundQuestion =
-  /** Derived from the date and the slot; see `questionFor`. */
-  | { kind: 'bundled' }
+  /**
+   * Derived from the date and the slot; see `questionFor`. With an `id`, the
+   * server has frozen one of the sky's or the pair's own days instead
+   * (`o-…`, see `occasionById`), which the phone could not have derived from
+   * the date alone — a birthday lives in the settings, not in the calendar.
+   */
+  | { kind: 'bundled'; id?: string }
   /** One of your own, by id, carried in full on the day payload. */
   | { kind: 'pool'; id: string };
 

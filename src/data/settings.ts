@@ -3,7 +3,7 @@ import type { CityId } from '../content/cities';
 import { otherCity } from '../content/cities';
 import type { PairMember } from './pair';
 import type { Locale } from '../i18n';
-import { dateKey } from '../lib/day';
+import { dateKey, isValidDateKey } from '../lib/day';
 
 /**
  * A name, optionally written twice.
@@ -29,6 +29,13 @@ export interface Settings {
    */
   reunion: { date: string | null; city: CityId; time: string | null };
   /**
+   * The days the two of you have: a birthday each and the day that counts as
+   * yours. Full dates (`YYYY-MM-DD`), so the year is known when it matters;
+   * only month and day decide when the sky's table asks about them (see
+   * `src/content/occasions.ts` and `settle` in the server).
+   */
+  dates: { birthdays: Record<CityId, string | null>; anniversary: string | null };
+  /**
    * When these were last edited, anywhere.
    *
    * Settings are shared: names and a reunion date belong to the two of you, not
@@ -44,6 +51,7 @@ export const DEFAULT_SETTINGS: Settings = {
     kaliningrad: { latin: 'Mila', cyrillic: 'Мила' },
   },
   reunion: { date: null, city: 'hamburg', time: null },
+  dates: { birthdays: { hamburg: null, kaliningrad: null }, anniversary: null },
   updatedAt: 0,
 };
 
@@ -95,11 +103,19 @@ function migrate(stored: Partial<Settings> & LegacySettings): Settings {
   return {
     names,
     reunion: { ...DEFAULT_SETTINGS.reunion, ...stored.reunion, time: validTime(stored.reunion?.time) },
+    dates: {
+      birthdays: {
+        hamburg: validDate(stored.dates?.birthdays?.hamburg),
+        kaliningrad: validDate(stored.dates?.birthdays?.kaliningrad),
+      },
+      anniversary: validDate(stored.dates?.anniversary),
+    },
     updatedAt: stored.updatedAt ?? 0,
   };
 }
 
 /** "HH:MM" or nothing — the field is optional and older settings lack it. */
+const validDate = (value: unknown): string | null => (typeof value === 'string' && isValidDateKey(value) ? value : null);
 const validTime = (value: unknown): string | null => (typeof value === 'string' && /^\d{2}:\d{2}$/.test(value) ? value : null);
 
 export async function loadSettings(): Promise<Settings> {
