@@ -791,6 +791,25 @@ textarea {
   border-top: 1px solid var(--border);
 }
 
+/* A round that opened while you were looking comes in rather than being
+   there: up from a little below, over most of a second, after the reveal
+   above it has had its own. Only that one — a launch that lands on an
+   afternoon's third question has nothing to announce. */
+.round--opening {
+  animation: round-in 800ms ease 700ms both;
+}
+
+@keyframes round-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* A finished round, folded to the words (see RoundDone). Set the way the
    chronicle sets a round — the question as a small heading, the answers as
    quotes with a rule on the left — so that a page of today reads like a page of
@@ -1036,6 +1055,62 @@ textarea {
 
 .answer__bar--short {
   width: 70%;
+}
+
+/* The reveal: her words arriving where the bars were.
+
+   Two things happen at once and take about a second between them. The bars
+   are drawn one last time, over the text, and thin out and go; the text comes
+   up from under them, from a blur, and settles. It is the one moment in the
+   app that is a moment, and it was a re-render — bars one frame, words the
+   next, nothing to say that the thing the screen exists for had just
+   happened. A reader who has asked for less motion gets the words at once
+   (the veil is hidden in the reduced-motion rule below). */
+.answer--theirs {
+  position: relative;
+}
+
+.answer__veil {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  animation: veil-out 650ms ease 150ms both;
+  transform-origin: left center;
+}
+
+@keyframes veil-out {
+  to {
+    opacity: 0;
+    transform: scaleX(0.72);
+  }
+}
+
+.answer--revealing .answer__text {
+  animation: words-in 900ms ease 380ms both;
+}
+
+/* Your own sentence, just sent, settles into its card the same way — shorter,
+   and from no distance: it was yours already. */
+.answer__text--settling {
+  animation: words-in 550ms ease both;
+}
+
+@keyframes words-in {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
 }
 
 .answer__editor {
@@ -1453,6 +1528,12 @@ input.field__input[type='date']::-webkit-date-and-time-value {
   * {
     transition: none !important;
     animation: none !important;
+  }
+
+  /* With its fade gone the veil would sit on her words for a second and a
+     half. The words simply appear instead. */
+  .answer__veil {
+    display: none;
   }
 }
 

@@ -161,13 +161,44 @@ export function Today({ onAsk }: Props) {
    */
   const daily = useRef<HTMLElement>(null);
   const known = useRef<number | null>(null);
+  const seen = useRef<RoundView[]>([]);
+  // The slot that opened while you were looking, for the page to bring in
+  // rather than merely append; cleared again once the day is redrawn.
+  const [opening, setOpening] = useState<number | null>(null);
   useEffect(() => {
-    if (known.current !== null && rounds.length > known.current) {
-      const opened = daily.current?.querySelectorAll<HTMLElement>('.round');
-      opened?.[opened.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    /**
+     * A round that finishes under your eyes stays at full size.
+     *
+     * Her answer arriving is the moment the app is for, and it used to be
+     * shown as a fold: the instant both texts existed the pair collapsed to
+     * two quotes, and the reveal on her card never had a card to happen in.
+     * So a round whose partner text arrives while the page is up is added to
+     * the unfolded set before it can fold — it was open when you left it and
+     * it stays open, with her words settling in where the bars were.
+     */
+    if (known.current !== null) {
+      const arrived = rounds.filter((round) => {
+        const before = seen.current.find((old) => old.slot === round.slot);
+        return before !== undefined && before.theirs === null && round.theirs !== null && round.mine !== null;
+      });
+      if (arrived.length > 0) setUnfolded((slots) => [...slots, ...arrived.map((round) => round.slot)]);
+
+      if (rounds.length > known.current) {
+        const last = rounds[rounds.length - 1];
+        if (last) setOpening(last.slot);
+        // Where to go: to the round that just came open, when one did — her
+        // answer and, one screen below it, the new question — and otherwise
+        // to the new question itself. Scrolling straight to the new question
+        // would carry the reveal off the top before it had played.
+        const target = arrived.length > 0 ? rounds.length - 2 : rounds.length - 1;
+        const items = daily.current?.querySelectorAll<HTMLElement>('.round');
+        items?.[target]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
+    seen.current = rounds;
     known.current = fromStore.current ? rounds.length : null;
   }, [rounds]);
+  useEffect(() => setOpening(null), [today]);
 
   const netline = (): string | null => {
     if (!online) return t('net.offline');
@@ -223,7 +254,7 @@ export function Today({ onAsk }: Props) {
                 <RoundDone round={round} partnerName={partnerName} onOpen={onOpen} />
               </div>
             ) : (
-              <div className="round" key={round.slot}>
+              <div className={round.slot === opening ? 'round round--opening' : 'round'} key={round.slot}>
                 <QuestionBlock
                   prompt={round.prompt}
                   kicker={round.slot === 0 ? t('question.kickerPlain') : t('question.kickerMore')}

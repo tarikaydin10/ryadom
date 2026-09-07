@@ -31,6 +31,33 @@ interface TheirsProps {
   partnerAt: number | null;
 }
 
+/** How long the bars take to become her words, and the words to settle. */
+const REVEAL_MS = 1400;
+
+/**
+ * True for a moment after something that was not there arrives.
+ *
+ * The best second of the day — her answer coming unlocked — used to happen as a
+ * plain re-render: bars one frame, text the next, and nothing to say that the
+ * thing the whole screen is built around had just taken place. This notices
+ * the transition and hands the card a window in which to show it. Only the
+ * transition: a card that mounts with the text already in it has nothing to
+ * reveal, and a card whose text merely changes was edited, not opened.
+ */
+function useArrival(present: boolean, forMs: number): boolean {
+  const was = useRef(present);
+  const [arrived, setArrived] = useState(false);
+  useEffect(() => {
+    const fresh = present && !was.current;
+    was.current = present;
+    if (!fresh) return;
+    setArrived(true);
+    const timer = window.setTimeout(() => setArrived(false), forMs);
+    return () => window.clearTimeout(timer);
+  }, [present, forMs]);
+  return arrived;
+}
+
 /**
  * Her side, which is a card you read rather than one you touch.
  *
@@ -49,16 +76,28 @@ interface TheirsProps {
  */
 function TheirAnswer({ theirs, partnerAnswered, partnerName, partnerTz, partnerAt }: TheirsProps) {
   const { t, locale } = useI18n();
+  const revealing = useArrival(theirs !== null, REVEAL_MS);
 
   return (
-    <div className="answer answer--theirs">
+    <div className={revealing ? 'answer answer--theirs answer--revealing' : 'answer answer--theirs'}>
       <span className="answer__label">
         {partnerName}
         {partnerAt !== null ? ` · ${clock(partnerAt, partnerTz, locale)}` : ''}
       </span>
 
       {theirs ? (
-        <p className="answer__text">{theirs.text}</p>
+        <>
+          {/* The bars she was behind, drawn once more over the words for the
+              length of the reveal so that they can be seen going — the moment
+              is the bars becoming text, not text where bars were. */}
+          {revealing && (
+            <span className="answer__veil" aria-hidden="true">
+              <span className="answer__bar" />
+              <span className="answer__bar answer__bar--short" />
+            </span>
+          )}
+          <p className="answer__text">{theirs.text}</p>
+        </>
       ) : partnerAnswered ? (
         <>
           <span className="answer__bar" aria-hidden="true" />
@@ -99,6 +138,21 @@ export const AnswerPair = memo(function AnswerPair({ round, date, partnerName, p
 
   const { mine, theirs, partnerAnswered, partnerAt } = round;
   const their = { theirs, partnerAnswered, partnerName, partnerTz, partnerAt };
+  // Your own words, just sent: they settle into the card rather than appearing
+  // in it, so that pressing Send reads as having done something.
+  const settling = useArrival(mine !== null, REVEAL_MS);
+
+  /**
+   * Under your answer, one line about where it is. "Saved on this device" is
+   * true of a sentence still in the outbox, and it was all the card said even
+   * when the next thing to happen — her answer coming open — was seconds away.
+   * While that is what the send is buying, the line says so.
+   */
+  const foot = (): string => {
+    if (mine?.syncedAt) return t('answer.synced');
+    if (partnerAnswered && !theirs) return t('answer.opening');
+    return t('answer.pending');
+  };
 
   const beginEdit = () => {
     setDraft(kept || mine?.text || '');
@@ -177,12 +231,12 @@ export const AnswerPair = memo(function AnswerPair({ round, date, partnerName, p
           </>
         ) : (
           <>
-            <p className="answer__text">{mine!.text}</p>
+            <p className={settling ? 'answer__text answer__text--settling' : 'answer__text'}>{mine!.text}</p>
             <div className="answer__spacer" />
             <button className="button button--ghost answer__edit" onClick={beginEdit}>
               {t('answer.edit')}
             </button>
-            <span className="answer__foot">{mine!.syncedAt ? t('answer.synced') : t('answer.pending')}</span>
+            <span className="answer__foot">{foot()}</span>
           </>
         )}
       </div>

@@ -95,6 +95,9 @@ export const en = {
     cancel: 'Cancel',
     edit: 'Edit',
     pending: 'saved on this device',
+    // Between Send and the server's answer, when hers is waiting behind it:
+    // what the send is about to buy, said while it is being bought.
+    opening: 'Sending — their answer opens next.',
     synced: 'sent',
     writtenAt: 'wrote at {time}',
   },
@@ -290,6 +293,7 @@ export const ru: DeepStringShape<typeof en> = {
     cancel: 'Отмена',
     edit: 'Изменить',
     pending: 'сохранено на этом устройстве',
+    opening: 'Отправляем — и ответ откроется.',
     synced: 'отправлено',
     writtenAt: 'написано в {time}',
   },
