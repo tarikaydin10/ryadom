@@ -6,7 +6,8 @@ import { Map } from './screens/Map';
 import { Chronicle } from './screens/Chronicle';
 import { Lock } from './screens/Lock';
 import { isUnlocked, subscribePair } from './data/pair';
-import { startSync } from './data/sync';
+import { startSync, subscribeSync } from './data/sync';
+import { refreshBadge } from './data/badge';
 import { prefetchDays } from './sky/engine';
 
 function useUnlocked(): boolean {
@@ -23,7 +24,15 @@ export function App() {
     // Sun and moon for the coming week, built while the phone is idle, so a
     // midnight rollover or a scrub into tomorrow never stalls a frame.
     prefetchDays(Date.now(), 6);
-    return startSync();
+    const stopSync = startSync();
+    // The icon's dot follows the store: whatever the courier brings — her
+    // answer, the acknowledgement of yours — the badge is re-read from what
+    // is now true rather than from what the push said.
+    const stopBadge = subscribeSync(() => void refreshBadge());
+    return () => {
+      stopBadge();
+      stopSync();
+    };
   }, [unlocked]);
 
   if (!unlocked) {

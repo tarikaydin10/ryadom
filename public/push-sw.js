@@ -23,17 +23,26 @@ self.addEventListener('push', (event) => {
     }
   })();
 
+  // The dot on the icon, set here because the app is not running to set it:
+  // whichever of the two sentences arrived, there is something for you inside.
+  // The app clears it again on the next look, from what is actually true.
+  const badge =
+    typeof self.navigator?.setAppBadge === 'function' ? self.navigator.setAppBadge(1).catch(() => undefined) : Promise.resolve();
+
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'Ryadom', {
-      body: payload.body || '',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      // One notification per kind of news: a second nudge replaces the first
-      // rather than stacking, and the phone stays quiet about the same fact.
-      tag: payload.kind || 'ryadom',
-      renotify: true,
-      data: { url: '/' },
-    }),
+    Promise.all([
+      badge,
+      self.registration.showNotification(payload.title || 'Ryadom', {
+        body: payload.body || '',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        // One notification per kind of news: a second nudge replaces the first
+        // rather than stacking, and the phone stays quiet about the same fact.
+        tag: payload.kind || 'ryadom',
+        renotify: true,
+        data: { url: '/' },
+      }),
+    ]),
   );
 });
 
