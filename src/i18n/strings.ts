@@ -250,6 +250,20 @@ export const en = {
     remove: 'Take it back',
   },
 
+  export: {
+    title: 'Export',
+    hint: 'Everything on this device as two files — a text you can read anywhere, and the same as JSON. Your side of the record: a round you never answered stays closed here too.',
+    button: 'Export everything',
+    working: 'Gathering …',
+    shared: 'Handed over.',
+    downloaded: 'Downloaded.',
+    failed: 'That did not work. Try again in a moment.',
+    // Inside the text file.
+    fileTitle: 'Everything written, exported',
+    notWritten: 'not written',
+    locked: 'closed — write yours to open it',
+  },
+
   map: {
     label: 'The Baltic between both cities, with the night where it is',
     km: '{km} km',
@@ -448,6 +462,19 @@ export const ru: DeepStringShape<typeof en> = {
     waiting: 'ждёт своей очереди',
     asked: 'задан {date}',
     remove: 'Забрать назад',
+  },
+
+  export: {
+    title: 'Экспорт',
+    hint: 'Всё, что есть на этом устройстве, двумя файлами — текст, который откроется где угодно, и то же самое в JSON. Твоя сторона записи: раунд, на который ты не ответил(а), закрыт и здесь.',
+    button: 'Экспортировать всё',
+    working: 'Собираем …',
+    shared: 'Передано.',
+    downloaded: 'Скачано.',
+    failed: 'Не получилось. Попробуй ещё раз чуть позже.',
+    fileTitle: 'Всё написанное, экспорт',
+    notWritten: 'не написано',
+    locked: 'закрыто — напиши свой ответ, и откроется',
   },
 
   map: {

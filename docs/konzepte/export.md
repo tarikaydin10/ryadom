@@ -1,6 +1,7 @@
 # Konzept · Export
 
-**Stand:** Vorschlag, 2026-09-06.
+**Stand:** Gebaut, 2026-09-07 — mit einer Abweichung vom Vorschlag, siehe
+„Wer die Datei baut“ am Ende.
 
 ## Warum
 
@@ -53,3 +54,23 @@ Blob-Link. Beides ohne Fremd-Host.
 
 Server: eine Route, ~30 Zeilen (Text rendern, JSON bündeln). Client: ein
 Knopf, `navigator.share`, ~40 Zeilen. Ein Abend.
+
+## Wer die Datei baut — Abweichung beim Bau (2026-09-07)
+
+Der Vorschlag oben legt den Export auf den Server (`GET /api/export`). Gebaut
+ist er **auf dem Gerät** (`src/data/export.ts`), aus einem Grund, den der
+Vorschlag nicht gesehen hat: der Server kennt die Tabellenfragen nicht. Eine
+Runde aus der Tabelle ist bei ihm `{ kind: 'bundled' }`, der Satz wird auf dem
+Telefon aus dem Datum abgeleitet ([ADR-0012](../adr/0012-runden-statt-einer-frage-pro-tag.md)).
+Nur das Telefon kann also „Was hat dich heute zum Lachen gebracht?“ über die
+beiden Antworten schreiben.
+
+Die eine Regel bleibt trotzdem — durch Konstruktion: der lokale Speicher ist
+nach einem Sync vollständig ([ADR-0014](../adr/0014-chronik-verlauf-vom-server.md))
+und enthält genau die Sicht des Servers für diese Seite. Eine Runde, die man
+nie beantwortet hat, ist im Speicher so geschlossen wie dort, und die Datei
+sagt es an der Stelle. Versiegelte Fragen der Gegenseite (noch nicht gestellt)
+sind nicht im Export, weil ihr Text nicht auf dem Gerät ist.
+
+Der Knopf liegt unter „Us“ → „Export“; beide Dateien gehen durch den
+Teilen-Dialog, auf dem Desktop als Download.

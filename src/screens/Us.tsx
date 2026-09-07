@@ -12,6 +12,7 @@ import type { Settings } from '../data/settings';
 import { Diagnostics } from '../components/Diagnostics';
 import { disablePush, enablePush, pushStatus, type PushStatus } from '../data/push';
 import { setPaperPreference, usePaperPreference, type PaperPreference } from '../lib/paper';
+import { buildExport, shareExport, type ShareOutcome } from '../data/export';
 
 /**
  * Settings, and only settings.
@@ -61,6 +62,29 @@ export function Us() {
   };
 
   useEffect(() => setDraft(settings), [settings]);
+
+  /**
+   * The way out: everything on this device as two files, through the share
+   * sheet. See `data/export.ts` for why the device builds them.
+   */
+  const [exporting, setExporting] = useState<'idle' | 'working' | ShareOutcome | 'failed'>('idle');
+  const exportAll = () => {
+    setExporting('working');
+    void buildExport(locale)
+      .then(shareExport)
+      .then(setExporting)
+      .catch(() => setExporting('failed'));
+  };
+  const exportLine =
+    exporting === 'working'
+      ? t('export.working')
+      : exporting === 'shared'
+        ? t('export.shared')
+        : exporting === 'downloaded'
+          ? t('export.downloaded')
+          : exporting === 'failed'
+            ? t('export.failed')
+            : null;
 
   const patch = (next: Partial<Settings>) => {
     setDraft((current) => ({ ...current, ...next }));
@@ -171,6 +195,17 @@ export function Us() {
             {t('settings.syncNow')}
           </button>
         )}
+      </div>
+
+      <div className="section">
+        <span className="section__title">{t('export.title')}</span>
+        <p className="hint">{t('export.hint')}</p>
+        <div className="answer__actions">
+          <button className="button button--ghost" disabled={exporting === 'working'} onClick={exportAll}>
+            {t('export.button')}
+          </button>
+          {exportLine && <span className="answer__foot">{exportLine}</span>}
+        </div>
       </div>
 
       <div className="section">
