@@ -1014,7 +1014,9 @@ const server = createServer(async (req, res) => {
     // table and the question returns to the front of the queue. If somebody
     // has, the two of you are looking at different questions and this answer
     // cannot be taken; the phone keeps its copy and says so.
-    const bundledId = typeof body?.questionId === 'string' && /^q\d+$/.test(body.questionId);
+    // The table's ids, and the sky's (`o-…`, see src/content/occasions.ts):
+    // both are derived from the date on the phone, neither is one of yours.
+    const bundledId = typeof body?.questionId === 'string' && /^(q\d+|o-[a-z-]+)$/.test(body.questionId);
     if (slot === 0 && round.question?.kind === 'pool' && bundledId) {
       if (round.a || round.b) {
         send(res, 409, { error: 'question changed' });

@@ -1,5 +1,6 @@
 import { dateKeyToMs } from '../lib/day';
 import type { Locale } from '../i18n';
+import { occasionFor } from './occasions';
 
 /**
  * The questions ship with the app.
@@ -243,18 +244,76 @@ const EPOCH = '2026-09-07';
 const EPOCH_DAYS = Math.floor(dateKeyToMs(EPOCH) / 86400000);
 
 /**
- * Three rounds a day walk the table in one sequence — day 0 takes positions 0,
- * 1, 2; day 1 takes 3, 4, 5 — but through a stride coprime with its length, so
- * neighbouring rounds are not neighbouring questions (the table has runs of
- * related ones) and no question comes round again until every one has been
- * asked: 200 questions, three a day, is sixty-six days without a repeat. A
- * day that never reaches its third round simply leaves that one unasked.
+ * Between the two epochs, three rounds a day walked the whole table in one
+ * sequence through a stride coprime with its length. Kept for those days, for
+ * the same reason the 56 are kept for theirs.
  */
 const STRIDE = 37;
 
 /**
+ * From the second epoch on, a day deepens as it goes.
+ *
+ * The first question is light — something about the day that anyone can
+ * answer in a line — the second asks more, and the third is the kind that
+ * takes a moment before writing. A conversation goes that way on its own, and
+ * a day that opened with "what are you avoiding thinking about?" at eight in
+ * the morning did not. Each depth is its own pool, walked with its own stride
+ * so that neighbouring days are not neighbouring questions and nothing comes
+ * round again until the pool is through — roughly two months each.
+ *
+ * Deployed on 2026-09-07 for the day after, the way the first epoch was: no
+ * day already on a phone changes. If the deploy is later than that, move the
+ * date to the day after it — nothing else here needs touching.
+ */
+const DEPTH_EPOCH = '2026-09-09';
+const DEPTH_EPOCH_DAYS = Math.floor(dateKeyToMs(DEPTH_EPOCH) / 86400000);
+
+export type Depth = 1 | 2 | 3;
+
+/** Light: the day, seen. A line is a full answer. */
+const LIGHT = new Set([
+  'q001', 'q002', 'q003', 'q006', 'q007', 'q008', 'q010', 'q012', 'q013', 'q016', 'q021', 'q023', 'q028', 'q030',
+  'q031', 'q033', 'q035', 'q038', 'q041', 'q045', 'q054', 'q057', 'q058', 'q059', 'q060', 'q061', 'q064', 'q065',
+  'q067', 'q071', 'q073', 'q080', 'q081', 'q084', 'q087', 'q088', 'q089', 'q092', 'q093', 'q094', 'q100', 'q103',
+  'q104', 'q106', 'q107', 'q110', 'q115', 'q117', 'q123', 'q124', 'q125', 'q128', 'q129', 'q130', 'q133', 'q135',
+  'q140', 'q142', 'q154', 'q156', 'q157', 'q159', 'q163', 'q165', 'q166', 'q170', 'q173', 'q178', 'q182', 'q183',
+  'q187', 'q190', 'q195', 'q196', 'q197',
+]);
+
+/** Deep: about the two of you, or about what is not said. Takes a moment. */
+const DEEP = new Set([
+  'q009', 'q011', 'q019', 'q020', 'q024', 'q026', 'q039', 'q040', 'q043', 'q050', 'q052', 'q053', 'q055', 'q056',
+  'q063', 'q066', 'q069', 'q070', 'q072', 'q077', 'q079', 'q083', 'q086', 'q090', 'q096', 'q097', 'q102', 'q105',
+  'q113', 'q116', 'q122', 'q126', 'q136', 'q137', 'q144', 'q145', 'q146', 'q152', 'q153', 'q155', 'q158', 'q164',
+  'q168', 'q169', 'q171', 'q176', 'q177', 'q179', 'q184', 'q185', 'q186', 'q189', 'q194', 'q198', 'q199', 'q200',
+]);
+
+export const depthOf = (question: Question): Depth => (LIGHT.has(question.id) ? 1 : DEEP.has(question.id) ? 3 : 2);
+
+/** The three pools, in the order the table lists them. Built once. */
+const POOLS: Record<Depth, Question[]> = { 1: [], 2: [], 3: [] };
+for (const question of QUESTIONS) POOLS[depthOf(question)].push(question);
+
+/** A stride coprime with the pool, near a third of the way round it. */
+function strideFor(length: number): number {
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+  for (const candidate of [37, 31, 29, 23, 19, 17, 13, 11, 7, 5, 3]) if (gcd(candidate, length) === 1) return candidate;
+  return 1;
+}
+const STRIDES: Record<Depth, number> = { 1: strideFor(POOLS[1].length), 2: strideFor(POOLS[2].length), 3: strideFor(POOLS[3].length) };
+
+const POOL_OFFSET = 7;
+
+/** Which pool a round draws from: the day starts light and ends deep. */
+const depthForSlot = (slot: number): Depth => (slot <= 0 ? 1 : slot === 1 ? 2 : 3);
+
+/**
  * Deterministic and stable: the same date and round give the same question on
  * both phones, without either of them asking a server.
+ *
+ * On a day the sky has something to ask, that is the question of the day
+ * (`occasionFor`); the table's own for that slot is skipped, not shifted, so
+ * the rest of the day and every other day stay where they were.
  */
 export function questionFor(date: string, slot = 0): Question {
   const days = Math.floor(dateKeyToMs(date) / 86400000);
@@ -262,10 +321,22 @@ export function questionFor(date: string, slot = 0): Question {
     const index = (((days + slot * OLD_SLOT_STRIDE) % OLD_COUNT) + OLD_COUNT) % OLD_COUNT;
     return QUESTIONS[index] ?? QUESTIONS[0]!;
   }
-  const n = QUESTIONS.length;
-  const position = (days - EPOCH_DAYS) * 3 + slot;
-  const index = (((position * STRIDE) % n) + n) % n;
-  return QUESTIONS[index] ?? QUESTIONS[0]!;
+  if (days < DEPTH_EPOCH_DAYS) {
+    const n = QUESTIONS.length;
+    const position = (days - EPOCH_DAYS) * 3 + slot;
+    const index = (((position * STRIDE) % n) + n) % n;
+    return QUESTIONS[index] ?? QUESTIONS[0]!;
+  }
+  if (slot === 0) {
+    const occasion = occasionFor(date);
+    if (occasion) return occasion;
+  }
+  const depth = depthForSlot(slot);
+  const pool = POOLS[depth];
+  // Started a week in rather than at the head of each pool, so the first days
+  // under this rule do not re-ask what the last days under the old one did.
+  const index = (((days - DEPTH_EPOCH_DAYS + POOL_OFFSET) * STRIDES[depth]) % pool.length + pool.length) % pool.length;
+  return pool[index] ?? QUESTIONS[0]!;
 }
 
 export function questionText(question: Question, locale: Locale): string {
