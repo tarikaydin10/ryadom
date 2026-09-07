@@ -43,3 +43,15 @@ export function longDate(ms: number, locale: Locale): string {
     new Date(ms),
   );
 }
+
+/** "12 October 2025" / «12 октября 2025 г.» — a day from another year. */
+export function dayMonthYear(ms: number, locale: Locale): string {
+  return new Intl.DateTimeFormat(intlTag(locale), { day: 'numeric', month: 'long', year: 'numeric' }).format(
+    new Date(ms),
+  );
+}
+
+/** A day, with its year only when it is not this one — a date in a record. */
+export function dateInRecord(ms: number, locale: Locale, now: number = Date.now()): string {
+  return new Date(ms).getFullYear() === new Date(now).getFullYear() ? dayAndMonth(ms, locale) : dayMonthYear(ms, locale);
+}

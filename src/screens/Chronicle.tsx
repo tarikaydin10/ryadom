@@ -7,8 +7,51 @@ import { loadHistory, saveMyAnswer, type DayHistory, type RoundView } from '../d
 import { subscribeSync } from '../data/sync';
 import { promptId, promptLines } from '../content/prompt';
 import { QuestionPool } from '../components/QuestionPool';
-import { dayAndMonth, longDate } from '../lib/format';
-import { dateKey, dateKeyToMs } from '../lib/day';
+import { dateInRecord, dayAndMonth, longDate } from '../lib/format';
+import { DAY_MS, dateKey, dateKeyToMs } from '../lib/day';
+import { seeded } from '../lib/random';
+import { useNow } from '../lib/hooks';
+
+/** How far back a day has to be before it is worth finding again. */
+const FIND_AFTER_DAYS = 7;
+
+/**
+ * Counts worth a line of their own. Not a streak — a number that only grows,
+ * and these are the places where it is briefly a name.
+ */
+const MILESTONES = new Set([10, 25, 50, 100, 200, 365, 500, 1000]);
+
+interface Finished {
+  date: string;
+  round: RoundView;
+}
+
+/**
+ * The rounds both of you finished, newest first, out of the record.
+ *
+ * What the count counts. A round one of you missed is not in it, and nothing
+ * ever leaves it: a quiet week changes the number by nothing, which is the
+ * difference between this and a streak. Ask the two of them which one they
+ * would rather have on the screen after a bad week.
+ */
+const finishedRounds = (history: DayHistory[]): Finished[] =>
+  history.flatMap((day) => day.rounds.filter((round) => round.mine && round.theirs).map((round) => ({ date: day.date, round })));
+
+/**
+ * One round from the past, found again — the same one all day, on both phones.
+ *
+ * Chosen from the date rather than at random: the two of them can talk about
+ * it, and a page that showed a different memory on every visit would be a
+ * slot machine. Nothing younger than a week — a week is already far enough
+ * for a sentence to have been forgotten and to be a small pleasure to meet.
+ */
+function findAgain(finished: Finished[], today: string): Finished | null {
+  const cutoff = dateKey(dateKeyToMs(today) - FIND_AFTER_DAYS * DAY_MS);
+  const candidates = finished.filter((entry) => entry.date <= cutoff);
+  if (candidates.length === 0) return null;
+  const roll = seeded(Math.floor(dateKeyToMs(today) / DAY_MS))();
+  return candidates[Math.floor(roll * candidates.length)] ?? null;
+}
 
 /**
  * What has been asked and answered, newest first.
@@ -37,9 +80,10 @@ import { dateKey, dateKeyToMs } from '../lib/day';
  * closed stays closed — the lock-in holds for the past as it does for today.
  */
 export function Chronicle() {
-  const { t, locale, other } = useI18n();
+  const { t, tp, locale, other } = useI18n();
   const { settings } = useSettings();
   const [history, setHistory] = useState<DayHistory[]>([]);
+  const now = useNow();
 
   const member = getPair()?.member ?? 'a';
   const sides = sidesFor(member, settings);
@@ -59,10 +103,34 @@ export function Chronicle() {
       <span className="chron__late">{t('chronicle.late', { date: dayAndMonth(at, locale) })}</span>
     ) : null;
 
+  const finished = finishedRounds(history);
+  const count = finished.length;
+  const first = finished[finished.length - 1]?.date ?? null;
+  const found = findAgain(finished, dateKey(now));
+
   return (
     <div className="screen">
       <h1 className="screen__title">{t('tabs.chronicle')}</h1>
       {history.length === 0 && <p className="screen__note">{t('chronicle.empty')}</p>}
+
+      {/* What the two of you have: the rounds both of you finished, as one
+          number that only ever grows, and the day it started counting. Set
+          large because it is the one figure in the app that is allowed to be
+          proud of itself — nothing about it can be lost by missing a day. */}
+      {count > 0 && first && (
+        <div className="tally">
+          <span className="tally__number">{count}</span>
+          <span className="tally__unit">
+            {MILESTONES.has(count) && <span className="tally__mark">{t('chronicle.milestone')}</span>}
+            {tp('chronicle.count', count)}
+            <span className="tally__since">{t('chronicle.since', { date: dateInRecord(dateKeyToMs(first), locale, now) })}</span>
+          </span>
+        </div>
+      )}
+
+      {/* One finished round from at least a week ago, found again — the same
+          one all day, on both phones. */}
+      {found && <FoundAgain entry={found} yourName={yourName} partnerName={partnerName} />}
 
       {history.map((day) => (
         <section className="chron" key={day.date}>
@@ -178,5 +246,36 @@ function LateAnswer({ label, prompt, onSave }: LateProps) {
         </button>
       </div>
     </div>
+  );
+}
+
+interface FoundProps {
+  entry: Finished;
+  yourName: string;
+  partnerName: string;
+}
+
+/**
+ * A memory, set the way the record sets a day, in a card so that it reads as
+ * something put in front of you rather than as the first entry of the list.
+ */
+function FoundAgain({ entry, yourName, partnerName }: FoundProps) {
+  const { t, locale, other } = useI18n();
+  const lines = promptLines(entry.round.prompt, locale, other);
+  return (
+    <section className="find" aria-label={t('chronicle.found')}>
+      <span className="find__kicker">{t('chronicle.foundKicker', { date: dateInRecord(dateKeyToMs(entry.date), locale) })}</span>
+      <p className="chron__question" lang={lines.primary.lang}>
+        {lines.primary.text}
+      </p>
+      <p className="chron__said">
+        <span className="chron__who">{yourName}</span>
+        {entry.round.mine?.text}
+      </p>
+      <p className="chron__said">
+        <span className="chron__who">{partnerName}</span>
+        {entry.round.theirs?.text}
+      </p>
+    </section>
   );
 }

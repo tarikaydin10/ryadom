@@ -197,6 +197,20 @@ export const en = {
     // Shown under an answer that was written on a later day than the question.
     // Honesty about when, never a reproach.
     late: 'written later, on {date}',
+    // The count of rounds both of you finished. It only ever grows; a missed
+    // day changes it by nothing. That is the whole difference from a streak.
+    count: {
+      one: 'question answered by both of you',
+      few: 'questions answered by both of you',
+      many: 'questions answered by both of you',
+      other: 'questions answered by both of you',
+    } as Plural,
+    since: 'since {date}',
+    // Said once, on the round numbers, as a word rather than a firework.
+    milestone: 'A milestone.',
+    // A finished round from at least a week ago, put in front of you again.
+    found: 'Found again',
+    foundKicker: 'Found again · {date}',
   },
 
   questions: {
@@ -386,6 +400,16 @@ export const ru: DeepStringShape<typeof en> = {
     writeLate: 'Написать сейчас — и ответ откроется.',
     writeLateAlone: 'Написать сейчас.',
     late: 'написано позже, {date}',
+    count: {
+      one: 'вопрос, на который ответили оба',
+      few: 'вопроса, на которые ответили оба',
+      many: 'вопросов, на которые ответили оба',
+      other: 'вопроса, на которые ответили оба',
+    },
+    since: 'с {date}',
+    milestone: 'Веха.',
+    found: 'Нашлось снова',
+    foundKicker: 'Нашлось снова · {date}',
   },
 
   questions: {
