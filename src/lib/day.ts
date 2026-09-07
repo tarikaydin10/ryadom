@@ -107,3 +107,20 @@ export function dayNumber(startKey: string, todayKey: string): number {
 export function isValidDateKey(key: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(key) && !Number.isNaN(dateKeyToMs(key));
 }
+
+/**
+ * A wall-clock time on a date in a city, as an instant.
+ *
+ * "14:20 on the 12th in Kaliningrad" is what somebody types for an arrival,
+ * and the map needs it as a moment it can compare with now. Asked twice, like
+ * `startOfPairDay`: the first guess uses the offset in force at midday UTC,
+ * which is wrong for an hour on the two nights the clocks change.
+ */
+export function wallClockToMs(key: string, hhmm: string, tz: string): number | null {
+  const match = /^(\d{2}):(\d{2})$/.exec(hhmm);
+  if (!match || !isValidDateKey(key)) return null;
+  const [y, m, d] = key.split('-').map(Number);
+  const naive = Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1, Number(match[1]), Number(match[2]));
+  const guess = naive - zoneOffset(dateKeyToMs(key), tz);
+  return naive - zoneOffset(guess, tz);
+}

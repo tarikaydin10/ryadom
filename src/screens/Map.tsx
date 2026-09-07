@@ -7,13 +7,14 @@ import { useNow } from '../lib/hooks';
 import { useScrub, SCRUB_LIMIT_MS } from '../lib/scrub';
 import { useSettings } from '../data/settings-context';
 import { getPair } from '../data/pair';
-import { sidesFor } from '../data/settings';
+import { daysUntil, sidesFor } from '../data/settings';
 import { BAND_ORDER, CITIES, type CityId } from '../content/cities';
 import { rowAt, skyDay, statusFor } from '../sky/engine';
 import { clock } from '../lib/format';
-import { DAY_MS } from '../lib/day';
+import { DAY_MS, dateKey, startOfPairDay, wallClockToMs } from '../lib/day';
+import { otherCity } from '../content/cities';
 import { COAST_PATH } from '../map/coast';
-import { CITY_POINTS, HEIGHT, WIDTH, arcMidpoint, distanceKm, greatCirclePath, nightCells } from '../map/geometry';
+import { CITY_POINTS, HEIGHT, WIDTH, arcMidpoint, distanceKm, greatCirclePath, greatCirclePoint, nightCells } from '../map/geometry';
 
 /**
  * The picture of the distance.
@@ -52,9 +53,32 @@ export function Map() {
 
   const row = rowAt(shownMs);
   const sides = sidesFor(getPair()?.member ?? 'a', settings);
-  const reunion = settings.reunion.date ? settings.reunion.city : null;
+  // Marked only while it is ahead: a ring round a city you met in last month
+  // would say a reunion is coming, and it is not.
+  const reunion = settings.reunion.date && daysUntil(settings.reunion.date, now) >= 0 ? settings.reunion.city : null;
 
   const night = useMemo(() => nightCells(shownMs), [shownMs]);
+
+  /**
+   * The traveller, on the day: a point that moves along the line.
+   *
+   * Only on the travel day and only with an hour of arrival — a date says
+   * which day, not when the door opens. It starts from the other city at the
+   * start of the shared day and reaches the reunion city at the hour set,
+   * evenly, which is not how trains and planes move but is how the wait
+   * feels; before the day it sits at home, after the hour it has arrived.
+   * Wound with the rest of the map: drag into the afternoon and it is
+   * further along.
+   */
+  const traveller = useMemo(() => {
+    const { date, city, time } = settings.reunion;
+    if (!date || !time || dateKey(shownMs) !== date) return null;
+    const arrival = wallClockToMs(date, time, CITIES[city].tz);
+    if (arrival === null) return null;
+    const departure = startOfPairDay(arrival);
+    const progress = arrival <= departure ? 1 : Math.min(1, Math.max(0, (shownMs - departure) / (arrival - departure)));
+    return greatCirclePoint(otherCity(city), city, progress);
+  }, [settings.reunion, shownMs]);
 
   /**
    * How much earlier the light reaches the eastern city today, in minutes.
@@ -165,6 +189,7 @@ export function Map() {
           </g>
 
           <path className="map__arc" d={ARC} pathLength={1} />
+          {traveller && <circle className="map__traveller" cx={traveller.x} cy={traveller.y} r={5} />}
           <text className="map__distance" x={MID.x} y={MID.y} textAnchor="middle">
             {t('map.km', { km: KM.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-GB') })}
           </text>

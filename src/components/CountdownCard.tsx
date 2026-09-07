@@ -32,16 +32,22 @@ export const CountdownCard = memo(function CountdownCard() {
   const [editing, setEditing] = useState(false);
   const [date, setDate] = useState(settings.reunion.date ?? '');
   const [city, setCity] = useState<CityId>(settings.reunion.city);
+  const [time, setTime] = useState(settings.reunion.time ?? '');
 
   useEffect(() => {
     setDate(settings.reunion.date ?? '');
     setCity(settings.reunion.city);
-  }, [settings.reunion.date, settings.reunion.city]);
+    setTime(settings.reunion.time ?? '');
+  }, [settings.reunion.date, settings.reunion.city, settings.reunion.time]);
 
   const commit = () => {
     void update({
       ...settings,
-      reunion: { date: date && isValidDateKey(date) ? date : null, city },
+      reunion: {
+        date: date && isValidDateKey(date) ? date : null,
+        city,
+        time: /^\d{2}:\d{2}$/.test(time) ? time : null,
+      },
     });
     setEditing(false);
   };
@@ -57,6 +63,13 @@ export const CountdownCard = memo(function CountdownCard() {
           onChange={(event) => setDate(event.target.value)}
           autoFocus
         />
+        {/* The hour of arrival, in the reunion city's own time. Optional: a
+            date is a plan, an hour is a ticket, and the map only moves the
+            traveller along the line once there is one. */}
+        <label className="countdown__time">
+          <span className="field__label">{t('countdown.arrivalTime')}</span>
+          <input className="field__input" type="time" value={time} onChange={(event) => setTime(event.target.value)} />
+        </label>
         <div className="segment">
           {(Object.keys(CITIES) as CityId[]).map((id) => (
             <button
@@ -80,9 +93,17 @@ export const CountdownCard = memo(function CountdownCard() {
     );
   }
 
-  const { date: reunionDate, city: reunionCity } = settings.reunion;
+  const { date: reunionDate, city: reunionCity, time: reunionTime } = settings.reunion;
   const days = reunionDate ? daysUntil(reunionDate) : null;
-  const near = days !== null && days <= NEAR_DAYS;
+  const near = days !== null && days >= 0 && days <= NEAR_DAYS;
+  /**
+   * The day has passed and nothing new is booked: the card turns round and
+   * counts the other way. "Twelve days since Hamburg" keeps the time you had
+   * on the screen instead of a "today" that stayed true for a month, and it
+   * is the quietest possible way of asking for the next date — the number
+   * goes up until somebody replaces it.
+   */
+  const since = days !== null && days < 0;
 
   // Which of you travels is derived, not stored: the reunion city is one of the
   // two, and each device knows which side it is standing on.
@@ -90,18 +111,21 @@ export const CountdownCard = memo(function CountdownCard() {
 
   const sentence = (): string => {
     if (!reunionDate) return t('countdown.unset');
-    const imminent = days !== null && days <= 1;
     const when = dayAndMonth(dateKeyToMs(reunionDate), locale);
-    return reunionCity === sides.yours
-      ? t(imminent ? 'countdown.arrivesSoon' : 'countdown.arrives', {
-          name: displayName(sides.partnerName, locale),
-          date: when,
-        })
-      : /* The city keeps its own name here too, inside either language. */
-        t(imminent ? 'countdown.youTravelSoon' : 'countdown.youTravel', {
-          city: CITIES[reunionCity].label,
-          date: when,
-        });
+    const city = CITIES[reunionCity].label;
+    if (since) return t('countdown.since', { city, date: when });
+    const imminent = days !== null && days <= 1;
+    const name = displayName(sides.partnerName, locale);
+    // With an hour set, the hour is the news once the day is this close; before
+    // that the date is, and the hour would only lengthen the line.
+    const at = reunionTime ?? '';
+    if (reunionCity === sides.yours) {
+      if (imminent) return at ? t('countdown.arrivesSoonAt', { name, time: at }) : t('countdown.arrivesSoon', { name });
+      return t('countdown.arrives', { name, date: when });
+    }
+    /* The city keeps its own name here too, inside either language. */
+    if (imminent) return at ? t('countdown.youTravelSoonAt', { city, time: at }) : t('countdown.youTravelSoon', { city });
+    return t('countdown.youTravel', { city, date: when });
   };
 
   return (
@@ -119,7 +143,12 @@ export const CountdownCard = memo(function CountdownCard() {
         <span className="countdown__action">{t('countdown.set')}</span>
       ) : (
         <span className="countdown__count">
-          {days <= 0 ? (
+          {since ? (
+            <>
+              <span className="countdown__number">{-days}</span>
+              <span className="countdown__unit">{tp('countdown.days', -days)}</span>
+            </>
+          ) : days <= 0 ? (
             <span className="countdown__word">{t('countdown.today')}</span>
           ) : days === 1 ? (
             <span className="countdown__word">{t('countdown.tomorrow')}</span>

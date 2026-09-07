@@ -22,7 +22,12 @@ export interface PersonName {
 export interface Settings {
   /** Who lives where. Keyed by city, not by "you" and "them". */
   names: Record<CityId, PersonName>;
-  reunion: { date: string | null; city: CityId };
+  /**
+   * The date, the city, and — optionally — the hour of arrival in that
+   * city's own time. The hour is what lets the map move the traveller along
+   * the line on the day, and what the card says once the day is close.
+   */
+  reunion: { date: string | null; city: CityId; time: string | null };
   /**
    * When these were last edited, anywhere.
    *
@@ -38,7 +43,7 @@ export const DEFAULT_SETTINGS: Settings = {
     hamburg: { latin: 'Tarik', cyrillic: 'Тарик' },
     kaliningrad: { latin: 'Mila', cyrillic: 'Мила' },
   },
-  reunion: { date: null, city: 'hamburg' },
+  reunion: { date: null, city: 'hamburg', time: null },
   updatedAt: 0,
 };
 
@@ -89,10 +94,13 @@ function migrate(stored: Partial<Settings> & LegacySettings): Settings {
 
   return {
     names,
-    reunion: { ...DEFAULT_SETTINGS.reunion, ...stored.reunion },
+    reunion: { ...DEFAULT_SETTINGS.reunion, ...stored.reunion, time: validTime(stored.reunion?.time) },
     updatedAt: stored.updatedAt ?? 0,
   };
 }
+
+/** "HH:MM" or nothing — the field is optional and older settings lack it. */
+const validTime = (value: unknown): string | null => (typeof value === 'string' && /^\d{2}:\d{2}$/.test(value) ? value : null);
 
 export async function loadSettings(): Promise<Settings> {
   const stored = await kvGet<Partial<Settings> & LegacySettings>(KEY);

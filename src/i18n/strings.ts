@@ -122,6 +122,12 @@ export const en = {
     // already said, so the sentence drops it.
     arrivesSoon: '{name} arrives',
     youTravelSoon: 'You travel to {city}',
+    // With an hour set, once the day is this close, the hour is the news.
+    arrivesSoonAt: '{name} arrives at {time}',
+    youTravelSoonAt: 'You travel to {city}, arriving at {time}',
+    arrivalTime: 'Arrival, local time (optional)',
+    // The day has passed and nothing new is booked: the count turns round.
+    since: 'Since {city}, {date}',
     unset: 'No reunion date yet',
     // The empty slot's own label. An instruction, not a description: with no
     // date set there is nothing to read here and only something to do.
@@ -335,6 +341,10 @@ export const ru: DeepStringShape<typeof en> = {
     youTravel: 'Ты едешь в {city} {date}',
     arrivesSoon: '{name} приезжает',
     youTravelSoon: 'Ты едешь в {city}',
+    arrivesSoonAt: '{name} приезжает в {time}',
+    youTravelSoonAt: 'Ты едешь в {city}, прибытие в {time}',
+    arrivalTime: 'Прибытие, по местному времени (необязательно)',
+    since: 'После встречи в {city}, {date}',
     unset: 'Встреча ещё не назначена',
     set: 'Назначить дату',
   },

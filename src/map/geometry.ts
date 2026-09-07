@@ -53,6 +53,17 @@ export function distanceKm(a: CityId, b: CityId): number {
  * exactly on both cities.
  */
 export function greatCirclePath(a: CityId, b: CityId, samples = 40): string {
+  const points: Point[] = [];
+  for (let i = 0; i <= samples; i++) points.push(greatCirclePoint(a, b, i / samples));
+  return points.map((pt, i) => `${i === 0 ? 'M' : 'L'}${pt.x.toFixed(1)},${pt.y.toFixed(1)}`).join('');
+}
+
+/**
+ * The point a fraction of the way along the great circle from `a` to `b`, in
+ * map coordinates. The arc is drawn from this, and the traveller on a travel
+ * day is placed with it, so the two cannot disagree about where the way is.
+ */
+export function greatCirclePoint(a: CityId, b: CityId, f: number): Point {
   const p = CITIES[a];
   const q = CITIES[b];
   const lat1 = p.lat * RAD;
@@ -60,17 +71,12 @@ export function greatCirclePath(a: CityId, b: CityId, samples = 40): string {
   const lat2 = q.lat * RAD;
   const lon2 = q.lon * RAD;
   const d = 2 * Math.asin(Math.sqrt(Math.sin((lat2 - lat1) / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon2 - lon1) / 2) ** 2));
-  const points: Point[] = [];
-  for (let i = 0; i <= samples; i++) {
-    const f = i / samples;
-    const A = Math.sin((1 - f) * d) / Math.sin(d);
-    const B = Math.sin(f * d) / Math.sin(d);
-    const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2);
-    const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2);
-    const z = A * Math.sin(lat1) + B * Math.sin(lat2);
-    points.push(project(Math.atan2(z, Math.sqrt(x * x + y * y)) / RAD, Math.atan2(y, x) / RAD));
-  }
-  return points.map((pt, i) => `${i === 0 ? 'M' : 'L'}${pt.x.toFixed(1)},${pt.y.toFixed(1)}`).join('');
+  const A = Math.sin((1 - f) * d) / Math.sin(d);
+  const B = Math.sin(f * d) / Math.sin(d);
+  const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2);
+  const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2);
+  const z = A * Math.sin(lat1) + B * Math.sin(lat2);
+  return project(Math.atan2(z, Math.sqrt(x * x + y * y)) / RAD, Math.atan2(y, x) / RAD);
 }
 
 /** Where the arc is at its middle — the distance is written there. */

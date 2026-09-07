@@ -1204,6 +1204,22 @@ textarea {
   padding: 14px;
 }
 
+/* The hour field, under the date, labelled — the one input on the card that
+   is allowed to stay empty. */
+.countdown__time {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+input.field__input[type='time'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .countdown__kicker {
   font-size: 10px;
   letter-spacing: 0.18em;
@@ -1635,6 +1651,15 @@ input.field__input[type='date']::-webkit-date-and-time-value {
   fill: var(--terracotta);
   stroke: var(--paper);
   stroke-width: 3;
+}
+
+/* The traveller on the day: a small point on the line, in paper with the
+   line's colour round it, so that it reads as something on the way rather
+   than as a third city. */
+.map__traveller {
+  fill: var(--paper);
+  stroke: var(--terracotta);
+  stroke-width: 2.5;
 }
 
 /* Your own city is the one with the darker heart — the same distinction the
