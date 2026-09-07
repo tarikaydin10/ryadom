@@ -83,6 +83,12 @@ export interface QuestionRecord {
   usedOn: string | null;
   deleted: boolean;
   syncedAt: number | null;
+  /**
+   * Theirs, and not yet asked: the sentence is not on this device, only that
+   * there is one. It arrives with the round that asks it. Absent on records
+   * from before the seal existed, which were all your own or already asked.
+   */
+  sealed?: boolean;
 }
 
 export type OutboxItem = { id?: number; queuedAt: number; attempts: number; lastError: string | null } & (

@@ -473,6 +473,25 @@ function nextQuestion(date) {
 }
 
 /**
+ * The pool, as one side may see it.
+ *
+ * A question the other one wrote and that has not been asked yet is sealed:
+ * it travels as the fact that it exists — author, dates, an id — and not as
+ * the sentence. The surprise is half of what a question of hers is worth
+ * (ADR-0012 said so and then the list at the foot of the chronicle showed
+ * every one of them in full, weeks before its round). Your own are always
+ * whole, and so is anything already asked: by then it is on the day. One
+ * taken back before it was asked stays sealed for good — it was never said.
+ */
+function questionsFor(member) {
+  return store.questions.map((question) =>
+    question.author === member || (question.usedOn !== null && !question.deleted)
+      ? question
+      : { ...question, text: '', translation: null, sealed: true },
+  );
+}
+
+/**
  * The lock-in rule, enforced here rather than in the client.
  *
  * Until you have written, their text does not leave this process — the response
@@ -862,7 +881,7 @@ const server = createServer(async (req, res) => {
    * in the body — the same rule that makes a side a fact everywhere else here.
    */
   if (url.pathname === '/api/questions' && req.method === 'GET') {
-    send(res, 200, { questions: store.questions });
+    send(res, 200, { questions: questionsFor(member) });
     return;
   }
 
@@ -931,7 +950,7 @@ const server = createServer(async (req, res) => {
       });
     }
     await persist();
-    send(res, 200, { questions: store.questions });
+    send(res, 200, { questions: questionsFor(member) });
     return;
   }
 

@@ -4,7 +4,8 @@ import { useSettings } from '../data/settings-context';
 import { getPair } from '../data/pair';
 import { displayName, sidesFor } from '../data/settings';
 import { getQuestions, type QuestionRecord } from '../data/db';
-import { removeQuestion, saveQuestion } from '../data/questions';
+import { removeQuestion } from '../data/questions';
+import { QuestionForm } from './QuestionForm';
 import { subscribeSync } from '../data/sync';
 import { dayAndMonth } from '../lib/format';
 import { dateKeyToMs } from '../lib/day';
@@ -17,21 +18,19 @@ import { dateKeyToMs } from '../lib/day';
  * next round that opens — no date to choose, because choosing a date turns a
  * thought into an appointment and the surprise is half of it.
  *
- * Each of you writes in your own language. There is no translation here that
- * nobody typed: the second field is optional and, when it is left empty, the
- * other side simply reads the sentence as it was written. That is honest, and
- * it is one sentence.
+ * Each of you writes in your own language — the form is `QuestionForm`, shared
+ * with Today. What is listed under it is what is still coming and what has
+ * been asked. Hers, not yet asked, are listed as existing and nothing more:
+ * the sentence stays on the server until its round (ADR-0012 called the
+ * surprise half the value, and for a day this list gave it away).
  *
  * Lives at the foot of the chronicle, because that is where the questions asked
  * so far are: the ones you write are the same subject, seen from the other end.
  */
 export function QuestionPool() {
-  const { t, locale, other } = useI18n();
+  const { t, locale } = useI18n();
   const { settings } = useSettings();
   const [questions, setQuestions] = useState<QuestionRecord[]>([]);
-  const [text, setText] = useState('');
-  const [translation, setTranslation] = useState('');
-  const [busy, setBusy] = useState(false);
 
   const member = getPair()?.member ?? 'a';
   const sides = sidesFor(member, settings);
@@ -42,77 +41,38 @@ export function QuestionPool() {
   useEffect(refresh, []);
   useEffect(() => subscribeSync(() => refresh()), []);
 
-  const add = () => {
-    const written = text.trim();
-    if (!written || busy) return;
-    setBusy(true);
-    const second = translation.trim();
-    void saveQuestion({
-      author: member,
-      lang: locale,
-      text: written,
-      translation: second ? { lang: other, text: second, by: 'author' } : null,
-    })
-      .then(() => {
-        setText('');
-        setTranslation('');
-        refresh();
-      })
-      .finally(() => setBusy(false));
-  };
-
   const drop = (id: string) => {
     void removeQuestion(id).then(refresh);
   };
 
   // Newest first: the list is a place to check what is still coming, and what
   // was written last is what somebody is most likely looking for.
-  const mine = questions.filter((question) => !question.deleted).sort((left, right) => right.createdAt - left.createdAt);
+  const listed = questions.filter((question) => !question.deleted).sort((left, right) => right.createdAt - left.createdAt);
 
   return (
     <>
       <div className="section" id="questions">
         <span className="section__title">{t('questions.title')}</span>
         <p className="hint">{t('questions.intro')}</p>
-        <div className="field">
-          <label className="field__label" htmlFor="question-text">
-            {t('questions.yours')}
-          </label>
-          <textarea
-            id="question-text"
-            className="field__input questions__editor"
-            value={text}
-            lang={locale}
-            placeholder={t('questions.placeholder')}
-            onChange={(event) => setText(event.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label className="field__label" htmlFor="question-translation">
-            {t('questions.translation')}
-          </label>
-          <textarea
-            id="question-translation"
-            className="field__input questions__editor"
-            value={translation}
-            lang={other}
-            placeholder={t('questions.translationHint')}
-            onChange={(event) => setTranslation(event.target.value)}
-          />
-        </div>
-        <button className="button" onClick={add} disabled={busy || text.trim().length === 0}>
-          {t('questions.save')}
-        </button>
+        <QuestionForm onAdded={refresh} />
       </div>
 
       <div className="section">
         <span className="section__title">{t('questions.list')}</span>
-        {mine.length === 0 && <p className="hint">{t('questions.empty')}</p>}
-        {mine.map((question) => (
+        {listed.length === 0 && <p className="hint">{t('questions.empty')}</p>}
+        {listed.map((question) => (
           <div className="questions__item" key={question.id}>
-            <span className="questions__text" lang={question.lang}>
-              {question.text}
-            </span>
+            {/* Hers, not yet asked: the sentence is not on this device — the
+                server keeps it until the round that asks it (see `sealed`).
+                What is listed is that it exists, which is the whole of the
+                anticipation and none of the surprise. */}
+            {question.sealed ? (
+              <span className="questions__text questions__text--sealed">{t('questions.sealed', { name: partnerName })}</span>
+            ) : (
+              <span className="questions__text" lang={question.lang}>
+                {question.text}
+              </span>
+            )}
             {question.translation && (
               <span className="questions__second" lang={question.translation.lang}>
                 {question.translation.text}

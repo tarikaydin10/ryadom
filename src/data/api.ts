@@ -49,6 +49,12 @@ export interface RemoteQuestion {
   updatedAt: number;
   usedOn: string | null;
   deleted: boolean;
+  /**
+   * The other side's question, not yet asked: the server sends that it exists
+   * and keeps the sentence. `text` is empty and `translation` null while this
+   * is set. Your own, and anything already on a day, arrive whole.
+   */
+  sealed?: boolean;
 }
 
 export interface RemoteRound {

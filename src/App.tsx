@@ -45,7 +45,7 @@ export function App() {
 
   return (
     <div className="app">
-      {tab === 'today' && <Today onAsk={() => setTab('chronicle')} />}
+      {tab === 'today' && <Today />}
       {tab === 'map' && <Map />}
       {tab === 'chronicle' && <Chronicle />}
       {tab === 'us' && <Us />}

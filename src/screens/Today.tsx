@@ -18,6 +18,8 @@ import { displayName, sidesFor } from '../data/settings';
 import { getPair } from '../data/pair';
 import { loadDay, saveMyAnswer, type RoundView } from '../data/answers';
 import { pruneDrafts } from '../data/drafts';
+import { getQuestions } from '../data/db';
+import { QuestionForm } from '../components/QuestionForm';
 
 import { subscribeSync } from '../data/sync';
 
@@ -38,16 +40,7 @@ const openingRound = (date: string): RoundView[] => [
   },
 ];
 
-interface Props {
-  /**
-   * The way to the questions you write yourselves. It is a tab away, and a tab
-   * called "Chronicle" is not where anybody looks for it — the wish to ask
-   * something arrives here, under the question that just came.
-   */
-  onAsk(): void;
-}
-
-export function Today({ onAsk }: Props) {
+export function Today() {
   const { t, locale } = useI18n();
   const { settings } = useSettings();
   const now = useNow();
@@ -211,6 +204,48 @@ export function Today({ onAsk }: Props) {
   const line = netline();
   const note = footnote();
 
+  /**
+   * Asking something of your own, here, under the question that just came.
+   *
+   * It used to be a line that switched to the chronicle tab, where the form
+   * sat under a hundred past days: the wish to ask arrives on this page and
+   * was sent on a journey. Now the line opens the form in place, the way the
+   * reunion and a late answer are edited where they are read. Under it, what
+   * is waiting in the pool — yours as a count, hers as the fact that there is
+   * one, which is all this device is told (see `sealed`).
+   */
+  const [asking, setAsking] = useState(false);
+  const [thanked, setThanked] = useState(false);
+  const [waiting, setWaiting] = useState({ mine: 0, theirs: 0 });
+  const countWaiting = useCallback(() => {
+    void getQuestions().then((questions) => {
+      const open = questions.filter((question) => !question.deleted && question.usedOn === null);
+      setWaiting({
+        mine: open.filter((question) => question.author === member).length,
+        theirs: open.filter((question) => question.author !== member).length,
+      });
+    });
+  }, [member]);
+  useEffect(countWaiting, [countWaiting]);
+  useEffect(() => subscribeSync(() => countWaiting()), [countWaiting]);
+  useEffect(() => {
+    if (!thanked) return;
+    const timer = window.setTimeout(() => setThanked(false), 6000);
+    return () => window.clearTimeout(timer);
+  }, [thanked]);
+  const onAdded = () => {
+    setAsking(false);
+    setThanked(true);
+    countWaiting();
+  };
+  const poolLine = (): string | null => {
+    if (thanked) return t('question.added');
+    if (waiting.theirs > 0) return t('question.theirsWaiting', { name: partnerName });
+    if (waiting.mine > 0) return t('question.yoursWaiting', { count: waiting.mine });
+    return null;
+  };
+  const pool = poolLine();
+
   return (
     <div className="screen-scroll">
       <SkyBand
@@ -272,9 +307,14 @@ export function Today({ onAsk }: Props) {
             ),
           )}
           {note && <p className="daily__note">{note}</p>}
-          <button className="daily__ask" onClick={onAsk}>
-            {t('question.askSomething')}
-          </button>
+          {asking ? (
+            <QuestionForm autoFocus onAdded={onAdded} />
+          ) : (
+            <button className="daily__ask" onClick={() => setAsking(true)}>
+              {t('question.askSomething')}
+            </button>
+          )}
+          {pool && <p className={thanked ? 'daily__pool daily__pool--thanks' : 'daily__pool'}>{pool}</p>}
         </section>
 
         <CountdownCard />

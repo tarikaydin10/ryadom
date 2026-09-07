@@ -35,7 +35,9 @@ export interface PromptLines {
 export function promptFor(date: string, slot: number, question: RoundQuestion, pool: Map<string, QuestionRecord>): Prompt {
   if (question.kind === 'pool') {
     const written = pool.get(question.id);
-    if (written) return { kind: 'pool', question: written };
+    // A sealed copy — hers, listed as existing — is not a question to show;
+    // the whole one rides with the round and is put in the pool first.
+    if (written && !written.sealed) return { kind: 'pool', question: written };
     // The pool entry has not arrived on this device yet. The bundled question
     // for the slot is not what the other phone is looking at, so this is a
     // stand-in and nothing more — the next sync replaces it.

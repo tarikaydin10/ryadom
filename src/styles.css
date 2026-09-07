@@ -1856,6 +1856,47 @@ input.field__input[type='date']::-webkit-date-and-time-value {
   margin-bottom: 2px;
 }
 
+/* The form for a question of your own, opened in place under the day. One
+   field; the other language behind a line, because two empty boxes read as a
+   form and one reads as a place to say something. */
+.ask {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ask__more {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--terracotta);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* What is waiting in the pool, under the line that opens the form: a footnote
+   like the one above the line, and for a few seconds after adding, the thanks. */
+.daily__pool {
+  margin: 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-pale);
+}
+
+.daily__pool--thanks {
+  color: var(--terracotta);
+}
+
+/* Hers, not yet asked: listed as existing, in the voice of a note. */
+.questions__text--sealed {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--ink-pale);
+}
+
 /* The way to your own questions. A line of text, not a button: it sits under
    the day's last answer and must not compete with it. */
 .daily__ask {

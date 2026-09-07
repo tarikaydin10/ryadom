@@ -82,7 +82,13 @@ export const en = {
     machine: 'translated by machine',
     // The way to your own questions, from the place where wanting to ask one
     // actually happens.
-    askSomething: 'Ask something of your own →',
+    askSomething: 'Ask something of your own',
+    // After adding one, for a few seconds: what happens to it now.
+    added: 'Added. It is asked in the next round that opens.',
+    // What is waiting in the pool. Hers is a fact, not a sentence — the
+    // sentence stays on the server until its round.
+    theirsWaiting: '{name} has a question waiting for you. It comes in the next round.',
+    yoursWaiting: 'Yours waiting for a round: {count}',
   },
 
   answer: {
@@ -203,6 +209,11 @@ export const en = {
     // reads the sentence in the language it was written in, which is honest.
     translation: 'The same question in the other language',
     translationHint: 'Optional — leave it empty and it stays as you wrote it.',
+    // The second field is behind this line rather than on the page: one box
+    // is a place to say something, two are a form.
+    addOther: 'Add it in the other language too',
+    // Hers, not yet asked. Listed as existing, never as a sentence.
+    sealed: '{name} has one waiting — you will read it when it is asked.',
     save: 'Add',
     list: 'Written by the two of you',
     // Says what the emptiness means, rather than only that it is empty: until
@@ -280,7 +291,10 @@ export const ru: DeepStringShape<typeof en> = {
     askedBy: 'Спрашивает {name}',
     askedByYou: 'Твой вопрос',
     machine: 'машинный перевод',
-    askSomething: 'Спросить о своём →',
+    askSomething: 'Спросить о своём',
+    added: 'Добавлено. Спросим в следующем раунде.',
+    theirsWaiting: '{name} спрашивает — вопрос откроется в следующем раунде.',
+    yoursWaiting: 'Твоих в очереди: {count}',
   },
 
   answer: {
@@ -382,6 +396,8 @@ export const ru: DeepStringShape<typeof en> = {
     placeholder: 'О чём ты хочешь спросить?',
     translation: 'Тот же вопрос на другом языке',
     translationHint: 'Необязательно — оставь пустым, и он останется как написан.',
+    addOther: 'Добавить и на другом языке',
+    sealed: '{name} спрашивает — прочитаешь, когда придёт очередь.',
     save: 'Добавить',
     list: 'Написанное вами',
     empty: 'Никто из вас ещё не написал — пока их нет, вопросы приходят из встроенного списка.',
