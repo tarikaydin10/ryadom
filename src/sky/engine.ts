@@ -22,7 +22,14 @@ import { DAY_MS } from '../lib/day';
  *  computed exactly for the moment shown — see `rowAt` — so this only decides
  *  how smooth the drawn curve is, not how smooth the motion along it is. */
 const TRACK_STEP_MS = 5 * 60 * 1000;
-const TRACK_SAMPLES = 288; // one day in five-minute steps
+/**
+ * Where sampling gives up if a track has not come back round: twenty-seven
+ * hours. A lunar day is under twenty-five, and a calendar day with a clock
+ * change is twenty-five, so this is never reached — see `closedTrack`.
+ */
+const TRACK_MAX_SAMPLES = 324;
+/** How many opacity steps the seam of a track dissolves through — see `closedTrack`. */
+const SEAM_STEPS = 4;
 
 // Band geometry, taken from the design prototype.
 /**
@@ -235,6 +242,8 @@ export interface SunEvent {
 export interface SkyPathSegment {
   d: string;
   above: boolean;
+  /** 1 along the track; less across the seam where the loop closes — see `closedTrack`. */
+  fade: number;
 }
 
 export interface SkyDay {
@@ -256,6 +265,7 @@ interface TrackPoint {
   x: number;
   y: number;
   alt: number;
+  fade: number;
 }
 
 /** Draw the full track even when deep underground to complete the astrolabe curve. */
@@ -265,11 +275,12 @@ function trackSegments(points: TrackPoint[]): SkyPathSegment[] {
   const segments: SkyPathSegment[] = [];
   let current: TrackPoint[] = [];
   let above: boolean | null = null;
+  let fade = 1;
 
   const flush = () => {
     if (current.length > 1 && above !== null) {
       const d = current.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(2)} ${p.y.toFixed(1)}`).join(' ');
-      segments.push({ d, above });
+      segments.push({ d, above, fade });
     }
     current = [];
   };
@@ -281,15 +292,17 @@ function trackSegments(points: TrackPoint[]): SkyPathSegment[] {
     // A jump means the body crossed due north and the position wrapped.
     const wrapped = previous !== undefined && Math.abs(point.x - previous.x) > 40;
 
-    if (!visible || wrapped || (above !== null && isAbove !== above)) {
+    if (!visible || wrapped || (above !== null && (isAbove !== above || point.fade !== fade))) {
       const boundary = current[current.length - 1];
       flush();
-      // Carry the last point over so the solid and faint parts meet at the horizon.
+      // Carry the last point over so the pieces meet — solid and faint at the
+      // horizon, one step of the fade and the next across the seam.
       if (visible && !wrapped && boundary) current.push(boundary);
     }
 
     if (visible) {
       above = isAbove;
+      fade = point.fade;
       current.push(point);
     } else {
       above = null;
@@ -298,6 +311,59 @@ function trackSegments(points: TrackPoint[]): SkyPathSegment[] {
   flush();
 
   return segments;
+}
+
+/**
+ * One full turn of a body round the sky, starting at the beginning of the day.
+ *
+ * A calendar day is not a lunar day. The moon comes back to the same point of
+ * the sky about fifty minutes later each day, so sampling it from midnight to
+ * midnight left the last fifty minutes of its loop undrawn: a gap in the arc
+ * wherever the moon happened to be at midnight — which, for a week or so each
+ * month, is high in the sky in plain view. The same sampling left the sun an
+ * hour short on the night the clocks go back.
+ *
+ * So the track runs on into the next day until the body has turned a full
+ * circle of azimuth, and the extra samples bridge the gap. They do not land
+ * exactly where the day began: the moon's declination moves by up to six
+ * degrees a day, so the line comes back round a few pixels above or below its
+ * own start. Bending the bridge onto the start was tried and made a kink —
+ * fifteen pixels of sideways shift in thirty pixels of arc cannot be hidden.
+ * What is drawn instead is the truth, softened: the bridge fades out as it
+ * arrives, the day's own first hour fades in, and the seam reads as the line
+ * dissolving and picking up again a little to one side, which is what a helix
+ * does. The sun's loop closes within a pixel, deep under the northern horizon,
+ * and the fade never gets a chance to show.
+ *
+ * Azimuth is a safe measure of a full turn here because at this latitude
+ * neither body ever passes north of the zenith, so it only ever increases.
+ */
+function closedTrack(positionAt: (at: Date) => { altitude: number; azimuth: number }, dayStart: number): TrackPoint[] {
+  const points: TrackPoint[] = [];
+  let turned = 0;
+  let previousAzimuth: number | null = null;
+
+  for (let i = 0; i < TRACK_MAX_SAMPLES; i++) {
+    const { altitude, azimuth } = positionAt(new Date(dayStart + i * TRACK_STEP_MS));
+    if (previousAzimuth !== null) turned += ((azimuth - previousAzimuth + 540) % 360) - 180;
+    previousAzimuth = azimuth;
+    points.push({ ...place(altitude, azimuth), alt: altitude, fade: 1 });
+    if (turned >= 360) break;
+  }
+
+  // The samples past the end of the calendar day are the bridge.
+  const dayEnd = startOfLocalDay(dayStart + 36 * 60 * 60 * 1000);
+  const bridgeFrom = Math.ceil((dayEnd - dayStart) / TRACK_STEP_MS);
+  const bridge = points.length - bridgeFrom;
+  if (bridge < 2) return points;
+  // In a few steps rather than per sample: at a quarter opacity the eye cannot
+  // tell finer ones apart, and each step is a path of its own.
+  const quantise = (fade: number) => Math.ceil(fade * SEAM_STEPS) / SEAM_STEPS;
+  for (let k = 0; k < bridge; k++) {
+    points[bridgeFrom + k]!.fade = quantise(1 - (k + 1) / (bridge + 1));
+    points[k]!.fade = quantise((k + 1) / (bridge + 1));
+  }
+  return points;
 }
 
 /** SunCalc reports "no such event today" as null, and flags the polar cases. */
@@ -440,16 +506,8 @@ export function rowAt(ms: number): SkyRow {
  * render — see `skyDay`.
  */
 export function buildDay(dayStart: number): SkyDay {
-  const sunTrack: TrackPoint[] = [];
-  const moonTrack: TrackPoint[] = [];
-
-  for (let i = 0; i < TRACK_SAMPLES; i++) {
-    const at = new Date(dayStart + i * TRACK_STEP_MS);
-    const sun = SunCalc.getPosition(at, MIDPOINT.lat, MIDPOINT.lon);
-    const moon = SunCalc.getMoonPosition(at, MIDPOINT.lat, MIDPOINT.lon);
-    sunTrack.push({ ...place(sun.altitude, sun.azimuth), alt: sun.altitude });
-    moonTrack.push({ ...place(moon.altitude, moon.azimuth), alt: moon.altitude });
-  }
+  const sunTrack = closedTrack((at) => SunCalc.getPosition(at, MIDPOINT.lat, MIDPOINT.lon), dayStart);
+  const moonTrack = closedTrack((at) => SunCalc.getMoonPosition(at, MIDPOINT.lat, MIDPOINT.lon), dayStart);
 
   return {
     dayStart,
@@ -485,7 +543,7 @@ export function startOfLocalDay(ms: number): number {
 /**
  * Day tables, cached by date.
  *
- * Building one day costs 288 × 2 position calls — a few milliseconds, but not
+ * Building one day costs some 300 × 2 position calls — a few milliseconds, but not
  * something to do while the user is mid-gesture. `prefetchDays` walks the next
  * few days during idle time so that midnight, a scrub into tomorrow, or a cold
  * start on a plane all find the table already built.
