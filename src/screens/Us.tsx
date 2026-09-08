@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useI18n, type LocalePreference } from '../i18n';
 import { useSettings } from '../data/settings-context';
 import { clearPair, getPair } from '../data/pair';
-import { cityOf } from '../data/settings';
-import { syncConfigured } from '../data/api';
+import { cityOf, displayName, sidesFor } from '../data/settings';
+import { sendNote, syncConfigured } from '../data/api';
 import { syncNow } from '../data/sync';
 import { useSyncStatus } from '../lib/hooks';
 import { CITIES, type CityId } from '../content/cities';
@@ -82,6 +82,38 @@ export function Us() {
   };
 
   useEffect(() => setDraft(settings), [settings]);
+
+  /**
+   * A word to her phone, in your own words — "new update, have a look".
+   *
+   * Only on side A: a maintainer's tool, and the server refuses it for B.
+   * It is not an answer and not one of the app's two sentences; it is a note,
+   * and what the line under it says is how many of her devices took it.
+   */
+  const [note, setNote] = useState('');
+  const [noteState, setNoteState] = useState<{ kind: 'idle' | 'sending' | 'failed' } | { kind: 'sent'; count: number }>({ kind: 'idle' });
+  const partnerName = displayName(sidesFor(pair?.member ?? 'a', settings).partnerName, locale);
+  const send = () => {
+    const text = note.trim();
+    if (!text) return;
+    setNoteState({ kind: 'sending' });
+    void sendNote(text)
+      .then((result) => {
+        setNoteState({ kind: 'sent', count: result.sent });
+        setNote('');
+      })
+      .catch(() => setNoteState({ kind: 'failed' }));
+  };
+  const noteLine =
+    noteState.kind === 'sending'
+      ? t('note.sending')
+      : noteState.kind === 'failed'
+        ? t('note.failed')
+        : noteState.kind === 'sent'
+          ? noteState.count === 0
+            ? t('note.noDevice', { name: partnerName })
+            : t('note.sent', { count: noteState.count })
+          : null;
 
   /**
    * The way out: everything on this device as two files, through the share
@@ -277,6 +309,29 @@ export function Us() {
           </button>
         )}
       </div>
+
+      {pair?.member === 'a' && syncConfigured && (
+        <div className="section">
+          <span className="section__title">{t('note.title', { name: partnerName })}</span>
+          <p className="hint">{t('note.hint')}</p>
+          <input
+            className="field__input"
+            value={note}
+            maxLength={140}
+            placeholder={t('note.placeholder')}
+            onChange={(e) => setNote(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') send();
+            }}
+          />
+          <div className="answer__actions">
+            <button className="button" disabled={noteState.kind === 'sending' || note.trim() === ''} onClick={send}>
+              {t('note.send')}
+            </button>
+            {noteLine && <span className="answer__foot">{noteLine}</span>}
+          </div>
+        </div>
+      )}
 
       {pair && (
         <div className="section">

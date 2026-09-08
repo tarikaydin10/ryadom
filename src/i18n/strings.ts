@@ -255,6 +255,18 @@ export const en = {
     remove: 'Take it back',
   },
 
+  note: {
+    // Side A only. A push in your own words to her phone — "new update, look".
+    title: 'A word to {name}',
+    hint: 'A notification to their phone, in your words. Not an answer and not the app talking: a note.',
+    placeholder: 'New update — have a look',
+    send: 'Send',
+    sending: 'Sending …',
+    sent: 'Delivered to {count} device(s).',
+    noDevice: '{name} has no device with notifications on.',
+    failed: 'That did not go. Try again.',
+  },
+
   export: {
     title: 'Export',
     hint: 'Everything on this device as two files — a text you can read anywhere, and the same as JSON. Your side of the record: a round you never answered stays closed here too.',
@@ -471,6 +483,17 @@ export const ru: DeepStringShape<typeof en> = {
     waiting: 'ждёт своей очереди',
     asked: 'задан {date}',
     remove: 'Забрать назад',
+  },
+
+  note: {
+    title: 'Слово для {name}',
+    hint: 'Уведомление на телефон, твоими словами. Не ответ и не голос приложения: записка.',
+    placeholder: 'Новое обновление — посмотри',
+    send: 'Отправить',
+    sending: 'Отправляем …',
+    sent: 'Доставлено на устройств: {count}.',
+    noDevice: '{name} — уведомления не включены ни на одном устройстве.',
+    failed: 'Не ушло. Попробуй ещё раз.',
   },
 
   export: {

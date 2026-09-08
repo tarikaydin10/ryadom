@@ -667,6 +667,40 @@ async function notify(member, kind) {
   if (dropped) await persist();
 }
 
+/**
+ * A note from one side to the other, in that side's own words.
+ *
+ * The two sentences above are the app talking. This is Tarik talking — "new
+ * update, look" — through the same channel, to every device she has
+ * notifications on. Side A only: it is a maintainer's tool, not a feature of
+ * the pair, and the server refuses it for B rather than trusting a hidden
+ * button. It carries none of what was written in a round, so the lock-in
+ * (ADR-0013) is untouched; it is a sentence somebody typed to be sent.
+ */
+const MAX_NOTE_CHARS = 140;
+
+async function notifyNote(member, text) {
+  const box = store.push?.subscriptions?.[member];
+  if (!Array.isArray(box) || box.length === 0) return 0;
+  const { keys, made } = vapidKeys(store);
+  if (made) await persist();
+
+  let sent = 0;
+  let dropped = false;
+  for (const subscription of [...box]) {
+    const result = await push(subscription, { kind: 'note', title: 'Ryadom', body: text }, keys);
+    if (result === 'gone') {
+      const at = box.indexOf(subscription);
+      if (at >= 0) box.splice(at, 1);
+      dropped = true;
+      continue;
+    }
+    sent++;
+  }
+  if (dropped) await persist();
+  return sent;
+}
+
 /* ------------------------------------------------------------------- http */
 
 function send(res, status, body, extraHeaders = {}) {
@@ -863,6 +897,34 @@ const server = createServer(async (req, res) => {
    * back, or takes it away again with { remove: true }, which keeps this to the
    * two methods everything else here uses.
    */
+  if (url.pathname === '/api/push/note') {
+    if (req.method !== 'PUT') {
+      send(res, 405, { error: 'method not allowed' });
+      return;
+    }
+    if (member !== 'a') {
+      send(res, 403, { error: 'not from this side' });
+      return;
+    }
+    let body;
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch {
+      send(res, 400, { error: 'bad body' });
+      return;
+    }
+    const text = typeof body?.text === 'string' ? body.text.trim() : '';
+    if (!text || text.length > MAX_NOTE_CHARS) {
+      send(res, 400, { error: 'bad text' });
+      return;
+    }
+    // Awaited, unlike the app's own nudges: whoever pressed the button wants
+    // to know whether it went, and to how many phones.
+    const sent = await notifyNote(otherMember(member), text);
+    send(res, 200, { ok: true, sent });
+    return;
+  }
+
   if (url.pathname === '/api/push') {
     if (req.method === 'GET') {
       const { keys, made } = vapidKeys(store);

@@ -245,6 +245,14 @@ export function putPushSubscription(body: {
   return request<{ ok: boolean; subscribed: boolean }>('/api/push', { method: 'PUT', body: JSON.stringify(body) });
 }
 
+/**
+ * A note to the other side's phones, in your own words. Side A only — the
+ * server says no to B — and answered with how many devices it reached.
+ */
+export function sendNote(text: string): Promise<{ ok: boolean; sent: number }> {
+  return request<{ ok: boolean; sent: number }>('/api/push/note', { method: 'PUT', body: JSON.stringify({ text }) });
+}
+
 export interface RemoteSettings {
   settings: unknown | null;
   updatedAt: number;
