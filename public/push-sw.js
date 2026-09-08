@@ -26,10 +26,9 @@ self.addEventListener('push', (event) => {
   // The dot on the icon, set here because the app is not running to set it:
   // whichever of the two sentences arrived, there is something for you inside.
   // The app clears it again on the next look, from what is actually true. A
-  // note typed by the other side, or "look up", is read here and now, and
-  // marks nothing.
+  // note typed by the other side is read here and now, and marks nothing.
   const badge =
-    payload.kind !== 'note' && payload.kind !== 'lookup' && typeof self.navigator?.setAppBadge === 'function'
+    payload.kind !== 'note' && typeof self.navigator?.setAppBadge === 'function'
       ? self.navigator.setAppBadge(1).catch(() => undefined)
       : Promise.resolve();
 

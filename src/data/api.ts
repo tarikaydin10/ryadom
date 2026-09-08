@@ -255,11 +255,6 @@ export function sendNote(text: string): Promise<{ ok: boolean; sent: number }> {
   return request<{ ok: boolean; sent: number }>('/api/push/note', { method: 'PUT', body: JSON.stringify({ text }) });
 }
 
-/** "Look up": tells the other side you are looking at the moon. Either side; the server paces it. */
-export function sendLookUp(): Promise<{ ok: boolean; sent: number }> {
-  return request<{ ok: boolean; sent: number }>('/api/push/lookup', { method: 'PUT', body: '{}' });
-}
-
 export interface RemoteSettings {
   settings: unknown | null;
   updatedAt: number;

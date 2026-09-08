@@ -706,55 +706,6 @@ async function notifyNote(member, text) {
   return sent;
 }
 
-/**
- * "Look up": one tap under a moon that is over both cities, and her phone
- * says that you are looking at it now. A fixed sentence with a name in it —
- * the verb is present tense, which Russian leaves ungendered — from either
- * side, at most once in a while: it is a shared moment, and a shared moment
- * repeated every ten minutes is a poke.
- */
-const LOOKUP_EVERY_MS = 4 * 60 * 60 * 1000;
-const lastLookup = { a: 0, b: 0 };
-
-const LOOKUP_TEXT = {
-  en: (name) => `${name} is looking at the moon right now. Look up.`,
-  ru: (name) => `${name} сейчас смотрит на луну. Посмотри и ты.`,
-};
-
-/** The sender's name in the reader's alphabet, from the shared settings. */
-function nameFor(member, lang) {
-  const names = store.settings?.settings?.names ?? {};
-  const own = names[member === 'a' ? 'hamburg' : 'kaliningrad'] ?? {};
-  const preferred = lang === 'ru' ? own.cyrillic : own.latin;
-  return String(preferred || own.latin || own.cyrillic || (member === 'a' ? 'Hamburg' : 'Калининград')).trim();
-}
-
-async function notifyLookup(from) {
-  const to = otherMember(from);
-  const box = store.push?.subscriptions?.[to];
-  if (!Array.isArray(box) || box.length === 0) return 0;
-  const { keys, made } = vapidKeys(store);
-  if (made) await persist();
-
-  let sent = 0;
-  let dropped = false;
-  for (const subscription of [...box]) {
-    const lang = subscription.lang === 'ru' ? 'ru' : 'en';
-    const body = LOOKUP_TEXT[lang](nameFor(from, lang));
-    const result = await push(subscription, { kind: 'lookup', title: lang === 'ru' ? 'Рядом' : 'Ryadom', body }, keys);
-    if (result === 'gone') {
-      const at = box.indexOf(subscription);
-      if (at >= 0) box.splice(at, 1);
-      dropped = true;
-      continue;
-    }
-    sent++;
-  }
-  if (dropped) await persist();
-  return sent;
-}
-
-/* ------------------------------------------------------------------- http */
 
 function send(res, status, body, extraHeaders = {}) {
   const payload = JSON.stringify(body);
@@ -950,21 +901,6 @@ const server = createServer(async (req, res) => {
    * back, or takes it away again with { remove: true }, which keeps this to the
    * two methods everything else here uses.
    */
-  if (url.pathname === '/api/push/lookup') {
-    if (req.method !== 'PUT') {
-      send(res, 405, { error: 'method not allowed' });
-      return;
-    }
-    if (Date.now() - lastLookup[member] < LOOKUP_EVERY_MS) {
-      send(res, 429, { error: 'too soon' });
-      return;
-    }
-    lastLookup[member] = Date.now();
-    const sent = await notifyLookup(member);
-    send(res, 200, { ok: true, sent });
-    return;
-  }
-
   if (url.pathname === '/api/push/note') {
     if (req.method !== 'PUT') {
       send(res, 405, { error: 'method not allowed' });
