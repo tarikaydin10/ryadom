@@ -419,7 +419,11 @@ export function rowAt(ms: number): SkyRow {
     moon: {
       x: moonPos.x,
       y: moonPos.y,
-      opacity: moonAlt > 0 ? (bright >= 8 ? 0.35 : Math.min(0.9, 0.35 + ((8 - bright) / 14) * 0.55)) : 0,
+      // Kept until the whole disc is under the line — the band clips it at
+      // the horizon, so it sets the way the sun does rather than winking out
+      // the moment its centre crosses. Eight pixels of radius is about three
+      // and a half degrees at the band's scale.
+      opacity: moonAlt > -3.5 ? (bright >= 8 ? 0.35 : Math.min(0.9, 0.35 + ((8 - bright) / 14) * 0.55)) : 0,
       illuminated: illumination.fraction,
       tilt: limbTilt(midAlt, mid.azimuth, moonAlt, moon.azimuth),
     },

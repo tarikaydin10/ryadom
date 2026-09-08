@@ -416,6 +416,19 @@ textarea {
   height: 100%;
 }
 
+/* Where the sun and the moon may be seen: the sky, down to the horizon and
+   not a pixel past it. The ground is not a wash they sink through; it is
+   what stands in front of them. */
+.sky__above {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--horizon);
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .sky__sun {
   position: absolute;
   border-radius: 50%;

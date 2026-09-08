@@ -343,31 +343,38 @@ export function SkyBand({ row, day, ms, leftCity, rightCity, weather, onScrubTo 
           </div>
         )}
 
-        <MoonDisc
-          size={16}
-          illuminated={row.moon.illuminated}
-          tilt={row.moon.tilt}
-          opacity={row.moon.opacity}
-          style={{ position: 'absolute', left: `${row.moon.x}%`, top: row.moon.y, margin: '-8px 0 0 -8px' }}
-        />
-        <span
-          className="sky__sun"
-          style={{
-            left: `${row.sun.x}%`,
-            top: row.sun.y,
-            background: row.sun.color,
-            opacity: row.sun.opacity,
-            boxShadow: `0 0 26px 8px ${row.sun.glow}`,
-          }}
-        />
+        {/* The sun and the moon live above the horizon and nowhere else. The
+            layer they are drawn in ends at the horizon line, so a setting sun
+            is cut by the ground the way a real one is — half a disc, then a
+            rim, then gone — instead of sinking on through a wash of earth
+            and showing up under the city names. Its glow is cut with it. */}
+        <div className="sky__above">
+          <MoonDisc
+            size={16}
+            illuminated={row.moon.illuminated}
+            tilt={row.moon.tilt}
+            opacity={row.moon.opacity}
+            style={{ position: 'absolute', left: `${row.moon.x}%`, top: row.moon.y, margin: '-8px 0 0 -8px' }}
+          />
+          <span
+            className="sky__sun"
+            style={{
+              left: `${row.sun.x}%`,
+              top: row.sun.y,
+              background: row.sun.color,
+              opacity: row.sun.opacity,
+              boxShadow: `0 0 26px 8px ${row.sun.glow}`,
+            }}
+          />
+        </div>
 
         <WeatherLayer condition={conditionOf(leftCity)} city={leftCity} side="left" isDay={row.isDay} />
         <WeatherLayer condition={conditionOf(rightCity)} city={rightCity} side="right" isDay={row.isDay} />
 
         {/* Land: a wash that settles the ground below the horizon, and the hem
-            that dissolves it into the page. Both sit above the sun, so a sun
-            just under the horizon glows through the ground instead of over
-            it. */}
+            that dissolves it into the page. The sun and moon never reach it
+            — they are clipped at the horizon above — so what it has to carry
+            is only the names and the clocks. */}
         <div className="sky__ground" />
         <div className="sky__cities">
           {column(leftCity, 'left')}
