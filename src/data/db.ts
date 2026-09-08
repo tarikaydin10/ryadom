@@ -63,6 +63,8 @@ export interface RoundRecord {
   /** The server tells us *that* they answered and when, without the text. */
   answered: boolean;
   answeredAt: number | null;
+  /** How much they wrote while it is still locked, in bars (1–4). */
+  answeredSize?: number;
   fetchedAt: number;
 }
 

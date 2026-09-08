@@ -29,6 +29,20 @@ interface TheirsProps {
   partnerName: string;
   partnerTz: string;
   partnerAt: number | null;
+  /** How much she wrote, in bars — the shape of the closed page. */
+  partnerSize: number;
+}
+
+/** One to four bars, the last of them short: as much as she wrote, and not a word of it. */
+function Bars({ count }: { count: number }) {
+  const bars = Math.min(4, Math.max(1, count));
+  return (
+    <>
+      {Array.from({ length: bars }, (_, index) => (
+        <span key={index} className={index === bars - 1 ? 'answer__bar answer__bar--short' : 'answer__bar'} aria-hidden="true" />
+      ))}
+    </>
+  );
 }
 
 /** How long the bars take to become her words, and the words to settle. */
@@ -74,7 +88,7 @@ function useArrival(present: boolean, forMs: number): boolean {
  * middle and "waiting for their answer" at the foot, and the second line only
  * repeated the first in a smaller size.
  */
-function TheirAnswer({ theirs, partnerAnswered, partnerName, partnerTz, partnerAt }: TheirsProps) {
+function TheirAnswer({ theirs, partnerAnswered, partnerName, partnerTz, partnerAt, partnerSize }: TheirsProps) {
   const { t, locale } = useI18n();
   const revealing = useArrival(theirs !== null, REVEAL_MS);
 
@@ -92,17 +106,13 @@ function TheirAnswer({ theirs, partnerAnswered, partnerName, partnerTz, partnerA
               is the bars becoming text, not text where bars were. */}
           {revealing && (
             <span className="answer__veil" aria-hidden="true">
-              <span className="answer__bar" />
-              <span className="answer__bar answer__bar--short" />
+              <Bars count={partnerSize} />
             </span>
           )}
           <p className="answer__text">{theirs.text}</p>
         </>
       ) : partnerAnswered ? (
-        <>
-          <span className="answer__bar" aria-hidden="true" />
-          <span className="answer__bar answer__bar--short" aria-hidden="true" />
-        </>
+        <Bars count={partnerSize} />
       ) : (
         <span className="answer__placeholder">{t('answer.notYet')}</span>
       )}
@@ -136,8 +146,12 @@ export const AnswerPair = memo(function AnswerPair({ round, date, partnerName, p
     if (editing) editor.current?.focus();
   }, [editing]);
 
-  const { mine, theirs, partnerAnswered, partnerAt } = round;
-  const their = { theirs, partnerAnswered, partnerName, partnerTz, partnerAt };
+  const { mine, theirs, partnerAnswered, partnerAt, partnerSize } = round;
+  const their = { theirs, partnerAnswered, partnerName, partnerTz, partnerAt, partnerSize };
+  // Sending is a commitment: once hers is open, yours is what she read. The
+  // server refuses a later edit too (409 "sealed"); hiding the button is what
+  // keeps that from ever being a surprise.
+  const sealed = mine !== null && theirs !== null;
   // Your own words, just sent: they settle into the card rather than appearing
   // in it, so that pressing Send reads as having done something.
   const settling = useArrival(mine !== null, REVEAL_MS);
@@ -233,9 +247,11 @@ export const AnswerPair = memo(function AnswerPair({ round, date, partnerName, p
           <>
             <p className={settling ? 'answer__text answer__text--settling' : 'answer__text'}>{mine!.text}</p>
             <div className="answer__spacer" />
-            <button className="button button--ghost answer__edit" onClick={beginEdit}>
-              {t('answer.edit')}
-            </button>
+            {!sealed && (
+              <button className="button button--ghost answer__edit" onClick={beginEdit}>
+                {t('answer.edit')}
+              </button>
+            )}
             <span className="answer__foot">{foot()}</span>
           </>
         )}

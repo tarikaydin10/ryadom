@@ -39,6 +39,12 @@ export const en = {
     // person in the pair on a good day.
     railLabel: 'Time — drag, tap or use the arrow keys to travel',
     label: 'Sky above both cities',
+    // The moon is over both of you: one tap tells her you are looking at it.
+    lookUp: 'Look up ☾ · tell them',
+    lookUpSending: 'Telling them …',
+    lookUpSent: '{name} knows you are looking.',
+    lookUpNone: '{name} has no notifications on.',
+    lookUpFailed: 'That did not go through.',
   },
 
   weather: {
@@ -316,6 +322,11 @@ export const ru: DeepStringShape<typeof en> = {
     backToNow: 'вернуться к сейчас',
     railLabel: 'Время — тяни, нажимай или листай стрелками',
     label: 'Небо над обоими городами',
+    lookUp: 'Посмотри вверх ☾ · сказать',
+    lookUpSending: 'Говорим …',
+    lookUpSent: '{name} знает, что ты смотришь.',
+    lookUpNone: '{name} — уведомления не включены.',
+    lookUpFailed: 'Не дошло.',
   },
 
   weather: {

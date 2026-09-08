@@ -77,6 +77,8 @@ export interface RemoteRound {
      */
     text?: string;
     updatedAt?: number;
+    /** While locked: how much she wrote, as one to four bars. Never what. */
+    size?: number;
   };
 }
 
@@ -251,6 +253,11 @@ export function putPushSubscription(body: {
  */
 export function sendNote(text: string): Promise<{ ok: boolean; sent: number }> {
   return request<{ ok: boolean; sent: number }>('/api/push/note', { method: 'PUT', body: JSON.stringify({ text }) });
+}
+
+/** "Look up": tells the other side you are looking at the moon. Either side; the server paces it. */
+export function sendLookUp(): Promise<{ ok: boolean; sent: number }> {
+  return request<{ ok: boolean; sent: number }>('/api/push/lookup', { method: 'PUT', body: '{}' });
 }
 
 export interface RemoteSettings {

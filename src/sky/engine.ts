@@ -518,3 +518,21 @@ export function prefetchDays(fromMs: number, days = 6): void {
   };
   schedule(step as never);
 }
+
+/**
+ * Whether the moon is up over both cities in a sky dark enough to see it.
+ *
+ * "Look up" is only worth saying when both of you can: the moon a few
+ * degrees clear of each horizon, and the sun far enough under both for the
+ * moon to be the brightest thing there. Per city, not from the midpoint,
+ * because the midpoint is the sea and nobody is standing on it.
+ */
+export function moonOverBoth(ms: number): boolean {
+  const at = new Date(ms);
+  return (['hamburg', 'kaliningrad'] as CityId[]).every((id) => {
+    const city = CITIES[id];
+    const moon = SunCalc.getMoonPosition(at, city.lat, city.lon);
+    const sun = SunCalc.getPosition(at, city.lat, city.lon);
+    return moon.altitude > 5 && sun.altitude < -3;
+  });
+}

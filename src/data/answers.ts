@@ -26,6 +26,8 @@ export interface RoundView {
   /** That they wrote, which is known long before what they wrote. */
   partnerAnswered: boolean;
   partnerAt: number | null;
+  /** How much they wrote, in bars, while it is still locked. */
+  partnerSize: number;
 }
 
 /** A day as it will be remembered: its rounds, in the order they were asked. */
@@ -71,6 +73,7 @@ function viewsFor(
         theirs,
         partnerAnswered: round?.answered ?? theirs !== null,
         partnerAt: theirs?.createdAt ?? round?.answeredAt ?? null,
+        partnerSize: round?.answeredSize ?? 2,
       };
     })
     // A round they answered and you did not is still part of the record — the

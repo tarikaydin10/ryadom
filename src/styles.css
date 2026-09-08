@@ -753,6 +753,33 @@ textarea {
 .status {
   padding: 10px var(--gutter) 0;
   flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+/* "Look up", at the right end of the status row when the moon is over both
+   cities: set like the row's own text, in the control colour, because it is
+   the one thing on the row that can be touched. After the tap the same slot
+   says what happened, in the same voice. */
+.status__lookup {
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.status__lookup--said {
+  color: var(--ink-pale);
+  cursor: default;
 }
 
 /* While the sky is wound away from now, the reading of it steps back: it is a

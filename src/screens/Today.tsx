@@ -9,7 +9,8 @@ import { useI18n } from '../i18n';
 import { useNow, useOnline, useSyncStatus, useWeather } from '../lib/hooks';
 import { useSettings } from '../data/settings-context';
 import { BAND_ORDER, CITIES } from '../content/cities';
-import { rowAt, skyDay, statusFor } from '../sky/engine';
+import { moonOverBoth, rowAt, skyDay, statusFor } from '../sky/engine';
+import { sendLookUp, syncEnabled } from '../data/api';
 import { dateKey } from '../lib/day';
 import { useScrub, SCRUB_LIMIT_MS } from '../lib/scrub';
 import { questionFor } from '../content/questions';
@@ -37,6 +38,7 @@ const openingRound = (date: string): RoundView[] => [
     theirs: null,
     partnerAnswered: false,
     partnerAt: null,
+    partnerSize: 2,
   },
 ];
 
@@ -205,6 +207,55 @@ export function Today() {
   const note = footnote();
 
   /**
+   * "Look up": the one thing in the app that happens at the same minute.
+   *
+   * When the moon is over both cities and it is dark enough in both to see
+   * it, a word in the status row offers to tell her that you are looking at
+   * it now. One tap, one push with your name and a present-tense verb, and
+   * two people a Baltic apart are looking at the same thing. Once a night
+   * from this phone — the mark is kept per shared day — and the server
+   * paces it on its side as well. Only while the sky is live: a moon you
+   * wound the band to is not one you can see.
+   */
+  const lookUpKey = `ryadom.lookup.${today}`;
+  const [lookedUp, setLookedUp] = useState<'no' | 'sending' | 'sent' | 'none' | 'failed'>(() => {
+    try {
+      return localStorage.getItem(lookUpKey) ? 'sent' : 'no';
+    } catch {
+      return 'no';
+    }
+  });
+  useEffect(() => {
+    try {
+      setLookedUp(localStorage.getItem(lookUpKey) ? 'sent' : 'no');
+    } catch {
+      setLookedUp('no');
+    }
+  }, [lookUpKey]);
+  const canLookUp = scrubMs === null && syncEnabled() && online && moonOverBoth(now);
+  const lookUp = () => {
+    setLookedUp('sending');
+    void sendLookUp()
+      .then((result) => {
+        try {
+          localStorage.setItem(lookUpKey, '1');
+        } catch {
+          // Then the word stays offered; the server still paces it.
+        }
+        setLookedUp(result.sent > 0 ? 'sent' : 'none');
+      })
+      .catch(() => setLookedUp('failed'));
+  };
+  const lookUpLine = (): string | null => {
+    if (!canLookUp) return null;
+    if (lookedUp === 'sending') return t('sky.lookUpSending');
+    if (lookedUp === 'sent') return t('sky.lookUpSent', { name: partnerName });
+    if (lookedUp === 'none') return t('sky.lookUpNone', { name: partnerName });
+    if (lookedUp === 'failed') return t('sky.lookUpFailed');
+    return null;
+  };
+
+  /**
    * Asking something of your own, here, under the question that just came.
    *
    * It used to be a line that switched to the chronicle tab, where the form
@@ -269,6 +320,12 @@ export function Today() {
 
       <div className={`status ${scrubMs !== null ? 'status--preview' : ''}`}>
         <span className="status__text">{t(`sky.status.${statusFor(row, yourCity)}`)}</span>
+        {canLookUp && lookedUp === 'no' && (
+          <button className="status__lookup" onClick={lookUp}>
+            {t('sky.lookUp')}
+          </button>
+        )}
+        {lookUpLine() && <span className="status__lookup status__lookup--said">{lookUpLine()}</span>}
       </div>
 
       {line && <div className="netline">{line}</div>}

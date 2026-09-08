@@ -110,6 +110,7 @@ async function applyDay(response: DayResponse): Promise<void> {
             : { kind: 'bundled' },
       answered: round.partner.answered,
       answeredAt: round.partner.answeredAt,
+      ...(round.partner.size ? { answeredSize: round.partner.size } : {}),
       fetchedAt: now,
     });
 
@@ -171,6 +172,12 @@ async function flushOutbox(): Promise<void> {
       if (item.id !== undefined) await dequeue(item.id);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      // An edit the server sealed — hers was already open when it arrived —
+      // is not lost so much as overruled: the words that count are the ones
+      // she read, and this device takes them back from the server.
+      if (item.kind === 'answer' && error instanceof ApiError && error.status === 409) {
+        await takeBack(item.date, item.slot).catch(() => undefined);
+      }
       // A rejected payload will never be accepted; a lost connection will.
       const permanent = error instanceof ApiError && error.status >= 400 && error.status < 500 && error.status !== 429;
       const attempts = item.attempts + 1;
@@ -183,6 +190,16 @@ async function flushOutbox(): Promise<void> {
       throw error;
     }
   }
+}
+
+/** Replace this device's copy of an answer with the server's, whatever the clocks say. */
+async function takeBack(date: string, slot: number): Promise<void> {
+  const day = await fetchDay(date);
+  const round = day.rounds.find((candidate) => candidate.slot === slot);
+  const mine = await getAnswer(date, slot, 'me');
+  if (!round?.you || !mine) return;
+  await putLocalAnswer({ ...mine, text: round.you.text, updatedAt: Date.now(), syncedAt: Date.now() });
+  await applyDay(day);
 }
 
 /** Dates worth pulling: today, and yesterday in case an answer landed late. */
