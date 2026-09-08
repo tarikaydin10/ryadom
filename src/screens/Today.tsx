@@ -49,7 +49,7 @@ export function Today() {
   const weather = useWeather();
   const sync = useSyncStatus();
 
-  const { scrubMs, shownMs, scrubTo, reachMs, backToNow } = useScrub(now);
+  const { scrubMs, shownMs, scrubTo, windTo, reachMs, backToNow } = useScrub(now);
   const [rounds, setRounds] = useState<RoundView[]>(() => openingRound(dateKey(now)));
   const [saving, setSaving] = useState(false);
   // Whether `rounds` is the store's word or the opening guess — see the scroll
@@ -269,7 +269,7 @@ export function Today() {
         onScrubTo={scrubTo}
         onNow={backToNow}
         destination={destination}
-        onGo={(ms) => scrubTo(ms, true)}
+        onGo={windTo}
       />
 
       <div className={`status ${scrubMs !== null ? 'status--preview' : ''}`}>

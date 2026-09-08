@@ -49,7 +49,7 @@ export function Map() {
   const { t, locale } = useI18n();
   const { settings } = useSettings();
   const now = useNow();
-  const { scrubMs, shownMs, scrubTo, reachMs, backToNow } = useScrub(now);
+  const { scrubMs, shownMs, scrubTo, windTo, reachMs, backToNow } = useScrub(now);
 
   const row = rowAt(shownMs);
   const sides = sidesFor(getPair()?.member ?? 'a', settings);
@@ -203,7 +203,7 @@ export function Map() {
         onScrubTo={scrubTo}
         onNow={backToNow}
         destination={destination}
-        onGo={(ms) => scrubTo(ms, true)}
+        onGo={windTo}
       />
 
       <div className={`status ${scrubMs !== null ? 'status--preview' : ''}`}>

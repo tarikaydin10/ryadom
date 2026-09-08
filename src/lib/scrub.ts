@@ -26,6 +26,13 @@ export interface Scrub {
    * dragged around that day: see `reachMs`.
    */
   scrubTo(ms: number, free?: boolean): void;
+  /**
+   * Travel to a moment rather than appear there: the sky runs forward
+   * through the days between, the way it runs back on `backToNow`. For the
+   * reunion — a jump to a day eleven days out that cut from one sky to
+   * another lost the one thing worth seeing, which is the days passing.
+   */
+  windTo(ms: number): void;
   /** How far from now the rail may currently be dragged: the limit, or further if a jump went further. */
   reachMs: number;
   backToNow(wind: boolean): void;
@@ -58,39 +65,56 @@ export function useScrub(now: number, limitMs: number = SCRUB_LIMIT_MS): Scrub {
     setScrubMs(free ? ms : Math.min(now + reachMs, Math.max(now - reachMs, ms)));
   };
 
-  const backToNow = (wind: boolean) => {
-    cancelRewind();
-    const from = scrubMs;
-    if (from === null) return;
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    // The rail catches at now on its own, within about half an hour of it.
-    // Winding back from there would be a journey of nine pixels, which is not a
-    // journey — it is a stutter.
-    if (!wind || reduced) {
-      setScrubMs(null);
-      return;
-    }
+  const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+  // A few hours winds briskly; a fortnight takes a breath longer; a month
+  // or more is capped, because a wait is not something to sit through twice.
+  const durationFor = (distance: number) => Math.min(4000, 1000 + (distance / DAY_MS) * 500);
 
+  /**
+   * Run the sky from where it is to a moment. `target` is asked for on every
+   * frame — for now, which moves — and `land` is called on arrival.
+   */
+  const travel = (from: number, target: () => number, land: () => void) => {
     const started = performance.now();
-    const distance = Math.abs(Date.now() - from);
-    // A few hours winds back briskly; a fortnight takes a breath longer.
-    const duration = Math.min(3500, 1000 + (distance / DAY_MS) * 500);
-    const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
-
+    const duration = durationFor(Math.abs(target() - from));
     const step = (frame: number) => {
       const progress = Math.min(1, (frame - started) / duration);
-      // Aimed at the live clock, not a frozen one, so it lands on now rather
-      // than on where now was when the finger lifted.
-      setScrubMs(from + (Date.now() - from) * ease(progress));
+      setScrubMs(from + (target() - from) * ease(progress));
       if (progress < 1) {
         rewind.current = requestAnimationFrame(step);
         return;
       }
       rewind.current = null;
-      setScrubMs(null);
+      land();
     };
     rewind.current = requestAnimationFrame(step);
   };
 
-  return { scrubMs, shownMs: scrubMs ?? now, scrubTo, reachMs, backToNow };
+  const backToNow = (wind: boolean) => {
+    cancelRewind();
+    const from = scrubMs;
+    if (from === null) return;
+    // The rail catches at now on its own, within about half an hour of it.
+    // Winding back from there would be a journey of nine pixels, which is not a
+    // journey — it is a stutter.
+    if (!wind || reducedMotion()) {
+      setScrubMs(null);
+      return;
+    }
+    // Aimed at the live clock, not a frozen one, so it lands on now rather
+    // than on where now was when the finger lifted.
+    travel(from, () => Date.now(), () => setScrubMs(null));
+  };
+
+  const windTo = (ms: number) => {
+    cancelRewind();
+    if (reducedMotion()) {
+      setScrubMs(ms);
+      return;
+    }
+    travel(scrubMs ?? Date.now(), () => ms, () => setScrubMs(ms));
+  };
+
+  return { scrubMs, shownMs: scrubMs ?? now, scrubTo, windTo, reachMs, backToNow };
 }
