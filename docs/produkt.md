@@ -148,7 +148,13 @@ sobald ihre Antwort offen ist; der Server hält das), ihre Balken zeigen die
 Länge der verschlossenen Antwort (eins bis vier, nie den Inhalt), ein Wort
 an ihr Telefon von Seite A („Слово для Милы“ unter „Us“), und das
 Wiedersehen als Karte mit dem Weg dorthin und dem Sprung im Himmel auf den
-Tag. „Посмотри вверх“ (ein Tipp unter dem Mond, der ihr Telefon anspricht)
+Tag. Der Sprung wanderte noch am selben Tag von der Karte auf die Leiste:
+ein Tipp unten, der etwas oben außer Sicht verändert, ist eine Ursache ohne
+sichtbare Wirkung. Seither gilt: **Zeit hat einen Besitzer** — alles, was
+den Himmel bewegt, lebt im Instrument oben (Band, Leiste, Ablesezeile), und
+die Ablesezeile bietet rechts das Wiedersehen als Ziel an, wo „назад к
+сейчас“ steht, sobald man unterwegs ist. Die Karte unten sagt, was wahr
+ist, und zeigt den Weg; sie bewegt nichts. „Посмотри вверх“ (ein Tipp unter dem Mond, der ihr Telefon anspricht)
 wurde gebaut und auf Aydins Zweifel hin wieder entfernt — steht unten bei
 den offenen Entscheidungen.
 

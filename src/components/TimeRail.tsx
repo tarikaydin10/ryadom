@@ -16,6 +16,14 @@ interface Props {
   limitMs: number;
   onScrubTo(ms: number): void;
   /**
+   * Somewhere worth going: the reunion, as a moment and the word for it.
+   * Shown at the right end of the readout while the sky is live — the slot
+   * "back to now" takes once it is not — and marked on the strip when it is
+   * within what is painted. A tap winds there, however far.
+   */
+  destination?: { ms: number; label: string } | null;
+  onGo?(ms: number): void;
+  /**
    * Land on now and hand the sky back to the clock. Wound if there is a way to
    * travel — the light running back across both cities is the thing worth
    * watching — and instant when the rail is already sitting on the mark.
@@ -92,7 +100,7 @@ function capture(element: Element, pointerId: number, on: boolean): void {
   }
 }
 
-export function TimeRail({ now, ms, live, limitMs, onScrubTo, onNow }: Props) {
+export function TimeRail({ now, ms, live, limitMs, onScrubTo, onNow, destination = null, onGo }: Props) {
   const { t, locale } = useI18n();
   const [active, setActive] = useState(false);
   const [demoPx, setDemoPx] = useState(0);
@@ -438,10 +446,20 @@ export function TimeRail({ now, ms, live, limitMs, onScrubTo, onNow }: Props) {
     <div className={`rail ${live ? '' : 'rail--away'}`} data-active={active || undefined}>
       <div className="rail__readout">
         <span className="rail__when">{readout}</span>
-        {!live && (
+        {/* One slot, two states: where you can go while you are here, and
+            the way home once you are not. Time has one owner on this page,
+            and this row is where it says so. */}
+        {!live ? (
           <button className="rail__back" onClick={() => onNow(true)}>
             {t('sky.backToNow')}
           </button>
+        ) : (
+          destination &&
+          onGo && (
+            <button className="rail__back rail__go" onClick={() => onGo(destination.ms)}>
+              {destination.label}
+            </button>
+          )
         )}
       </div>
 
@@ -482,6 +500,12 @@ export function TimeRail({ now, ms, live, limitMs, onScrubTo, onNow }: Props) {
           {/* Home, always in view: the ring the reading head is docked in at
               rest, and the place to aim for once the sky has been wound away. */}
           <span className="rail__anchor" style={{ left: at(now) }} />
+          {/* The day you meet, when the strip reaches it: a ring like home's,
+              filled, so the two ends of the wait read as the same kind of
+              thing. */}
+          {destination && destination.ms >= anchor && destination.ms <= anchor + SPAN_MS && (
+            <span className="rail__anchor rail__mark" style={{ left: at(destination.ms) }} />
+          )}
         </div>
 
         <span className="rail__head" aria-hidden="true" />

@@ -14,7 +14,7 @@ import { dateKey } from '../lib/day';
 import { useScrub } from '../lib/scrub';
 import { questionFor } from '../content/questions';
 import { MAX_ROUNDS, promptAuthor } from '../content/prompt';
-import { displayName, sidesFor } from '../data/settings';
+import { displayName, reunionDestination, sidesFor } from '../data/settings';
 import { getPair } from '../data/pair';
 import { loadDay, saveMyAnswer, type RoundView } from '../data/answers';
 import { pruneDrafts } from '../data/drafts';
@@ -80,6 +80,8 @@ export function Today() {
 
   const table = skyDay(shownMs);
   const row = rowAt(shownMs);
+  // The reunion, offered on the rail as a place to wind the sky to.
+  const destination = reunionDestination(settings.reunion, locale, { today: t('countdown.today'), tomorrow: t('countdown.tomorrow') }, now);
 
   const member = getPair()?.member ?? 'a';
   const sides = sidesFor(member, settings);
@@ -266,6 +268,8 @@ export function Today() {
         limitMs={reachMs}
         onScrubTo={scrubTo}
         onNow={backToNow}
+        destination={destination}
+        onGo={(ms) => scrubTo(ms, true)}
       />
 
       <div className={`status ${scrubMs !== null ? 'status--preview' : ''}`}>
@@ -318,7 +322,7 @@ export function Today() {
           {pool && <p className={thanked ? 'daily__pool daily__pool--thanks' : 'daily__pool'}>{pool}</p>}
         </section>
 
-        <CountdownCard shownMs={shownMs} onJump={(ms) => scrubTo(ms, true)} />
+        <CountdownCard shownMs={shownMs} />
       </div>
     </div>
   );

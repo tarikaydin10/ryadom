@@ -7,7 +7,7 @@ import { useNow } from '../lib/hooks';
 import { useScrub } from '../lib/scrub';
 import { useSettings } from '../data/settings-context';
 import { getPair } from '../data/pair';
-import { daysUntil, reunionProgress, sidesFor } from '../data/settings';
+import { daysUntil, reunionDestination, reunionProgress, sidesFor } from '../data/settings';
 import { BAND_ORDER, CITIES, type CityId } from '../content/cities';
 import { rowAt, skyDay, statusFor } from '../sky/engine';
 import { clock } from '../lib/format';
@@ -58,6 +58,7 @@ export function Map() {
   const reunion = settings.reunion.date && daysUntil(settings.reunion.date, now) >= 0 ? settings.reunion.city : null;
 
   const night = useMemo(() => nightCells(shownMs), [shownMs]);
+  const destination = reunionDestination(settings.reunion, locale, { today: t('countdown.today'), tomorrow: t('countdown.tomorrow') }, now);
 
   /**
    * The traveller: a point on the line, as far along as the wait is.
@@ -201,6 +202,8 @@ export function Map() {
         limitMs={reachMs}
         onScrubTo={scrubTo}
         onNow={backToNow}
+        destination={destination}
+        onGo={(ms) => scrubTo(ms, true)}
       />
 
       <div className={`status ${scrubMs !== null ? 'status--preview' : ''}`}>
@@ -208,6 +211,10 @@ export function Map() {
       </div>
 
       <div className="content">
+        {/* The reunion first: the map is about the distance, and this is
+            what the distance is for. */}
+        <CountdownCard shownMs={shownMs} />
+
         <dl className="facts">
           <div className="facts__item">
             <dt className="facts__key">{t('map.distance')}</dt>
@@ -228,8 +235,6 @@ export function Map() {
             </dd>
           </div>
         </dl>
-
-        <CountdownCard shownMs={shownMs} onJump={(ms) => scrubTo(ms, true)} />
       </div>
     </div>
   );

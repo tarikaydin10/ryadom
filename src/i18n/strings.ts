@@ -128,11 +128,8 @@ export const en = {
     arrivesAt: '{name} arrives on {date} at {time}',
     youTravelAt: 'You travel to {city} on {date}, arriving at {time}',
     arrivalTime: 'Arrival, local time (optional)',
-    // The card's own labels: what it is, and what a tap on it does.
+    // The card's own labels.
     kickerSince: 'Since',
-    there: 'That day',
-    lookHint: 'Tap to see the sky that day',
-    backHint: 'The sky at the hour you meet · wind back on the rail',
     change: 'Change the date',
     // The day has passed and nothing new is booked: the count turns round.
     since: 'Since {city}, {date}',
@@ -392,9 +389,6 @@ export const ru: DeepStringShape<typeof en> = {
     youTravelAt: 'Ты едешь в {city} {date}, прибытие в {time}',
     arrivalTime: 'Прибытие, по местному времени (необязательно)',
     kickerSince: 'После',
-    there: 'Тот день',
-    lookHint: 'Нажми — и увидишь небо в тот день',
-    backHint: 'Небо в час встречи · назад по шкале времени',
     change: 'Изменить дату',
     since: 'После встречи в {city}, {date}',
     unset: 'Встреча ещё не назначена',

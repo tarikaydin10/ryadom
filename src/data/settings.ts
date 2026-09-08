@@ -5,6 +5,7 @@ import type { PairMember } from './pair';
 import type { Locale } from '../i18n';
 import { dateKey, dateKeyToMs, isValidDateKey, startOfPairDay, wallClockToMs } from '../lib/day';
 import { CITIES } from '../content/cities';
+import { dayAndMonth } from '../lib/format';
 
 /**
  * A name, optionally written twice.
@@ -191,4 +192,23 @@ export function reunionProgress(reunion: Settings['reunion'], ms: number): numbe
   const start = startOfPairDay(dateKeyToMs(reunion.since));
   if (end <= start) return ms >= end ? 1 : 0;
   return Math.min(1, Math.max(0, (ms - start) / (end - start)));
+}
+
+/**
+ * The reunion as somewhere to go, for the rail: the moment, and the day as a
+ * word — the date, or "tomorrow", or "today". Null once it has passed: a day
+ * behind you is not a destination.
+ */
+export function reunionDestination(
+  reunion: Settings['reunion'],
+  locale: Locale,
+  words: { today: string; tomorrow: string },
+  now: number = Date.now(),
+): { ms: number; label: string } | null {
+  const ms = reunionMoment(reunion);
+  if (ms === null || !reunion.date) return null;
+  const days = daysUntil(reunion.date, now);
+  if (days < 0) return null;
+  const day = days === 0 ? words.today : days === 1 ? words.tomorrow : dayAndMonth(dateKeyToMs(reunion.date), locale);
+  return { ms, label: `${day} →` };
 }

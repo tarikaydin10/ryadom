@@ -618,6 +618,13 @@ textarea {
   white-space: nowrap;
 }
 
+/* Somewhere to go, in the slot the way home takes once you have gone: the
+   day you meet, as a date with an arrow. Same face as "back to now", because
+   it is the same kind of thing — a jump the rail offers. */
+.rail__go {
+  color: var(--terracotta-dark);
+}
+
 /* The whole height is the target, not just the visible strip: a nine-pixel
    hairline is a thing to look at, never a thing to hit. */
 .rail__track {
@@ -724,6 +731,12 @@ textarea {
   border: 1.5px solid var(--terracotta);
   background: rgba(244, 239, 230, 0.4);
   box-shadow: 0 0 0 1px rgba(244, 239, 230, 0.55);
+}
+
+/* The day you meet, on the strip: home's ring, filled. */
+.rail__mark {
+  background: var(--terracotta);
+  box-shadow: 0 0 0 1px rgba(244, 239, 230, 0.7);
 }
 
 /* The reading head: fixed, straddling the strip, so what it points at is always
@@ -1239,29 +1252,13 @@ textarea {
   transform: none;
 }
 
-/* Showing that day: the card says so with the control colour at its edge. */
-.countdown--there {
-  border-color: rgba(176, 86, 60, 0.45);
-}
-
-/* The face of the card, and the tap. */
-.countdown__look {
+/* The face of the card: what is true, and the way. Not a control — what
+   moves the sky lives on the rail. */
+.countdown__face {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 100%;
-  padding: 14px 16px 12px;
-  border: 0;
-  background: none;
-  font-family: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 150ms ease;
-}
-
-.countdown__look:active {
-  background: var(--daily-tint);
+  padding: 14px 16px 14px;
 }
 
 /* Editing happens in place, so the card grows downward instead of sending you
@@ -1412,12 +1409,6 @@ input.field__input[type='time'] {
   background: var(--terracotta);
   box-shadow: 0 0 0 3px var(--card);
   transition: left 600ms ease;
-}
-
-.countdown__hint {
-  font-size: 11px;
-  font-style: italic;
-  color: var(--ink-pale);
 }
 
 /* The small word under the face. */

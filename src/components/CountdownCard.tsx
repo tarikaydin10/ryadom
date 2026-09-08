@@ -3,40 +3,34 @@ import { useI18n } from '../i18n';
 import { CITIES, otherCity, type CityId } from '../content/cities';
 import { dayAndMonth } from '../lib/format';
 import { dateKey, dateKeyToMs, isValidDateKey } from '../lib/day';
-import { daysUntil, displayName, reunionMoment, reunionProgress, sidesFor } from '../data/settings';
+import { daysUntil, displayName, reunionProgress, sidesFor } from '../data/settings';
 import { useSettings } from '../data/settings-context';
 import { getPair } from '../data/pair';
 
 /**
- * The reunion: the way there, and a way to look at that day.
+ * The reunion, as a fact: the number, the sentence, and the way there.
  *
- * It used to be a quiet line that became a card within a month. Now it is a
- * card whenever a date exists, because a date is the thing the whole wait
- * points at, and it does two things a line could not:
+ * A card whenever a date exists — the date is the thing the whole wait
+ * points at — and content, not a control: what moves the sky lives in the
+ * instrument at the top of the page (the rail's readout offers the day as a
+ * destination), because a tap down here that changed something up there,
+ * out of view, was a cause with no visible effect. Down here the card says
+ * what is true and shows the way: a thin line from the traveller's city to
+ * the other, and a dot on it as far along as the wait is — the same
+ * fraction that moves the traveller on the map (`reunionProgress`). Every
+ * day it is a little further, which is the one honest thing to say about
+ * waiting, and the one a number cannot.
  *
- * It shows the way. A thin line from the traveller's city to the other, and
- * a dot on it as far along as the wait is — the same fraction that moves the
- * traveller on the map (`reunionProgress`). Every day it is a little
- * further, which is the one honest thing to say about waiting, and the one
- * a number cannot.
- *
- * It goes there. A tap winds the sky to the hour of arrival on that day,
- * however far away: the light over both cities, the moon that night, the
- * sunset she will be looking at. The rail brings you back. Editing moved off
- * the tap to a small word of its own, because looking is the commoner wish.
- *
- * Without a date there is nothing to look at and everything to do, so the
- * card is the quiet line it was, and the tap opens the editor.
+ * Without a date there is nothing to read and everything to do, so the
+ * card is a quiet line, and the tap opens the editor.
  */
 
 interface Props {
-  /** The moment the sky is showing — to know when it is showing that day. */
+  /** The moment the sky is showing — the dot on the line moves with it. */
   shownMs: number;
-  /** Wind the sky to a moment, past the fortnight the rail allows. */
-  onJump(ms: number): void;
 }
 
-export const CountdownCard = memo(function CountdownCard({ shownMs, onJump }: Props) {
+export const CountdownCard = memo(function CountdownCard({ shownMs }: Props) {
   const { t, tp, locale } = useI18n();
   const { settings, update } = useSettings();
   const [editing, setEditing] = useState(false);
@@ -129,10 +123,7 @@ export const CountdownCard = memo(function CountdownCard({ shownMs, onJump }: Pr
   // Which of you travels is derived, not stored: the reunion city is one of the
   // two, and each device knows which side it is standing on.
   const sides = sidesFor(getPair()?.member ?? 'a', settings);
-  const moment = reunionMoment(settings.reunion);
   const progress = reunionProgress(settings.reunion, shownMs);
-  // Showing that day: the sky is wound to within a few hours of the arrival.
-  const there = moment !== null && Math.abs(shownMs - moment) < 6 * 60 * 60 * 1000 && !since;
 
   const sentence = (): string => {
     if (!reunionDate) return t('countdown.unset');
@@ -165,17 +156,10 @@ export const CountdownCard = memo(function CountdownCard({ shownMs, onJump }: Pr
   const origin = otherCity(reunionCity);
 
   return (
-    <div className={there ? 'countdown countdown--card countdown--there' : 'countdown countdown--card'}>
-      {/* The tap: that day, in the sky. Everything that reads is inside it;
-          only the small word to change the date sits outside. */}
-      <button
-        className="countdown__look"
-        onClick={() => {
-          if (moment !== null && !since) onJump(moment);
-        }}
-      >
+    <div className="countdown countdown--card">
+      <div className="countdown__face">
         <span className="countdown__kicker">
-          {there ? t('countdown.there') : since ? t('countdown.kickerSince') : t('countdown.kicker')}
+          {since ? t('countdown.kickerSince') : t('countdown.kicker')}
           {' · '}
           {CITIES[reunionCity].label}
         </span>
@@ -209,8 +193,7 @@ export const CountdownCard = memo(function CountdownCard({ shownMs, onJump }: Pr
             <span className="countdown__end countdown__end--to">{CITIES[reunionCity].label}</span>
           </span>
         )}
-        {!since && <span className="countdown__hint">{there ? t('countdown.backHint') : t('countdown.lookHint')}</span>}
-      </button>
+      </div>
 
       <button className="countdown__change" onClick={() => setEditing(true)}>
         {t('countdown.change')}
