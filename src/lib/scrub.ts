@@ -69,7 +69,9 @@ export function useScrub(now: number, limitMs: number = SCRUB_LIMIT_MS): Scrub {
   const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
   // A few hours winds briskly; a fortnight takes a breath longer; a month
   // or more is capped, because a wait is not something to sit through twice.
-  const durationFor = (distance: number) => Math.min(4000, 1000 + (distance / DAY_MS) * 500);
+  // Five seconds rather than four: at forty days and more, four made the
+  // middle of the journey a flicker of days too quick to be days.
+  const durationFor = (distance: number) => Math.min(5000, 1000 + (distance / DAY_MS) * 500);
 
   /**
    * Run the sky from where it is to a moment. `target` is asked for on every
