@@ -1,32 +1,42 @@
 import { memo, useEffect, useState } from 'react';
 import { useI18n } from '../i18n';
-import { CITIES, type CityId } from '../content/cities';
+import { CITIES, otherCity, type CityId } from '../content/cities';
 import { dayAndMonth } from '../lib/format';
-import { dateKeyToMs, isValidDateKey } from '../lib/day';
-import { daysUntil, displayName, sidesFor } from '../data/settings';
+import { dateKey, dateKeyToMs, isValidDateKey } from '../lib/day';
+import { daysUntil, displayName, reunionMoment, reunionProgress, sidesFor } from '../data/settings';
 import { useSettings } from '../data/settings-context';
 import { getPair } from '../data/pair';
 
 /**
- * The reunion, edited where it is read.
+ * The reunion: the way there, and a way to look at that day.
  *
- * It used to live in the settings screen, which was the wrong home twice over:
- * it is not a preference but a fact that changes whenever a flight moves, and a
- * card reading "not set" that does nothing when tapped is a dead end. Content
- * belongs to be edited where you look at it.
+ * It used to be a quiet line that became a card within a month. Now it is a
+ * card whenever a date exists, because a date is the thing the whole wait
+ * points at, and it does two things a line could not:
  *
- * It also used to be a black slab, permanently the loudest object on a warm
- * paper screen — and its most common state, by far, is that no date is booked
- * yet. So the biggest thing on the page was a prompt to do something. Its
- * weight now follows its meaning: a quiet line for a date that is months away
- * or not yet chosen, and a card once it is close enough to be an event. That
- * the card is there at all is then information, readable across a room.
+ * It shows the way. A thin line from the traveller's city to the other, and
+ * a dot on it as far along as the wait is — the same fraction that moves the
+ * traveller on the map (`reunionProgress`). Every day it is a little
+ * further, which is the one honest thing to say about waiting, and the one
+ * a number cannot.
+ *
+ * It goes there. A tap winds the sky to the hour of arrival on that day,
+ * however far away: the light over both cities, the moon that night, the
+ * sunset she will be looking at. The rail brings you back. Editing moved off
+ * the tap to a small word of its own, because looking is the commoner wish.
+ *
+ * Without a date there is nothing to look at and everything to do, so the
+ * card is the quiet line it was, and the tap opens the editor.
  */
 
-/** Where the reunion stops being a fact and starts being an event. */
-const NEAR_DAYS = 30;
+interface Props {
+  /** The moment the sky is showing — to know when it is showing that day. */
+  shownMs: number;
+  /** Wind the sky to a moment, past the fortnight the rail allows. */
+  onJump(ms: number): void;
+}
 
-export const CountdownCard = memo(function CountdownCard() {
+export const CountdownCard = memo(function CountdownCard({ shownMs, onJump }: Props) {
   const { t, tp, locale } = useI18n();
   const { settings, update } = useSettings();
   const [editing, setEditing] = useState(false);
@@ -40,13 +50,27 @@ export const CountdownCard = memo(function CountdownCard() {
     setTime(settings.reunion.time ?? '');
   }, [settings.reunion.date, settings.reunion.city, settings.reunion.time]);
 
+  /**
+   * The start of the wait is the day the date was set. Stamped here rather
+   * than typed: nobody should have to say when they started waiting. A date
+   * from before the stamp existed gets today, which makes its line start
+   * now — honest enough, and it moves from tomorrow.
+   */
+  useEffect(() => {
+    if (!settings.reunion.date || settings.reunion.since) return;
+    void update({ ...settings, reunion: { ...settings.reunion, since: dateKey() } });
+  }, [settings, update]);
+
   const commit = () => {
+    const next = date && isValidDateKey(date) ? date : null;
     void update({
       ...settings,
       reunion: {
-        date: date && isValidDateKey(date) ? date : null,
+        date: next,
         city,
         time: /^\d{2}:\d{2}$/.test(time) ? time : null,
+        // A new date is a new wait; the same date keeps its start.
+        since: next === settings.reunion.date ? settings.reunion.since : next ? dateKey() : null,
       },
     });
     setEditing(false);
@@ -64,8 +88,7 @@ export const CountdownCard = memo(function CountdownCard() {
           autoFocus
         />
         {/* The hour of arrival, in the reunion city's own time. Optional: a
-            date is a plan, an hour is a ticket, and the map only moves the
-            traveller along the line once there is one. */}
+            date is a plan, an hour is a ticket. */}
         <label className="countdown__time">
           <span className="field__label">{t('countdown.arrivalTime')}</span>
           <input className="field__input" type="time" value={time} onChange={(event) => setTime(event.target.value)} />
@@ -95,75 +118,103 @@ export const CountdownCard = memo(function CountdownCard() {
 
   const { date: reunionDate, city: reunionCity, time: reunionTime } = settings.reunion;
   const days = reunionDate ? daysUntil(reunionDate) : null;
-  const near = days !== null && days >= 0 && days <= NEAR_DAYS;
   /**
    * The day has passed and nothing new is booked: the card turns round and
    * counts the other way. "Twelve days since Hamburg" keeps the time you had
    * on the screen instead of a "today" that stayed true for a month, and it
-   * is the quietest possible way of asking for the next date — the number
-   * goes up until somebody replaces it.
+   * is the quietest possible way of asking for the next date.
    */
   const since = days !== null && days < 0;
 
   // Which of you travels is derived, not stored: the reunion city is one of the
   // two, and each device knows which side it is standing on.
   const sides = sidesFor(getPair()?.member ?? 'a', settings);
+  const moment = reunionMoment(settings.reunion);
+  const progress = reunionProgress(settings.reunion, shownMs);
+  // Showing that day: the sky is wound to within a few hours of the arrival.
+  const there = moment !== null && Math.abs(shownMs - moment) < 6 * 60 * 60 * 1000 && !since;
 
   const sentence = (): string => {
     if (!reunionDate) return t('countdown.unset');
     const when = dayAndMonth(dateKeyToMs(reunionDate), locale);
-    const city = CITIES[reunionCity].label;
-    if (since) return t('countdown.since', { city, date: when });
+    const cityLabel = CITIES[reunionCity].label;
+    if (since) return t('countdown.since', { city: cityLabel, date: when });
     const imminent = days !== null && days <= 1;
     const name = displayName(sides.partnerName, locale);
-    // With an hour set, the hour is the news once the day is this close; before
-    // that the date is, and the hour would only lengthen the line.
     const at = reunionTime ?? '';
     if (reunionCity === sides.yours) {
       if (imminent) return at ? t('countdown.arrivesSoonAt', { name, time: at }) : t('countdown.arrivesSoon', { name });
-      return t('countdown.arrives', { name, date: when });
+      return at ? t('countdown.arrivesAt', { name, date: when, time: at }) : t('countdown.arrives', { name, date: when });
     }
     /* The city keeps its own name here too, inside either language. */
-    if (imminent) return at ? t('countdown.youTravelSoonAt', { city, time: at }) : t('countdown.youTravelSoon', { city });
-    return t('countdown.youTravel', { city, date: when });
+    if (imminent) return at ? t('countdown.youTravelSoonAt', { city: cityLabel, time: at }) : t('countdown.youTravelSoon', { city: cityLabel });
+    return at ? t('countdown.youTravelAt', { city: cityLabel, date: when, time: at }) : t('countdown.youTravel', { city: cityLabel, date: when });
   };
 
-  return (
-    <button className={near ? 'countdown countdown--near' : 'countdown'} onClick={() => setEditing(true)}>
-      <span className="countdown__where">{sentence()}</span>
-
-      {/* Two states, two different things to ask of the reader. With no date
-          there is nothing to read and everything to do, so the right-hand slot
-          holds an empty control waiting to be filled — a chip, not a field:
-          this is a value you set, and it should not be mistaken for the answer
-          card, which is a page you write on. With a date it is a fact to be
-          read, and all it owes the reader is a quiet sign that it can still be
-          changed. */}
-      {days === null ? (
+  // No date: the quiet line, and the tap is the way to set one.
+  if (!reunionDate || days === null) {
+    return (
+      <button className="countdown" onClick={() => setEditing(true)}>
+        <span className="countdown__where">{sentence()}</span>
         <span className="countdown__action">{t('countdown.set')}</span>
-      ) : (
-        <span className="countdown__count">
-          {since ? (
-            <>
-              <span className="countdown__number">{-days}</span>
-              <span className="countdown__unit">{tp('countdown.days', -days)}</span>
-            </>
-          ) : days <= 0 ? (
-            <span className="countdown__word">{t('countdown.today')}</span>
-          ) : days === 1 ? (
-            <span className="countdown__word">{t('countdown.tomorrow')}</span>
-          ) : (
-            <>
-              <span className="countdown__number">{days}</span>
-              {/* Russian needs день / дня / дней — Intl.PluralRules picks the form. */}
-              <span className="countdown__unit">{tp('countdown.days', days)}</span>
-            </>
-          )}
-          <svg className="countdown__more" width="6" height="10" viewBox="0 0 6 10" fill="none" aria-hidden="true">
-            <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+      </button>
+    );
+  }
+
+  const count = since ? -days : days;
+  const origin = otherCity(reunionCity);
+
+  return (
+    <div className={there ? 'countdown countdown--card countdown--there' : 'countdown countdown--card'}>
+      {/* The tap: that day, in the sky. Everything that reads is inside it;
+          only the small word to change the date sits outside. */}
+      <button
+        className="countdown__look"
+        onClick={() => {
+          if (moment !== null && !since) onJump(moment);
+        }}
+      >
+        <span className="countdown__kicker">
+          {there ? t('countdown.there') : since ? t('countdown.kickerSince') : t('countdown.kicker')}
+          {' · '}
+          {CITIES[reunionCity].label}
         </span>
-      )}
-    </button>
+
+        <span className="countdown__row">
+          <span className="countdown__count">
+            {count <= 0 && !since ? (
+              <span className="countdown__word">{t('countdown.today')}</span>
+            ) : count === 1 && !since ? (
+              <span className="countdown__word">{t('countdown.tomorrow')}</span>
+            ) : (
+              <>
+                <span className="countdown__number">{count}</span>
+                {/* Russian needs день / дня / дней — Intl.PluralRules picks the form. */}
+                <span className="countdown__unit">{tp('countdown.days', count)}</span>
+              </>
+            )}
+          </span>
+          <span className="countdown__where">{sentence()}</span>
+        </span>
+
+        {/* The way there: the traveller's city to the other, and the dot as
+            far along as the wait is. The same fraction as on the map. */}
+        {progress !== null && !since && (
+          <span className="countdown__way" aria-hidden="true">
+            <span className="countdown__end">{CITIES[origin].label}</span>
+            <span className="countdown__track">
+              <span className="countdown__done" style={{ width: `${Math.round(progress * 100)}%` }} />
+              <span className="countdown__dot" style={{ left: `${Math.round(progress * 100)}%` }} />
+            </span>
+            <span className="countdown__end countdown__end--to">{CITIES[reunionCity].label}</span>
+          </span>
+        )}
+        {!since && <span className="countdown__hint">{there ? t('countdown.backHint') : t('countdown.lookHint')}</span>}
+      </button>
+
+      <button className="countdown__change" onClick={() => setEditing(true)}>
+        {t('countdown.change')}
+      </button>
+    </div>
   );
 });

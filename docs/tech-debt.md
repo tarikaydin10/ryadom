@@ -136,8 +136,10 @@ zeigt nach dem ersten Sync alles.
 **Karte:** Nach Konzept ([docs/konzepte/karte.md](konzepte/karte.md)) gebaut,
 ohne Vorlage — Aydins Entscheidung vom 2026-09-06. Küste aus Natural Earth
 (`scripts/make-coast.mjs`), Nacht aus SunCalc, dieselbe Wischgeste wie das
-Band. Was bleibt: der Reisetag-Punkt auf der Linie braucht eine Uhrzeit im
-Countdown, die es nicht gibt; bis dahin nur die Stadt markiert.
+Band. ~~Was bleibt: der Reisetag-Punkt auf der Linie braucht eine Uhrzeit im
+Countdown, die es nicht gibt; bis dahin nur die Stadt markiert.~~ Seit
+2026-09-08 gibt es die Uhrzeit, und der Punkt wandert über das ganze Warten
+(`reunionProgress`).
 
 ## TD-11 · Backup der Serverdaten ist nicht Teil des Repos — **erledigt 2026-09-06**
 

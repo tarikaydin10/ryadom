@@ -67,7 +67,8 @@ offline zuerst, weniger Code — gelten unverändert. Dazu drei Produkt-Grundsä
 | Chronik | Vergangene Tage mit allen Runden, vollständig auf jedem Gerät (ADR-0014); verpasste Runden lassen sich nachschreiben (ADR-0015). |
 | Backup | Täglich durch den Server, dreißig Tage; Anleitung für die Kopie nach außen in deploy/README.md. |
 | Countdown | Fertig, Datum wird geteilt. |
-| Karte | Gebaut: Küste im Bundle, Nacht aus der Sonne, Luftlinie, Wiedersehen markiert; Zeit wie im Band gewunden. |
+| Karte | Gebaut: Küste im Bundle, Nacht aus der Sonne, Luftlinie, Wiedersehen markiert; Zeit wie im Band gewunden. Seit 2026-09-08 wandert ein Punkt auf der Linie, so weit das Warten ist. |
+| Wiedersehen | Karte mit Zahl, Satz und dem Weg dorthin (Linie mit Punkt); ein Tipp windet den Himmel auf die Stunde der Ankunft, egal wie fern; Ankunftszeit optional; nach dem Datum „seit Hamburg: N Tage“. |
 | iOS | Zwei offene Punkte ([TD-01](tech-debt.md), [TD-02](tech-debt.md)); Diagnose jetzt unter „Us". |
 
 ## Roadmap
@@ -95,8 +96,10 @@ Erlaubnis, Zustellung im Hintergrund: auf dem iPhone gesehen.
 
 ### 4 · Karte — *erledigt 2026-09-06*
 
-Nach [docs/konzepte/karte.md](konzepte/karte.md), ohne Vorlage. Offen bleibt
-der Reisetag-Punkt auf der Linie: braucht eine Uhrzeit im Countdown.
+Nach [docs/konzepte/karte.md](konzepte/karte.md), ohne Vorlage. Der Punkt auf
+der Linie kam am 2026-09-08: er wandert vom Tag, an dem das Datum gesetzt
+wurde, bis zur Stunde der Ankunft — derselbe Bruch wie auf der Wiedersehen-
+Karte, aus einer Funktion (`reunionProgress`).
 
 ### 5 · Rückblick-Momente — *teilweise erledigt 2026-09-07*
 
@@ -140,6 +143,15 @@ nichts, was drängt.
 
 Dazu: „Us“ speichert Namen und Daten beim Tippen, ohne Knopf.
 
+**Zweite Runde, 2026-09-08:** Senden ist eine Zusage (kein Bearbeiten mehr,
+sobald ihre Antwort offen ist; der Server hält das), ihre Balken zeigen die
+Länge der verschlossenen Antwort (eins bis vier, nie den Inhalt), ein Wort
+an ihr Telefon von Seite A („Слово для Милы“ unter „Us“), und das
+Wiedersehen als Karte mit dem Weg dorthin und dem Sprung im Himmel auf den
+Tag. „Посмотри вверх“ (ein Tipp unter dem Mond, der ihr Telefon anspricht)
+wurde gebaut und auf Aydins Zweifel hin wieder entfernt — steht unten bei
+den offenen Entscheidungen.
+
 **Vor dem Push auf `main`:** `DEPTH_EPOCH` in `src/content/questions.ts`
 muss der Tag nach dem Deploy sein ([TD-17](tech-debt.md)). Und: nichts davon
 ist auf dem iPhone gesehen — Reveal, Badge, Nachtpapier und das Zeitfeld im
@@ -176,6 +188,11 @@ Für Aydin, in der Reihenfolge, in der sie anstehen:
    letzten Minuten in der App war; keine Uhrzeit, kein „zuletzt online“. Der
    stärkste Trigger aus der Runde vom 2026-09-07 und der einzige, der an
    „nichts, was drängt“ kratzt. Empfehlung: bauen, mit Schalter pro Gerät.
-5. **Wetterfragen über den Server** ([TD-16](tech-debt.md)) — „Regen in
+5. **„Посмотри вверх“** — steht der Mond über beiden Städten, ein Tipp, und
+   ihr Telefon sagt „Тарик сейчас смотрит на луну. Посмотри и ты.“ Gebaut,
+   wieder entfernt (Commit 1495813 hat den Stand zum Zurückholen). Aydin ist
+   sich nicht sicher, ob ein Tipp, der das andere Telefon anspricht, in
+   diese App gehört.
+6. **Wetterfragen über den Server** ([TD-16](tech-debt.md)) — „Regen in
    beiden Städten“, „erster Schnee“. Ein Abend, sobald die Himmelsfragen
    sich bewährt haben.

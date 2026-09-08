@@ -11,7 +11,7 @@ import { useSettings } from '../data/settings-context';
 import { BAND_ORDER, CITIES } from '../content/cities';
 import { rowAt, skyDay, statusFor } from '../sky/engine';
 import { dateKey } from '../lib/day';
-import { useScrub, SCRUB_LIMIT_MS } from '../lib/scrub';
+import { useScrub } from '../lib/scrub';
 import { questionFor } from '../content/questions';
 import { MAX_ROUNDS, promptAuthor } from '../content/prompt';
 import { displayName, sidesFor } from '../data/settings';
@@ -49,7 +49,7 @@ export function Today() {
   const weather = useWeather();
   const sync = useSyncStatus();
 
-  const { scrubMs, shownMs, scrubTo, backToNow } = useScrub(now);
+  const { scrubMs, shownMs, scrubTo, reachMs, backToNow } = useScrub(now);
   const [rounds, setRounds] = useState<RoundView[]>(() => openingRound(dateKey(now)));
   const [saving, setSaving] = useState(false);
   // Whether `rounds` is the store's word or the opening guess — see the scroll
@@ -263,7 +263,7 @@ export function Today() {
         now={now}
         ms={shownMs}
         live={scrubMs === null}
-        limitMs={SCRUB_LIMIT_MS}
+        limitMs={reachMs}
         onScrubTo={scrubTo}
         onNow={backToNow}
       />
@@ -318,7 +318,7 @@ export function Today() {
           {pool && <p className={thanked ? 'daily__pool daily__pool--thanks' : 'daily__pool'}>{pool}</p>}
         </section>
 
-        <CountdownCard />
+        <CountdownCard shownMs={shownMs} onJump={(ms) => scrubTo(ms, true)} />
       </div>
     </div>
   );

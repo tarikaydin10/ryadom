@@ -19,7 +19,15 @@ export interface Scrub {
   scrubMs: number | null;
   /** What to draw: the held moment, or now. */
   shownMs: number;
-  scrubTo(ms: number): void;
+  /**
+   * Wind to a moment. A drag stays within the limit; a jump (`free`) may go
+   * anywhere — the reunion is often more than a fortnight away, and it is
+   * the one place beyond the limit worth going. Once there, the rail can be
+   * dragged around that day: see `reachMs`.
+   */
+  scrubTo(ms: number, free?: boolean): void;
+  /** How far from now the rail may currently be dragged: the limit, or further if a jump went further. */
+  reachMs: number;
   backToNow(wind: boolean): void;
 }
 
@@ -41,9 +49,13 @@ export function useScrub(now: number, limitMs: number = SCRUB_LIMIT_MS): Scrub {
 
   useEffect(() => cancelRewind, []);
 
-  const scrubTo = (ms: number) => {
+  // A jump beyond the limit widens the reach to where it landed, plus a day
+  // either side to look around in; it narrows again on the way back to now.
+  const reachMs = scrubMs === null ? limitMs : Math.max(limitMs, Math.abs(scrubMs - now) + DAY_MS);
+
+  const scrubTo = (ms: number, free = false) => {
     cancelRewind();
-    setScrubMs(Math.min(now + limitMs, Math.max(now - limitMs, ms)));
+    setScrubMs(free ? ms : Math.min(now + reachMs, Math.max(now - reachMs, ms)));
   };
 
   const backToNow = (wind: boolean) => {
@@ -80,5 +92,5 @@ export function useScrub(now: number, limitMs: number = SCRUB_LIMIT_MS): Scrub {
     rewind.current = requestAnimationFrame(step);
   };
 
-  return { scrubMs, shownMs: scrubMs ?? now, scrubTo, backToNow };
+  return { scrubMs, shownMs: scrubMs ?? now, scrubTo, reachMs, backToNow };
 }

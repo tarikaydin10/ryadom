@@ -4,14 +4,14 @@ import { TimeRail } from '../components/TimeRail';
 import { CountdownCard } from '../components/CountdownCard';
 import { useI18n } from '../i18n';
 import { useNow } from '../lib/hooks';
-import { useScrub, SCRUB_LIMIT_MS } from '../lib/scrub';
+import { useScrub } from '../lib/scrub';
 import { useSettings } from '../data/settings-context';
 import { getPair } from '../data/pair';
-import { daysUntil, sidesFor } from '../data/settings';
+import { daysUntil, reunionProgress, sidesFor } from '../data/settings';
 import { BAND_ORDER, CITIES, type CityId } from '../content/cities';
 import { rowAt, skyDay, statusFor } from '../sky/engine';
 import { clock } from '../lib/format';
-import { DAY_MS, dateKey, startOfPairDay, wallClockToMs } from '../lib/day';
+import { DAY_MS } from '../lib/day';
 import { otherCity } from '../content/cities';
 import { COAST_PATH } from '../map/coast';
 import { CITY_POINTS, HEIGHT, WIDTH, arcMidpoint, distanceKm, greatCirclePath, greatCirclePoint, nightCells } from '../map/geometry';
@@ -49,7 +49,7 @@ export function Map() {
   const { t, locale } = useI18n();
   const { settings } = useSettings();
   const now = useNow();
-  const { scrubMs, shownMs, scrubTo, backToNow } = useScrub(now);
+  const { scrubMs, shownMs, scrubTo, reachMs, backToNow } = useScrub(now);
 
   const row = rowAt(shownMs);
   const sides = sidesFor(getPair()?.member ?? 'a', settings);
@@ -60,24 +60,19 @@ export function Map() {
   const night = useMemo(() => nightCells(shownMs), [shownMs]);
 
   /**
-   * The traveller, on the day: a point that moves along the line.
+   * The traveller: a point on the line, as far along as the wait is.
    *
-   * Only on the travel day and only with an hour of arrival — a date says
-   * which day, not when the door opens. It starts from the other city at the
-   * start of the shared day and reaches the reunion city at the hour set,
-   * evenly, which is not how trains and planes move but is how the wait
-   * feels; before the day it sits at home, after the hour it has arrived.
-   * Wound with the rest of the map: drag into the afternoon and it is
-   * further along.
+   * It leaves the traveller's own city on the day the date was set and
+   * reaches the other on the hour of arrival, evenly — which is not how
+   * trains and planes move but is how a wait feels: a little nearer every
+   * day. The same fraction as the dot on the reunion card, from one
+   * function, so the two cannot disagree. Wound with the rest of the map:
+   * jump to the reunion and it has arrived; drag back and it has not.
    */
   const traveller = useMemo(() => {
-    const { date, city, time } = settings.reunion;
-    if (!date || !time || dateKey(shownMs) !== date) return null;
-    const arrival = wallClockToMs(date, time, CITIES[city].tz);
-    if (arrival === null) return null;
-    const departure = startOfPairDay(arrival);
-    const progress = arrival <= departure ? 1 : Math.min(1, Math.max(0, (shownMs - departure) / (arrival - departure)));
-    return greatCirclePoint(otherCity(city), city, progress);
+    const progress = reunionProgress(settings.reunion, shownMs);
+    if (progress === null || progress >= 1) return null;
+    return greatCirclePoint(otherCity(settings.reunion.city), settings.reunion.city, progress);
   }, [settings.reunion, shownMs]);
 
   /**
@@ -203,7 +198,7 @@ export function Map() {
         now={now}
         ms={shownMs}
         live={scrubMs === null}
-        limitMs={SCRUB_LIMIT_MS}
+        limitMs={reachMs}
         onScrubTo={scrubTo}
         onNow={backToNow}
       />
@@ -234,7 +229,7 @@ export function Map() {
           </div>
         </dl>
 
-        <CountdownCard />
+        <CountdownCard shownMs={shownMs} onJump={(ms) => scrubTo(ms, true)} />
       </div>
     </div>
   );

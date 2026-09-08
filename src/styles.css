@@ -1194,13 +1194,13 @@ textarea {
   cursor: default;
 }
 
-/* Quiet by default: a line of type, the way a footnote to the day would be set.
-   The date is months away or not yet booked nearly all the time, and a component
-   in that state has no business being the heaviest object on the screen — it was
-   a black slab, the only one in a warm paper palette, and its commonest content
-   was a prompt to go and do something.
-   It carried its own rule until the daily band arrived above it; two edges a
-   finger's width apart, both saying the same thing, is one edge too many. */
+/* The reunion.
+
+   Without a date: a line of type, the way a footnote to the day would be set,
+   with an empty chip asking to be filled. With one: a card — the date is what
+   the wait points at, and it earns the weight. Inside the card, one tap is
+   the whole face (the sky that day), and the word to change the date sits
+   under it on its own, small. */
 .countdown {
   background: none;
   border: 0;
@@ -1214,17 +1214,54 @@ textarea {
   width: 100%;
   font-family: inherit;
   text-align: left;
+  color: inherit;
   cursor: pointer;
+  transition: transform 150ms ease;
 }
 
-/* Close enough to be an event. It takes on a card, and that it has one at all
-   is itself the message — readable across a room, which a number never is. */
-.countdown--near {
-  border: 1px solid rgba(176, 86, 60, 0.4);
+.countdown:active {
+  transform: scale(0.99);
+}
+
+.countdown--card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: var(--card);
-  padding: 15px 17px;
-  align-items: center;
+  cursor: default;
+  overflow: hidden;
+}
+
+.countdown--card:active {
+  transform: none;
+}
+
+/* Showing that day: the card says so with the control colour at its edge. */
+.countdown--there {
+  border-color: rgba(176, 86, 60, 0.45);
+}
+
+/* The face of the card, and the tap. */
+.countdown__look {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 16px 12px;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.countdown__look:active {
+  background: var(--daily-tint);
 }
 
 /* Editing happens in place, so the card grows downward instead of sending you
@@ -1260,7 +1297,13 @@ input.field__input[type='time'] {
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--ink-pale);
+  color: var(--terracotta);
+}
+
+.countdown__row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
 }
 
 .countdown__where {
@@ -1269,23 +1312,15 @@ input.field__input[type='time'] {
   color: var(--ink-muted);
 }
 
-.countdown--near .countdown__where {
+.countdown--card .countdown__where {
   font-size: 15px;
   color: var(--ink);
-}
-
-.countdown {
-  transition: transform 150ms ease;
-}
-
-.countdown:active {
-  transform: scale(0.99);
+  text-wrap: pretty;
 }
 
 /* No date yet: an empty slot that says so and asks to be filled. A chip rather
    than a dashed field, deliberately — the answer card above it is a page you
-   write on, and this is a value you set. Two different jobs should not arrive
-   in the same clothes. */
+   write on, and this is a value you set. */
 .countdown__action {
   flex-shrink: 0;
   font-size: 12px;
@@ -1304,44 +1339,101 @@ input.field__input[type='time'] {
   flex-shrink: 0;
 }
 
-/* The quietest possible "and this can be changed". A set date is there to be
-   read, so the sign that it is also a control stays out of the way until it is
-   looked for. */
-.countdown__more {
-  align-self: center;
-  margin-left: 3px;
-  color: var(--ink-pale);
-  opacity: 0.6;
-}
-
 .countdown__number {
   font-family: var(--display);
-  font-size: 20px;
+  font-size: 44px;
   line-height: 1;
   color: var(--terracotta);
   font-variant-numeric: tabular-nums;
-}
-
-.countdown--near .countdown__number {
-  font-size: 40px;
 }
 
 /* "today" and "tomorrow" stand in for the number, and a word set at the
    number's size would push the sentence off the row. */
 .countdown__word {
   font-family: var(--display);
-  font-size: 17px;
+  font-size: 28px;
   line-height: 1;
   color: var(--terracotta);
-}
-
-.countdown--near .countdown__word {
-  font-size: 26px;
 }
 
 .countdown__unit {
   font-size: 11px;
   color: var(--ink-pale);
+}
+
+/* The way there: a hairline from one city to the other, the part behind you
+   drawn solid in the control colour, the dot at the head of it. It is the
+   same fraction that moves the traveller on the map — one number, two
+   pictures — and it is what a count of days cannot show: that every day it
+   is a little further. */
+.countdown__way {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.countdown__end {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-pale);
+}
+
+.countdown__end--to {
+  color: var(--terracotta-dark);
+}
+
+.countdown__track {
+  position: relative;
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+}
+
+.countdown__done {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--terracotta);
+  border-radius: 1px;
+  transition: width 600ms ease;
+}
+
+.countdown__dot {
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: var(--terracotta);
+  box-shadow: 0 0 0 3px var(--card);
+  transition: left 600ms ease;
+}
+
+.countdown__hint {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ink-pale);
+}
+
+/* The small word under the face. */
+.countdown__change {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--terracotta);
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  text-align: left;
+  padding: 8px 16px 10px;
+  cursor: pointer;
 }
 
 /* ---------- chrome ---------- */
