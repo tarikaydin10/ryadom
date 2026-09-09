@@ -28,8 +28,14 @@ Antwort noch eine Runde öffnen darf.
 3. **Ehrlich über das Wann.** Unter einer Antwort, deren Tag nicht der Tag
    der Frage ist, steht „nachgetragen am …". Für beide Seiten, denn beide
    können es tun. Kein Vorwurf, eine Angabe.
-4. **Kein Push** für nachgetragene Antworten (bestand schon: `notify` nur für
-   heute). Die andere Seite sieht es in der Chronik.
+4. **Push wie für heute.** *Geändert am 2026-09-09:* Erst gab es keinen Push
+   für nachgetragene Antworten, aus der Sorge, ein Ping über eine Runde von
+   vor Wochen würde falsch wirken. Aber die Nachricht selbst (`NOTIFICATIONS`
+   in `server/index.mjs`) nennt weder Runde noch Datum — „Ein Antwort kam an
+   — du bist dran" stimmt für eine nachgetragene Antwort genauso wie für eine
+   von heute. Ohne Push erfährt die andere Seite es nur, wenn sie von sich aus
+   die Chronik öffnet, und genau das war der Zustand, den ADR-0015 eigentlich
+   beheben sollte.
 
 ## Verworfene Alternativen
 

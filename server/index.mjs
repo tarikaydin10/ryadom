@@ -1189,8 +1189,11 @@ const server = createServer(async (req, res) => {
       await persist();
       // Not awaited: whoever just wrote should not wait for Apple. If they had
       // already answered this round, their own answer has just come unlocked and
-      // a new question is open — different news from a nudge.
-      if (first && date === pairDay()) {
+      // a new question is open — different news from a nudge. Sent for a late
+      // answer too (ADR-0015): the notification names no round and no date, so
+      // it says nothing a page from last month couldn't — and the other side
+      // otherwise finds out only by opening the chronicle.
+      if (first) {
         void notify(otherMember(member), theyHadAnswered ? 'unlocked' : 'answered').catch(() => undefined);
       }
     }
