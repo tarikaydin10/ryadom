@@ -34,7 +34,10 @@ export const en = {
     polarNight: 'sun stays down',
     now: 'now',
     backToNow: 'back to now',
-    scrubHint: 'Drag across the sky to travel through the day',
+    // The rail's name for anyone who cannot see it. It names the three ways in,
+    // because a slider that is only reachable by thumb is reachable by one
+    // person in the pair on a good day.
+    railLabel: 'Time — drag, tap or use the arrow keys to travel',
     label: 'Sky above both cities',
   },
 
@@ -60,18 +63,47 @@ export const en = {
   question: {
     kickerPlain: 'Today',
     loading: 'Loading the question …',
+    // A day can hold more than one question now: the next one opens once you
+    // have both answered the last. The kicker says which kind of moment this
+    // is, so the second question does not read as the first one repeating.
+    kickerMore: 'One more',
+    dayFull: 'That is the day. Tomorrow there is more.',
+    // When the next question comes is the one thing the page cannot show, so
+    // it is said under every open round: it is not a time, it is the two of
+    // you. The second line is for when they have written and you have not —
+    // then the wait is yours alone, and the sentence says what one tap buys.
+    nextWhenBoth: 'The next question opens once you have both answered.',
+    nextWhenYou: 'Write, and the answer opens — and with it the next question.',
+    // The third round is the last one; saying so up front spares the wait for
+    // a fourth question that is not coming.
+    lastOfDay: 'The last one for today.',
+    askedBy: '{name} asked this',
+    askedByYou: 'Your question',
+    machine: 'translated by machine',
+    // The way to your own questions, from the place where wanting to ask one
+    // actually happens.
+    askSomething: 'Ask something of your own',
+    // After adding one, for a few seconds: what happens to it now.
+    added: 'Added. It is asked in the next round that opens.',
+    // What is waiting in the pool. Hers is a fact, not a sentence — the
+    // sentence stays on the server until its round.
+    theirsWaiting: '{name} has a question waiting for you. It comes in the next round.',
+    yoursWaiting: 'Yours waiting for a round: {count}',
   },
 
   answer: {
     you: 'You',
     placeholder: 'Tap to write …',
+    placeholderUrgent: 'Tap to unlock their answer …',
     hidden: 'Visible once you have written.',
     notYet: 'Has not written yet.',
-    waiting: 'Waiting for your answer.',
     send: 'Send',
     cancel: 'Cancel',
     edit: 'Edit',
     pending: 'saved on this device',
+    // Between Send and the server's answer, when hers is waiting behind it:
+    // what the send is about to buy, said while it is being bought.
+    opening: 'Sending — their answer opens next.',
     synced: 'sent',
     writtenAt: 'wrote at {time}',
   },
@@ -90,7 +122,21 @@ export const en = {
     // already said, so the sentence drops it.
     arrivesSoon: '{name} arrives',
     youTravelSoon: 'You travel to {city}',
+    // With an hour set, once the day is this close, the hour is the news.
+    arrivesSoonAt: '{name} arrives at {time}',
+    youTravelSoonAt: 'You travel to {city}, arriving at {time}',
+    arrivesAt: '{name} arrives on {date} at {time}',
+    youTravelAt: 'You travel to {city} on {date}, arriving at {time}',
+    arrivalTime: 'Arrival, local time (optional)',
+    // The card's own labels.
+    kickerSince: 'Since',
+    change: 'Change the date',
+    // The day has passed and nothing new is booked: the count turns round.
+    since: 'Since {city}, {date}',
     unset: 'No reunion date yet',
+    // The empty slot's own label. An instruction, not a description: with no
+    // date set there is nothing to read here and only something to do.
+    set: 'Set the date',
   },
 
   net: {
@@ -108,7 +154,18 @@ export const en = {
     system: 'System',
     english: 'English',
     russian: 'Русский',
+    // The paper dims after dusk in your city. A device preference: whether to
+    // read on dark paper at night is about the eyes holding this phone.
+    paper: 'Paper',
+    paperHint: 'After dusk where you are, the page dims to a warm dark. Pin it light if you would rather not.',
+    paperSun: 'Follows the sun',
+    paperLight: 'Always light',
     names: 'Names',
+    // The pair's own days. On the day, the question of the day is about it.
+    dates: 'Your days',
+    datesHint: 'On a birthday, on your day, and on the eve of a reunion, the question of the day is about it.',
+    birthday: 'Birthday · {name}',
+    anniversary: 'Your day',
     yourName: 'Your name',
     partnerName: 'Their name',
     reunion: 'Next reunion',
@@ -125,6 +182,21 @@ export const en = {
     forget: 'Forget this device',
     forgetHint: 'Removes the passphrase from this device. Your answers stay on the server.',
     dayBoundary: 'The shared day starts at midnight in {tz}, so you both get the same question at the same moment.',
+    // Reached by tapping the heading five times. The wording assumes the reader
+    // is looking at a phone that is currently drawing itself wrong.
+    notifications: 'Notifications',
+    // Says what arrives and, just as importantly, what does not: the lock-in is
+    // the app's promise and a notification must not be the way around it.
+    pushOffHint: 'A quiet word when the other one has written. Never what they wrote — that stays behind your own answer.',
+    pushOnHint: 'On for this device. Turning it off here stops it for this device only.',
+    pushDeniedHint: 'Refused once, and only the phone can undo that: Settings → Notifications → Ryadom.',
+    pushUnsupportedHint: 'Only in the app on your home screen. Add it there first, then open this screen again.',
+    pushOn: 'Turn on',
+    pushOff: 'Turn off',
+    diagnostics: 'Diagnostics',
+    diagnosticsHint: 'What this phone measures right now. Copy it and send it over when the bar sits in the wrong place.',
+    copy: 'Copy',
+    copied: 'Copied',
   },
 
   lock: {
@@ -135,13 +207,92 @@ export const en = {
     checking: 'Checking …',
     wrong: 'That passphrase does not match.',
     offline: 'No connection, so the passphrase cannot be checked right now. Try again once you are online.',
-    suggest: 'Suggest a strong one',
     caveat: 'A lock, not encryption: whoever holds this phone unlocked can read the answers.',
   },
 
-  soon: {
-    map: 'The map comes later.',
-    chronicle: 'The chronicle of your answers comes later.',
+  chronicle: {
+    empty: 'Nothing written down yet. Whatever you answer today will be here tomorrow.',
+    // A round you missed is not closed for good. Writing late buys the right
+    // to read what they wrote; it does not open another round — the day is over.
+    writeLate: 'Write now — their answer opens.',
+    writeLateAlone: 'Write now.',
+    // Shown under an answer that was written on a later day than the question.
+    // Honesty about when, never a reproach.
+    late: 'written later, on {date}',
+    // The count of rounds both of you finished. It only ever grows; a missed
+    // day changes it by nothing. That is the whole difference from a streak.
+    count: {
+      one: 'question answered by both of you',
+      few: 'questions answered by both of you',
+      many: 'questions answered by both of you',
+      other: 'questions answered by both of you',
+    } as Plural,
+    since: 'since {date}',
+    // Said once, on the round numbers, as a word rather than a firework.
+    milestone: 'A milestone.',
+    // A finished round from at least a week ago, put in front of you again.
+    found: 'Found again',
+    foundKicker: 'Found again · {date}',
+  },
+
+  questions: {
+    title: 'Questions of your own',
+    intro: 'Write one and it is asked in the next round — yours come before the built-in ones.',
+    add: 'A new question',
+    yours: 'Your question',
+    placeholder: 'What do you want to ask?',
+    // Optional, and said so plainly: an empty second field means the other side
+    // reads the sentence in the language it was written in, which is honest.
+    translation: 'The same question in the other language',
+    translationHint: 'Optional — leave it empty and it stays as you wrote it.',
+    // The second field is behind this line rather than on the page: one box
+    // is a place to say something, two are a form.
+    addOther: 'Add it in the other language too',
+    // Hers, not yet asked. Listed as existing, never as a sentence.
+    sealed: '{name} has one waiting — you will read it when it is asked.',
+    save: 'Add',
+    list: 'Written by the two of you',
+    // Says what the emptiness means, rather than only that it is empty: until
+    // one of you writes one, the day's questions come out of the table.
+    empty: 'Neither of you has written one yet — until then the questions come from the built-in list.',
+    waiting: 'waiting to be asked',
+    asked: 'asked on {date}',
+    remove: 'Take it back',
+  },
+
+  note: {
+    // Side A only. A push in your own words to her phone — "new update, look".
+    title: 'A word to {name}',
+    hint: 'A notification to their phone, in your words. Not an answer and not the app talking: a note.',
+    placeholder: 'New update — have a look',
+    send: 'Send',
+    sending: 'Sending …',
+    sent: 'Delivered to {count} device(s).',
+    noDevice: '{name} has no device with notifications on.',
+    failed: 'That did not go. Try again.',
+  },
+
+  export: {
+    title: 'Export',
+    hint: 'Everything on this device as two files — a text you can read anywhere, and the same as JSON. Your side of the record: a round you never answered stays closed here too.',
+    button: 'Export everything',
+    working: 'Gathering …',
+    shared: 'Handed over.',
+    downloaded: 'Downloaded.',
+    failed: 'That did not work. Try again in a moment.',
+    // Inside the text file.
+    fileTitle: 'Everything written, exported',
+    notWritten: 'not written',
+    locked: 'closed — write yours to open it',
+  },
+
+  map: {
+    label: 'The Baltic between both cities, with the night where it is',
+    km: '{km} km',
+    distance: 'As the crow flies',
+    kmUnit: 'kilometres between you',
+    light: 'Light',
+    minEarlier: 'min earlier in {city}',
   },
 } as const;
 
@@ -168,7 +319,7 @@ export const ru: DeepStringShape<typeof en> = {
     polarNight: 'солнце не восходит',
     now: 'сейчас',
     backToNow: 'вернуться к сейчас',
-    scrubHint: 'Проведи по небу, чтобы пройти день',
+    railLabel: 'Время — тяни, нажимай или листай стрелками',
     label: 'Небо над обоими городами',
   },
 
@@ -194,18 +345,31 @@ export const ru: DeepStringShape<typeof en> = {
   question: {
     kickerPlain: 'Сегодня',
     loading: 'Загружаем вопрос …',
+    kickerMore: 'Ещё вопрос',
+    dayFull: 'На сегодня всё. Завтра будет ещё.',
+    nextWhenBoth: 'Следующий вопрос откроется, когда ответите оба.',
+    nextWhenYou: 'Напиши — и ответ откроется, а с ним и следующий вопрос.',
+    lastOfDay: 'Последний на сегодня.',
+    askedBy: 'Спрашивает {name}',
+    askedByYou: 'Твой вопрос',
+    machine: 'машинный перевод',
+    askSomething: 'Спросить о своём',
+    added: 'Добавлено. Спросим в следующем раунде.',
+    theirsWaiting: '{name} спрашивает — вопрос откроется в следующем раунде.',
+    yoursWaiting: 'Твоих в очереди: {count}',
   },
 
   answer: {
     you: 'Ты',
     placeholder: 'Нажми, чтобы написать …',
+    placeholderUrgent: 'Нажми, чтобы открыть ответ …',
     hidden: 'Появится, когда ты напишешь.',
     notYet: 'Ещё не написал(а).',
-    waiting: 'Ждём твой ответ.',
     send: 'Отправить',
     cancel: 'Отмена',
     edit: 'Изменить',
     pending: 'сохранено на этом устройстве',
+    opening: 'Отправляем — и ответ откроется.',
     synced: 'отправлено',
     writtenAt: 'написано в {time}',
   },
@@ -219,7 +383,16 @@ export const ru: DeepStringShape<typeof en> = {
     youTravel: 'Ты едешь в {city} {date}',
     arrivesSoon: '{name} приезжает',
     youTravelSoon: 'Ты едешь в {city}',
+    arrivesSoonAt: '{name} приезжает в {time}',
+    youTravelSoonAt: 'Ты едешь в {city}, прибытие в {time}',
+    arrivesAt: '{name} приезжает {date} в {time}',
+    youTravelAt: 'Ты едешь в {city} {date}, прибытие в {time}',
+    arrivalTime: 'Прибытие, по местному времени (необязательно)',
+    kickerSince: 'После',
+    change: 'Изменить дату',
+    since: 'После встречи в {city}, {date}',
     unset: 'Встреча ещё не назначена',
+    set: 'Назначить дату',
   },
 
   net: {
@@ -237,7 +410,15 @@ export const ru: DeepStringShape<typeof en> = {
     system: 'Системный',
     english: 'English',
     russian: 'Русский',
+    paper: 'Бумага',
+    paperHint: 'После заката у тебя страница темнеет — тёплым, не чёрным. Если не хочется, оставь светлой.',
+    paperSun: 'Как солнце',
+    paperLight: 'Всегда светлая',
     names: 'Имена',
+    dates: 'Ваши даты',
+    datesHint: 'В день рождения, в ваш день и накануне встречи вопрос дня будет об этом.',
+    birthday: 'День рождения · {name}',
+    anniversary: 'Ваш день',
     yourName: 'Твоё имя',
     partnerName: 'Её или его имя',
     reunion: 'Следующая встреча',
@@ -254,6 +435,17 @@ export const ru: DeepStringShape<typeof en> = {
     forget: 'Забыть это устройство',
     forgetHint: 'Пароль удалится с устройства. Ответы останутся на сервере.',
     dayBoundary: 'Общий день начинается в полночь по зоне {tz} — так вопрос у вас обоих меняется одновременно.',
+    notifications: 'Уведомления',
+    pushOffHint: 'Тихая весточка, когда другой написал. Никогда — сам ответ: он остаётся за твоим.',
+    pushOnHint: 'Включено на этом устройстве. Выключение здесь касается только его.',
+    pushDeniedHint: 'Один раз отказано, и вернуть это может только телефон: Настройки → Уведомления → «Рядом».',
+    pushUnsupportedHint: 'Только в приложении с домашнего экрана. Добавь его туда и открой этот экран снова.',
+    pushOn: 'Включить',
+    pushOff: 'Выключить',
+    diagnostics: 'Диагностика',
+    diagnosticsHint: 'Что этот телефон измеряет прямо сейчас. Скопируй и пришли, если полоса стоит не на месте.',
+    copy: 'Скопировать',
+    copied: 'Скопировано',
   },
 
   lock: {
@@ -264,13 +456,75 @@ export const ru: DeepStringShape<typeof en> = {
     checking: 'Проверяем …',
     wrong: 'Пароль не подходит.',
     offline: 'Нет связи, пароль сейчас не проверить. Попробуй, когда появится интернет.',
-    suggest: 'Предложить надёжный',
     caveat: 'Это замок, а не шифрование: кто держит разблокированный телефон, тот читает ответы.',
   },
 
-  soon: {
-    map: 'Карта появится позже.',
-    chronicle: 'Хроника ваших ответов появится позже.',
+  chronicle: {
+    empty: 'Пока ничего не записано. То, что вы ответите сегодня, будет здесь завтра.',
+    writeLate: 'Написать сейчас — и ответ откроется.',
+    writeLateAlone: 'Написать сейчас.',
+    late: 'написано позже, {date}',
+    count: {
+      one: 'вопрос, на который ответили оба',
+      few: 'вопроса, на которые ответили оба',
+      many: 'вопросов, на которые ответили оба',
+      other: 'вопроса, на которые ответили оба',
+    },
+    since: 'с {date}',
+    milestone: 'Веха.',
+    found: 'Нашлось снова',
+    foundKicker: 'Нашлось снова · {date}',
+  },
+
+  questions: {
+    title: 'Ваши собственные вопросы',
+    intro: 'Напиши свой — его зададут в следующем раунде: ваши идут раньше встроенных.',
+    add: 'Новый вопрос',
+    yours: 'Твой вопрос',
+    placeholder: 'О чём ты хочешь спросить?',
+    translation: 'Тот же вопрос на другом языке',
+    translationHint: 'Необязательно — оставь пустым, и он останется как написан.',
+    addOther: 'Добавить и на другом языке',
+    sealed: '{name} спрашивает — прочитаешь, когда придёт очередь.',
+    save: 'Добавить',
+    list: 'Написанное вами',
+    empty: 'Никто из вас ещё не написал — пока их нет, вопросы приходят из встроенного списка.',
+    waiting: 'ждёт своей очереди',
+    asked: 'задан {date}',
+    remove: 'Забрать назад',
+  },
+
+  note: {
+    title: 'Слово для {name}',
+    hint: 'Уведомление на телефон, твоими словами. Не ответ и не голос приложения: записка.',
+    placeholder: 'Новое обновление — посмотри',
+    send: 'Отправить',
+    sending: 'Отправляем …',
+    sent: 'Доставлено на устройств: {count}.',
+    noDevice: '{name} — уведомления не включены ни на одном устройстве.',
+    failed: 'Не ушло. Попробуй ещё раз.',
+  },
+
+  export: {
+    title: 'Экспорт',
+    hint: 'Всё, что есть на этом устройстве, двумя файлами — текст, который откроется где угодно, и то же самое в JSON. Твоя сторона записи: раунд, на который ты не ответил(а), закрыт и здесь.',
+    button: 'Экспортировать всё',
+    working: 'Собираем …',
+    shared: 'Передано.',
+    downloaded: 'Скачано.',
+    failed: 'Не получилось. Попробуй ещё раз чуть позже.',
+    fileTitle: 'Всё написанное, экспорт',
+    notWritten: 'не написано',
+    locked: 'закрыто — напиши свой ответ, и откроется',
+  },
+
+  map: {
+    label: 'Балтика между двумя городами, и ночь там, где она сейчас',
+    km: '{km} км',
+    distance: 'По прямой',
+    kmUnit: 'километров между вами',
+    light: 'Свет',
+    minEarlier: 'мин раньше в {city}',
   },
 };
 

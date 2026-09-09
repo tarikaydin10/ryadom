@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useI18n, type Locale } from '../i18n';
 import { DICTIONARIES } from '../i18n/strings';
-import { setPair, suggestSecret } from '../data/pair';
+import { setPair } from '../data/pair';
 import { verifyPair } from '../data/api';
 
 /**
@@ -72,7 +72,7 @@ export function Lock({ onUnlocked }: { onUnlocked(): void }) {
         ))}
       </div>
 
-      <h1 className="screen__title">Rjadom · Рядом</h1>
+      <h1 className="screen__title">Ryadom · Рядом</h1>
       <p className="screen__note" lang={lockLocale}>
         {t('lock.intro')}
       </p>
@@ -92,13 +92,6 @@ export function Lock({ onUnlocked }: { onUnlocked(): void }) {
             if (event.key === 'Enter') void submit();
           }}
         />
-        <button
-          className="button button--ghost"
-          style={{ alignSelf: 'flex-start' }}
-          onClick={() => setSecret(suggestSecret())}
-        >
-          {t('lock.suggest')}
-        </button>
       </div>
 
       {state === 'wrong' && (

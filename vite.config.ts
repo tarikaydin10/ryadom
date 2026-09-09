@@ -20,11 +20,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['fonts/*.woff2', 'icons/*.png'],
+      includeAssets: ['fonts/*.woff2', 'icons/*.png', 'favicon.svg'],
       manifest: {
         id: '/',
-        name: 'Rjadom · Рядом',
-        short_name: 'Rjadom',
+        name: 'Ryadom · Рядом',
+        short_name: 'Ryadom',
         description: 'Two people, two cities, one sky.',
         start_url: '/',
         scope: '/',
@@ -39,6 +39,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // The notification listeners, added to the generated worker instead of
+        // replacing it: the caching strategy below is what makes the app work
+        // offline, and push has no business rewriting it.
+        importScripts: ['/push-sw.js'],
         globPatterns: ['**/*.{js,css,html,woff2,png,svg,ico}'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
@@ -50,7 +54,7 @@ export default defineConfig({
             urlPattern: new RegExp('^' + weatherBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/'),
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'rjadom-weather',
+              cacheName: 'ryadom-weather',
               networkTimeoutSeconds: 6,
               expiration: { maxEntries: 16, maxAgeSeconds: 60 * 60 * 24 * 3 },
               cacheableResponse: { statuses: [0, 200] },

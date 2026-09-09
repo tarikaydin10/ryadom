@@ -1,27 +1,35 @@
 import {
   ApiError,
   fetchDay,
+  fetchDaysSince,
+  fetchQuestions,
   fetchSettings,
   putAnswer as putRemoteAnswer,
+  putQuestion as putRemoteQuestion,
   putSettings,
   syncConfigured,
   syncEnabled,
   type DayResponse,
+  type RemoteQuestion,
 } from './api';
 import { loadSettings, mergeRemoteSettings } from './settings';
 import {
   answerId,
+  clearDayStores,
   dequeue,
   getAnswer,
   outbox,
   outboxCount,
   putAnswer as putLocalAnswer,
-  putPartnerState,
+  putQuestion as putLocalQuestion,
+  putRound,
+  roundId,
   updateOutboxItem,
   kvGet,
   kvSet,
 } from './db';
 import { dateKey } from '../lib/day';
+import { getPair } from './pair';
 
 /**
  * The courier.
@@ -66,6 +74,10 @@ function emit(patch: Partial<SyncStatus>): void {
 }
 
 const LAST_SYNC_KEY = 'lastSyncAt';
+/** Server clock of the last history pull; zero means "everything, please". */
+const HISTORY_CURSOR_KEY = 'historySince';
+/** Which side of the pair the answers in this store are "me" for. */
+const STORE_OWNER_KEY = 'storeOwner';
 
 async function refreshPending(): Promise<number> {
   const pending = await outboxCount();
@@ -73,36 +85,78 @@ async function refreshPending(): Promise<number> {
   return pending;
 }
 
-/** Fold a server response into the local store. */
+/** A question as it travels, in the shape the local store keeps. */
+const asRecord = (question: RemoteQuestion, now: number) => ({ ...question, syncedAt: now });
+
+/** Fold a server response into the local store, round by round. */
 async function applyDay(response: DayResponse): Promise<void> {
   const now = Date.now();
+  const date = response.date;
 
-  if (response.you) {
-    const mine = await getAnswer(response.date, 'me');
-    if (mine && mine.updatedAt <= response.you.updatedAt) {
-      await putLocalAnswer({ ...mine, syncedAt: now });
+  for (const round of response.rounds) {
+    // A question of your own arrives with the round that asks it, so a device
+    // that has never fetched the pool can still draw the day.
+    if (round.question.kind === 'pool') await putLocalQuestion(asRecord(round.question.question, now));
+
+    await putRound({
+      id: roundId(date, round.slot),
+      date,
+      slot: round.slot,
+      question:
+        round.question.kind === 'pool'
+          ? { kind: 'pool', id: round.question.question.id }
+          : round.question.id
+            ? { kind: 'bundled', id: round.question.id }
+            : { kind: 'bundled' },
+      answered: round.partner.answered,
+      answeredAt: round.partner.answeredAt,
+      ...(round.partner.size ? { answeredSize: round.partner.size } : {}),
+      fetchedAt: now,
+    });
+
+    if (round.you) {
+      const mine = await getAnswer(date, round.slot, 'me');
+      if (mine) {
+        if (mine.updatedAt <= round.you.updatedAt) await putLocalAnswer({ ...mine, syncedAt: now });
+      } else {
+        // Your own answer, written on your other device or on this one before it
+        // was wiped. Without this the round would sit there asking to be
+        // answered while the server has long since unlocked theirs — which is
+        // what a phone reinstalled mid-day used to look like.
+        await putLocalAnswer({
+          id: answerId(date, round.slot, 'me'),
+          date,
+          slot: round.slot,
+          questionId: '',
+          author: 'me',
+          text: round.you.text,
+          createdAt: round.you.updatedAt,
+          updatedAt: round.you.updatedAt,
+          syncedAt: now,
+        });
+      }
+    }
+
+    if (typeof round.partner.text === 'string') {
+      await putLocalAnswer({
+        id: answerId(date, round.slot, 'them'),
+        date,
+        slot: round.slot,
+        questionId: '',
+        author: 'them',
+        text: round.partner.text,
+        createdAt: round.partner.answeredAt ?? now,
+        updatedAt: round.partner.updatedAt ?? round.partner.answeredAt ?? now,
+        syncedAt: now,
+      });
     }
   }
+}
 
-  await putPartnerState({
-    date: response.date,
-    answered: response.partner.answered,
-    answeredAt: response.partner.answeredAt,
-    fetchedAt: now,
-  });
-
-  if (typeof response.partner.text === 'string') {
-    await putLocalAnswer({
-      id: answerId(response.date, 'them'),
-      date: response.date,
-      questionId: '',
-      author: 'them',
-      text: response.partner.text,
-      createdAt: response.partner.answeredAt ?? now,
-      updatedAt: response.partner.updatedAt ?? response.partner.answeredAt ?? now,
-      syncedAt: now,
-    });
-  }
+/** The pair's own questions, whole list in, whole list stored. */
+async function applyQuestions(questions: RemoteQuestion[]): Promise<void> {
+  const now = Date.now();
+  for (const question of questions) await putLocalQuestion(asRecord(question, now));
 }
 
 const MAX_ATTEMPTS = 8;
@@ -110,11 +164,20 @@ const MAX_ATTEMPTS = 8;
 async function flushOutbox(): Promise<void> {
   for (const item of await outbox()) {
     try {
-      const response = await putRemoteAnswer(item.date, item.payload);
-      await applyDay(response);
+      if (item.kind === 'answer') {
+        await applyDay(await putRemoteAnswer(item.date, { slot: item.slot, ...item.payload }));
+      } else {
+        await applyQuestions((await putRemoteQuestion(item.questionId, item.payload)).questions);
+      }
       if (item.id !== undefined) await dequeue(item.id);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      // An edit the server sealed — hers was already open when it arrived —
+      // is not lost so much as overruled: the words that count are the ones
+      // she read, and this device takes them back from the server.
+      if (item.kind === 'answer' && error instanceof ApiError && error.status === 409) {
+        await takeBack(item.date, item.slot).catch(() => undefined);
+      }
       // A rejected payload will never be accepted; a lost connection will.
       const permanent = error instanceof ApiError && error.status >= 400 && error.status < 500 && error.status !== 429;
       const attempts = item.attempts + 1;
@@ -127,6 +190,16 @@ async function flushOutbox(): Promise<void> {
       throw error;
     }
   }
+}
+
+/** Replace this device's copy of an answer with the server's, whatever the clocks say. */
+async function takeBack(date: string, slot: number): Promise<void> {
+  const day = await fetchDay(date);
+  const round = day.rounds.find((candidate) => candidate.slot === slot);
+  const mine = await getAnswer(date, slot, 'me');
+  if (!round?.you || !mine) return;
+  await putLocalAnswer({ ...mine, text: round.you.text, updatedAt: Date.now(), syncedAt: Date.now() });
+  await applyDay(day);
 }
 
 /** Dates worth pulling: today, and yesterday in case an answer landed late. */
@@ -151,6 +224,47 @@ async function syncSharedSettings(): Promise<void> {
   if (local.updatedAt > remote.updatedAt) await putSettings(local, local.updatedAt);
 }
 
+/**
+ * The chronicle's half of the courier: pull whatever changed since last time.
+ *
+ * `fetchDay` for today and yesterday keeps the home screen honest; this keeps
+ * the past complete — a reinstall, a second device, or an answer that landed a
+ * week late all come back through here. The cursor is the server's clock, not
+ * this device's, so the two never have to agree on the time. Pool questions
+ * ride along with the rounds that asked them, so `applyDay` is all it takes.
+ */
+async function pullHistory(): Promise<void> {
+  const member = getPair()?.member;
+  if (!member) return;
+
+  // "Me" and "them" are written into every record from the side that fetched
+  // it. Forgetting the device only drops the passphrase, so unlocking again as
+  // the other side would read the whole record mirror-imaged. When the store
+  // belongs to the other side, it is cleared and pulled afresh — the outbox is
+  // already empty by this point, so nothing unsent is lost. A store from
+  // before this key existed is simply adopted: it was filled from this side.
+  let since = (await kvGet<number>(HISTORY_CURSOR_KEY)) ?? 0;
+  const owner = await kvGet<string>(STORE_OWNER_KEY);
+  if (owner !== undefined && owner !== member) {
+    await clearDayStores();
+    since = 0;
+  }
+  if (owner !== member) await kvSet(STORE_OWNER_KEY, member);
+
+  let response;
+  try {
+    response = await fetchDaysSince(since);
+  } catch (error) {
+    // A server that predates this route, for the minutes a deploy takes to
+    // reach both halves. Today and yesterday are already in; the past can wait
+    // for the next sync rather than paint the whole thing red.
+    if (error instanceof ApiError && error.status === 404) return;
+    throw error;
+  }
+  for (const day of response.days) await applyDay(day);
+  await kvSet(HISTORY_CURSOR_KEY, response.now);
+}
+
 let running: Promise<void> | null = null;
 
 export function syncNow(dates: string[] = activeDates()): Promise<void> {
@@ -169,6 +283,8 @@ export function syncNow(dates: string[] = activeDates()): Promise<void> {
       for (const date of dates) {
         await applyDay(await fetchDay(date));
       }
+      await pullHistory();
+      await applyQuestions((await fetchQuestions()).questions);
       await syncSharedSettings();
       const now = Date.now();
       await kvSet(LAST_SYNC_KEY, now);

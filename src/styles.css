@@ -3,28 +3,39 @@
 :root {
   --paper: #f4efe6;
   --card: #fffcf6;
-  --card-muted: #ede4d6;
+  /* Her card. Deeper than it was, because it no longer sits on bare paper but
+     on the daily band, and at the old value it dissolved into it — the pair has
+     to read as an open card beside a closed one, and a closed one you cannot
+     see is not closed, it is missing. */
+  --card-muted: #e6dbc8;
   --bar: #dbd0be;
-  --bar-ink: #e0d6c6;
   --border: #e5daca;
   --ink: #241f1b;
   --ink-muted: #7a6a5c;
   --ink-pale: #8a7a6a;
   --terracotta: #b0563c;
   --terracotta-dark: #9a5f42;
-  --apricot: #e8a87c;
-  --sand: #b79e86;
   --night: #12111f;
+  /* The desk the phone-sized column lies on, seen only on a wide window. */
+  --desk: #ede6da;
+  /* The daily band's tint, the ground's earth at almost nothing. */
+  --daily-tint: rgba(74, 56, 42, 0.045);
+  /* The map's land is a picture, not a page: it keeps the paper's colour
+     whatever the paper does. */
+  --map-land: #f4efe6;
 
   --display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   --body: 'Spectral', Georgia, 'Times New Roman', serif;
 
   --gutter: 22px;
   --radius-card: 14px;
-  --band-height: 278px;
-  /* Where the sky stops and the ground starts, inside the band's own
-     coordinates. Mirrors HORIZON in sky/engine.ts. */
-  --horizon: 186px;
+
+  /* --band-height and --horizon are deliberately absent here. They are the
+     band's own geometry, they belong to sky/engine.ts, which draws the sun and
+     the moon in them, and `SkyBand` publishes them onto the band element. They
+     used to be restated here as well; the two copies drifted apart, and the
+     drift is what put the sun beside its own track and left a shadow edge
+     hanging above the horizon line. */
 
   /* The phone's own obstructions, named once and used everywhere.
      Routed through variables rather than calling env() at each site: it keeps
@@ -39,22 +50,51 @@
   color-scheme: light;
 }
 
+/* Night paper.
+
+   Most answers are written in the evening, in bed, at the brightness of a
+   sheet of paper under a lamp. After civil dusk in the city this phone is in
+   the paper dims — warm, not black: the same palette turned over, the
+   terracotta a shade lighter for the contrast, the type a shade off white.
+   The sky band and the map are pictures and keep their own light. Every
+   colour comes from the tokens above, so this is the whole of it; nothing
+   below repeats a colour. Follows the sun by default; „Us“ can pin it light
+   for anyone who would rather read on paper at midnight too. */
+:root[data-night] {
+  --paper: #1e1a16;
+  --card: #292219;
+  --card-muted: #32291f;
+  --bar: #453a2f;
+  --border: #3a3128;
+  --ink: #ece3d6;
+  --ink-muted: #a89a8b;
+  --ink-pale: #8a7c6c;
+  --terracotta: #d4785a;
+  --terracotta-dark: #cf8c6e;
+  --desk: #14110e;
+  --daily-tint: rgba(255, 235, 200, 0.035);
+
+  color-scheme: dark;
+}
+
 * {
   box-sizing: border-box;
 }
 
-/* Held still like an application, not a document.
-   The page itself never scrolls or bounces; only the panels that need to do.
-   Without this the whole screen rubber-bands under a thumb and the sky drifts
-   away from the top edge, which reads as a website in a browser rather than an
-   app on a phone. */
+/* The document scrolls, like any page, and it rubber-bands, like any page —
+   both deliberately. No `overflow: hidden`, no fixed root, and above all no
+   `overscroll-behavior: none`: iOS maps that onto the scroll view's bounce, and
+   with the bounce off a home-screen app does not re-measure its viewport after
+   the keyboard. It stayed safe-area-inset-top short for the rest of the session
+   and a strip of bare background sat under the tab bar (WebKit 192564, 301857
+   — both name disabled overscroll as the condition). The sky pulling away from
+   the top edge for a moment is the price, and Trainer pays it too. */
 html,
 body {
   margin: 0;
-  height: 100%;
-  overflow: hidden;
-  overscroll-behavior: none;
-  background: #ede6da;
+  /* Same colour as the tab bar: whatever the shell leaves uncovered at the
+     bottom edge reads as bar, not as a seam. */
+  background: var(--card);
   /* No double-tap zoom; taps stay instant. */
   touch-action: manipulation;
 }
@@ -79,28 +119,36 @@ textarea {
   user-select: text;
 }
 
-/* Pinned to the viewport rectangle rather than sized by it. 100dvh moves while
-   a browser's toolbars come and go, which is what let the tab bar drift off the
-   bottom edge; a fixed shell cannot drift. */
 #root {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  justify-content: center;
-  overflow: hidden;
+  /* Seen only where the window is wider than the app: the desk it lies on. */
+  background: var(--desk);
 }
 
+/* A column at least one screen tall: the screen fills it, the tab bar ends it.
+   No overflow:hidden here — iOS scrolls such a box to reveal a focused field
+   and leaves the whole app shifted afterwards. */
 .app {
   width: 100%;
-  max-width: 440px;
-  height: 100%;
+  min-height: 100dvh;
+  margin: 0 auto;
   background: var(--paper);
+  /* Dusk, not a switch: the paper dims over most of a second. */
+  transition: background-color 900ms ease;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   /* Landscape rounds the corners in from the sides. */
   padding-left: var(--safe-left);
   padding-right: var(--safe-right);
+}
+
+/* Phone-sized on a desk; on a phone, the full width — always. A max-width that
+   is narrower than the viewport draws a frame, and the viewport is not ours to
+   trust: Safari's per-site page zoom (85 %, 75 %) widens it, and a home-screen
+   app copies that zoom at install time and keeps it. */
+@media (min-width: 600px) {
+  .app {
+    max-width: 440px;
+  }
 }
 
 .kicker {
@@ -116,33 +164,28 @@ textarea {
    system — see .sky__frame. */
 .sky {
   position: relative;
+  /* The sky proper: the top of the band down to the horizon, the island's strip
+     included. Everything that is weather or sky — the wash, the cloud, the rain,
+     the star field — is measured in this rather than in the frame below it, so
+     none of them can begin on a line across the top of the screen. */
+  --sky-height: calc(var(--safe-top) + var(--horizon));
   height: calc(var(--band-height) + var(--safe-top));
   overflow: hidden;
   background: var(--night);
   flex-shrink: 0;
-  /* The band owns horizontal gestures; the page must not try to scroll with them. */
-  touch-action: none;
+  /* The band owns horizontal gestures and the page keeps vertical ones. It used
+     to take both, which meant a thumb landing on the sky — the top third of the
+     screen — could not scroll the page at all, and the whole thing read as
+     stuck. `pan-y` hands the browser the scroll it is good at and leaves the
+     scrub here; a swipe that turns out to be vertical arrives as a
+     pointercancel, which ends the drag cleanly. */
+  touch-action: pan-y;
   cursor: grab;
   user-select: none;
 }
 
 .sky:active {
   cursor: grabbing;
-}
-
-/* Subtle drag handle to indicate the sky can be swiped */
-.sky::after {
-  content: '';
-  position: absolute;
-  top: calc(var(--safe-top) + 12px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.15);
-  pointer-events: none;
-  z-index: 10;
 }
 
 .sky__layer {
@@ -167,20 +210,45 @@ textarea {
 /* All four move by transform alone, so the compositor carries them and a phone
    does not warm up drawing drizzle. Motion stops entirely under the
    reduced-motion rule at the end of this file, leaving the shapes in place. */
-/* Reaches the horizon and no further: below it is ground, not weather. */
-.wx__wash {
+/* One city's weather, over the whole of its sky.
+   It used to live inside `.sky__frame`, which starts below the island — so an
+   overcast wash began at full strength on that line and drew a hard edge right
+   under the phone's clock, the one thing in the band that is supposed to have
+   no edge at all. It is pulled back up to the top of the band here, and clipped
+   at the horizon, because below that is ground rather than weather. */
+/* Each city's own end of the sky, not the whole band — see `WeatherLayer`. The
+   two regions overlap by a tenth in the middle, which is where their fades
+   cross, so there is no seam and no dead strip either. */
+.sky__weather {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: var(--horizon);
+  top: calc(-1 * var(--safe-top));
+  height: var(--sky-height);
+  overflow: hidden;
+  pointer-events: none;
 }
 
+.sky__weather--left {
+  left: 0;
+  right: 45%;
+}
+
+.sky__weather--right {
+  left: 45%;
+  right: 0;
+}
+
+.wx__wash {
+  position: absolute;
+  inset: 0;
+}
+
+/* Blurred enough to be a cloud, not so much that it is a stain. At 5px a cloud
+   this size had no edge left anywhere and simply read as a smudge on the glass. */
 .wx__cloud {
   position: absolute;
   left: 0;
   border-radius: 50%;
-  filter: blur(5px);
+  filter: blur(4px);
   will-change: transform;
   animation-name: drift;
   animation-timing-function: linear;
@@ -202,7 +270,7 @@ textarea {
 .wx__drop {
   position: absolute;
   top: 0;
-  width: 1px;
+  width: 1.6px;
   border-radius: 1px;
   animation-name: fall;
   animation-timing-function: linear;
@@ -218,12 +286,16 @@ textarea {
   animation-iteration-count: infinite;
 }
 
+/* Measured in the cloud's own width, so the distance it travels has to suit the
+   box it travels in. That box is now a city's region rather than the whole
+   band — a little over half as wide — and at the old 520% a cloud spent most of
+   its cycle clipped outside it, which read as a sky that keeps emptying. */
 @keyframes drift {
   from {
     transform: translateX(-120%);
   }
   to {
-    transform: translateX(520%);
+    transform: translateX(380%);
   }
 }
 
@@ -252,7 +324,7 @@ textarea {
     opacity: 1;
   }
   to {
-    transform: translateY(186px);
+    transform: translateY(var(--sky-height));
     opacity: 0;
   }
 }
@@ -266,13 +338,13 @@ textarea {
     opacity: 1;
   }
   50% {
-    transform: translate(7px, 111px);
+    transform: translate(7px, calc(var(--sky-height) * 0.46));
   }
   85% {
     opacity: 1;
   }
   to {
-    transform: translate(0, 186px);
+    transform: translate(0, var(--sky-height));
     opacity: 0;
   }
 }
@@ -295,7 +367,7 @@ textarea {
   left: 0;
   right: 0;
   top: 0;
-  height: calc(var(--safe-top) + var(--horizon));
+  height: var(--sky-height);
   overflow: hidden;
 }
 
@@ -313,9 +385,24 @@ textarea {
   0%,
   100% {
     opacity: var(--star-opacity, 1);
+    transform: scale(1);
   }
   50% {
-    opacity: calc(var(--star-opacity, 1) * 0.45);
+    opacity: calc(var(--star-opacity, 1) * 0.25);
+    transform: scale(0.85);
+  }
+}
+
+/* Size only. It used to breathe in opacity too, and an animated opacity beats
+   an inline one — so the sun's own fade as it set never took effect and a bright
+   disc stayed sitting on the horizon all through the night. */
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
   }
 }
 
@@ -329,24 +416,26 @@ textarea {
   height: 100%;
 }
 
-.sky__moon,
+/* Where the sun and the moon may be seen: the sky, down to the horizon and
+   not a pixel past it. The ground is not a wash they sink through; it is
+   what stands in front of them. */
+.sky__above {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--horizon);
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .sky__sun {
   position: absolute;
   border-radius: 50%;
-}
-
-.sky__moon {
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
-  background: #efeaf0;
-  box-shadow: 0 0 14px 4px rgba(239, 234, 240, 0.2);
-}
-
-.sky__sun {
   width: 20px;
   height: 20px;
   margin: -10px 0 0 -10px;
+  animation: pulse 4s ease-in-out infinite;
 }
 
 /* Land. It replaces the scrim that used to darken the top half of the sky so
@@ -365,7 +454,7 @@ textarea {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(74, 56, 42, 0.26) 0%, rgba(74, 56, 42, 0.17) 46%, rgba(74, 56, 42, 0.1) 100%);
+  background: linear-gradient(180deg, rgba(74, 56, 42, 0) 0%, rgba(74, 56, 42, 0.26) 30%, rgba(74, 56, 42, 0.1) 100%);
   pointer-events: none;
 }
 
@@ -401,17 +490,17 @@ textarea {
   top: var(--horizon);
   left: 0;
   right: 0;
-  padding: 12px var(--gutter) 0;
+  padding: 16px var(--gutter) 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 16px;
   pointer-events: none;
 }
 
 .sky__city {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -437,24 +526,265 @@ textarea {
   font-size: 11px;
 }
 
-/* ---------- status line ---------- */
+/* ---------- time rail ---------- */
 
-.status {
-  padding: 16px var(--gutter) 0;
+/* The instrument, under the picture.
+ *
+ * What was here before was a gesture with no object: a 58px chevron mark over
+ * the sky at half opacity, and one sentence that was shown once and then never
+ * again. After that first day nothing on the screen said the sky moved, how far
+ * it could be moved, or where in the week you had ended up — and a day is a
+ * band width, so reaching the fortnight the app allows meant fourteen full
+ * swipes in the dark. A symbol has to be learned; an object is read.
+ *
+ * So time is given an object. A strip of the actual light between the two
+ * cities — the same colour table the sky above is painted from — running under
+ * a fixed reading head. It is a thing with a texture that obviously slides, it
+ * shows where the days break and which day you are on, it holds a mark at now
+ * that you can aim for, and it answers to a thumb, a tap, a flick and the arrow
+ * keys. The band above keeps its drag, at exactly this scale, as the shortcut
+ * for anyone who already knows it.
+ *
+ * Furniture, deliberately quiet at rest: a nine-pixel hairline with one ring in
+ * it. It grows, and the hours and dates fade up, only while it is being used.
+ */
+.rail {
+  position: relative;
+  height: 46px;
+  flex-shrink: 0;
+
+  /* Resting geometry. Everything below reads these, and only these change when
+     the rail wakes up, so the two states cannot drift apart. */
+  --strip-h: 11px;
+  --head-top: 21px;
+  --head-h: 22px;
+  --detail: 0;
+  --wake: 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.rail[data-active] {
+  --strip-h: 24px;
+  --head-top: 17px;
+  --head-h: 28px;
+  --detail: 1;
+}
+
+/* A pointer that can hover is a pointer that can explore: on a desktop the rail
+   opens under the cursor before anything is pressed. */
+@media (hover: hover) {
+  .rail:hover {
+    --strip-h: 24px;
+    --head-top: 17px;
+    --head-h: 28px;
+    --detail: 1;
+  }
+}
+
+/* How far you have gone, and the way back — "now", "in 5 hours", «через 3 дня».
+   The clocks in the band give the hour and cannot give the day, which is the
+   one thing a fortnight of travel actually changes.
+
+   Read from the gutter, like the status line below it, rather than centred over
+   the reading head: the head is always in the middle and needs no caption, and
+   a centred phrase and a right-hand button collide the moment the language is
+   Russian — «через 6 часов» and «вернуться к сейчас» do not both fit around a
+   centre line on a phone. */
+.rail__readout {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  right: 0;
+  padding: 0 var(--gutter);
   display: flex;
-  align-items: center; /* changed from baseline to center for the pill button */
+  align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.rail__when {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-pale);
+  transition: color 0.3s ease;
+}
+
+.rail--away .rail__when {
+  color: var(--terracotta);
+}
+
+/* The way home, beside the thing that took you away from it. It used to sit in
+   the status line below, a whole component away from the gesture that made it
+   necessary. */
+.rail__back {
+  pointer-events: auto;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--terracotta);
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Somewhere to go, in the slot the way home takes once you have gone: the
+   day you meet, as a date with an arrow. Same face as "back to now", because
+   it is the same kind of thing — a jump the rail offers. */
+.rail__go {
+  color: var(--terracotta-dark);
+}
+
+/* The whole height is the target, not just the visible strip: a nine-pixel
+   hairline is a thing to look at, never a thing to hit. */
+.rail__track {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* The strip inside is six days wide — some 1500px on a 400px phone. Contained,
+     so that nothing about it (its width, its overflow) can ever count toward
+     the document or the viewport. */
+  contain: layout paint;
+  /* The rail takes the whole gesture, unlike the band above it.
+     `pan-y` is not an either/or: the browser keeps panning the page vertically
+     for the length of the drag while the strip scrubs horizontally, so a thumb
+     crossing the rail with the least drift wound time and slid the page under
+     it at the same time, and the screen wobbled. A slider owns its gesture,
+     and this is a slider. The price is a 46px strip you cannot begin a scroll
+     on — the same price every slider on a page charges. */
+  touch-action: none;
+  cursor: grab;
+}
+
+.rail__track:active {
+  cursor: grabbing;
+}
+
+.rail__track:focus-visible {
+  outline: 2px solid var(--terracotta);
+  outline-offset: -2px;
+  border-radius: 5px;
+}
+
+/* Six days, painted once and then only moved.
+ *
+ * Width and position are in time, not in pixels: the element is as many rail
+ * widths as it holds days, and the shown moment sets a single transform. So a
+ * scrub repaints nothing and relayouts nothing — it hands the compositor one
+ * translation — and the gradient is rebuilt only when time runs off the end of
+ * what is drawn, which is a few times a session. */
+.rail__strip {
+  position: absolute;
+  left: 50%;
+  top: 32px;
+  height: var(--strip-h);
+  will-change: transform;
+  box-shadow: inset 0 0 0 1px rgba(36, 31, 27, 0.08);
+  transition: height var(--wake);
+}
+
+/* Three-hour hairlines, drawn by the background rather than by forty-eight
+   elements. `--tick-period` comes from the component, which owns the span. */
+.rail__ticks {
+  position: absolute;
+  inset: 0;
+  opacity: calc(var(--detail) * 0.5);
+  transition: opacity var(--wake);
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 250, 240, 0.55) 0 1px,
+    rgba(255, 250, 240, 0) 1px var(--tick-period)
+  );
+}
+
+/* Where one day becomes the next. Light line, dark edge: the strip runs from a
+   pale noon to a near-black midnight, and a mark in one ink alone disappears at
+   one end or the other. */
+.rail__day {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid rgba(255, 250, 240, 0.6);
+  box-shadow: -1px 0 0 rgba(20, 16, 28, 0.22);
+}
+
+/* For the same reason the date rides a chip rather than sitting on the colour:
+   nine-pixel type has no weight to spare, and neither white nor dark ink holds
+   across a whole day's worth of sky. */
+.rail__date {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 1px 3px;
+  border-radius: 2px;
+  background: rgba(20, 16, 28, 0.28);
+  color: rgba(255, 249, 239, 0.92);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: var(--detail);
+  transition: opacity var(--wake);
+}
+
+/* Now, as a place on the strip. At rest the reading head is docked in it; wound
+   away, it is the mark to aim back at — and the rail catches there. */
+.rail__anchor {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--terracotta);
+  background: rgba(244, 239, 230, 0.4);
+  box-shadow: 0 0 0 1px rgba(244, 239, 230, 0.55);
+}
+
+/* The day you meet, on the strip: home's ring, filled. */
+.rail__mark {
+  background: var(--terracotta);
+  box-shadow: 0 0 0 1px rgba(244, 239, 230, 0.7);
+}
+
+/* The reading head: fixed, straddling the strip, so what it points at is always
+   the moment the sky above is showing. */
+.rail__head {
+  position: absolute;
+  left: 50%;
+  top: var(--head-top);
+  height: var(--head-h);
+  width: 1.5px;
+  margin-left: -0.75px;
+  border-radius: 1px;
+  background: var(--terracotta);
+  box-shadow: 0 0 0 1px rgba(244, 239, 230, 0.6);
+  pointer-events: none;
+  transition:
+    top var(--wake),
+    height var(--wake);
+}
+
+/* ---------- status line ---------- */
+
+/* Now only the reading — "Twilight for both of you". The word "now" and the way
+   back to it moved onto the rail, which is where the leaving happens; a control
+   for time that lives one component away from the gesture for time is a control
+   nobody connects to what they just did. */
+.status {
+  padding: 10px var(--gutter) 0;
   flex-shrink: 0;
-  transition: opacity 0.3s ease;
 }
 
-.status--preview {
-  /* Optional: we can subtly shift the background or add a state change here */
-}
-
+/* While the sky is wound away from now, the reading of it steps back: it is a
+   description of a moment you are only visiting. */
 .status--preview .status__text {
-  opacity: 0.6; /* Dim the static text to emphasize the back button */
+  opacity: 0.6;
 }
 
 .status__text {
@@ -465,38 +795,16 @@ textarea {
   transition: opacity 0.3s ease;
 }
 
-.status__now {
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  color: var(--terracotta);
-  white-space: nowrap;
-  background: none;
-  border: 0;
-  padding: 0;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-/* When the time is scrubbed, the "now" text becomes a prominent button */
-button.status__now {
-  background: var(--terracotta);
-  color: var(--paper);
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(176, 86, 60, 0.25);
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
-}
-
-button.status__now:active {
-  transform: scale(0.96);
-  box-shadow: 0 2px 6px rgba(176, 86, 60, 0.2);
-}
-
 /* ---------- content ---------- */
 
+/* Grows into the space left over, never shrinks below what it holds.
+   `flex: 1` alone is `flex-basis: 0`, which inside a scroller means the block is
+   laid out at nothing and then stretched — so the scroller believes it fits, a
+   long question is squeezed instead of scrolled, and the scroll that is left has
+   nowhere much to go. That is the short, stiff scroll. `1 0 auto` measures the
+   content first and only then fills what is spare. */
 .content {
-  flex: 1;
+  flex: 1 0 auto;
   /* The bottom padding is the gap above the tab bar. It belongs to the scroller
      rather than to the bar, so it is breathing room when the content is short
      and scrolls away when it is not — the bar's own margin was dead space in
@@ -504,17 +812,134 @@ button.status__now:active {
   padding: 12px var(--gutter) 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  /* Wider than the gap inside the daily band, so the eye reads two groups and
+     not four blocks in a row. Proximity only says anything when the two
+     distances differ. */
+  gap: 20px;
+}
+
+/* The question and its answers, as one region.
+   They were three blocks spaced exactly like everything else on the page: the
+   same gap sat between the question and its own answer as between the answers
+   and the reunion, so there was nothing for the eye to group them by. Common
+   region beats proximity, and this is the region — full width, like the sky
+   band and the tab bar, so the type keeps the gutter alignment it shares with
+   the status line rather than being indented out of it.
+   The tint is the ground's earth, very weak: enough for the answer cards, which
+   are lighter than the paper, to sit ON something instead of floating IN it. */
+.daily {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 16px var(--gutter) 18px;
+  background: var(--daily-tint);
+}
+
+/* One round: a question and the two answers under it.
+ *
+ * A day holds up to three of them, oldest first, so they need a seam the block's
+ * own padding cannot give — without a line between them the second question
+ * reads as a caption to the first pair of cards. */
+.round {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.round + .round {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* A round that opened while you were looking comes in rather than being
+   there: up from a little below, over most of a second, after the reveal
+   above it has had its own. Only that one — a launch that lands on an
+   afternoon's third question has nothing to announce. */
+.round--opening {
+  animation: round-in 800ms ease 700ms both;
+}
+
+@keyframes round-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A finished round, folded to the words (see RoundDone). Set the way the
+   chronicle sets a round — the question as a small heading, the answers as
+   quotes with a rule on the left — so that a page of today reads like a page of
+   the record it will be tomorrow. The whole thing is a button, and looks like
+   text on purpose: unfolding it is a thing you can do, not one you are asked to. */
+.round-done {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.round-done__question {
+  font-family: var(--display);
+  font-size: 19px;
+  line-height: 1.25;
+  text-wrap: pretty;
+}
+
+.round-done__said {
+  font-size: 15px;
+  line-height: 1.45;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.round-done__who {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 2px;
+}
+
+/* The line under the open round that says what it leads to — the next question,
+   the last one, or the end of the day. Set like a footnote and never louder:
+   it explains the rhythm, it does not push anybody to keep it. */
+.daily__note {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-pale);
+  text-align: center;
 }
 
 .question {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+
+/* Whose question this is — a footnote to it, never a second headline. */
+.question__byline {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-style: italic;
+  color: var(--ink-pale);
 }
 
 .question__kicker {
@@ -544,7 +969,7 @@ button.status__now:active {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  flex: 1;
+  flex: 1 0 auto;
   min-height: 140px;
 }
 
@@ -565,8 +990,45 @@ button.status__now:active {
   cursor: text;
 }
 
+/* Nothing written yet. A card that is waiting for words should look like it is:
+   the same warm paper, but drawn in the colour every other control on the page
+   uses, and with the dashed edge that says a field rather than a finished note.
+   It was indistinguishable from her card beside it, and the one thing the
+   screen has to ask for is the one thing it was not asking for.
+
+   The whole card is the button — see AnswerPair — so it also answers a press,
+   the way a thing you can touch does. */
+.answer--empty {
+  border-style: dashed;
+  border-color: rgba(176, 86, 60, 0.45);
+  background: linear-gradient(180deg, rgba(232, 168, 124, 0.09), rgba(232, 168, 124, 0.03));
+  align-items: stretch;
+  transition: transform 150ms ease, border-color 150ms ease;
+}
+
+.answer--empty:active {
+  transform: scale(0.985);
+  border-color: var(--terracotta);
+}
+
+/* She has written, and her answer is sitting on this device unread. The card
+   stops suggesting and starts insisting. */
+.answer--urgent {
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 3px rgba(176, 86, 60, 0.1);
+}
+
 .answer--theirs {
   background: var(--card-muted);
+}
+
+/* Pushes the footnote to the bottom of a card, whatever is above it. */
+.answer__spacer {
+  flex: 1;
+}
+
+.answer__edit {
+  align-self: flex-start;
 }
 
 .answer__label {
@@ -591,6 +1053,54 @@ button.status__now:active {
   font-style: italic;
 }
 
+/* The words in the empty card. They read as the text they will be replaced by,
+   not as a control — the card around them is the control. */
+.answer__prompt {
+  color: var(--terracotta);
+}
+
+/* A caret, because a caret is the one mark that means "your words go here" and
+   means nothing else. The dashed border says a field; this says the field is
+   yours, it is empty, and it is waiting. It holds still for anyone who has
+   asked for less motion — the blink is the reduced-motion rule's business. */
+.answer__prompt::before {
+  content: '';
+  display: inline-block;
+  width: 1.5px;
+  height: 0.95em;
+  margin-right: 5px;
+  vertical-align: -0.12em;
+  background: currentColor;
+  animation: caret 1.15s step-end infinite;
+}
+
+@keyframes caret {
+  0%,
+  48% {
+    opacity: 1;
+  }
+  49%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.answer--urgent .answer__prompt {
+  font-weight: 500;
+}
+
+/* A draft left in the card. It is your own sentence, so it is set upright like
+   one, and clamped: the card is an invitation to go on, not the place to read
+   it all. */
+.answer__prompt--draft {
+  font-style: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
 .answer__foot {
   font-size: 12px;
   color: var(--ink-muted);
@@ -607,6 +1117,62 @@ button.status__now:active {
 
 .answer__bar--short {
   width: 70%;
+}
+
+/* The reveal: her words arriving where the bars were.
+
+   Two things happen at once and take about a second between them. The bars
+   are drawn one last time, over the text, and thin out and go; the text comes
+   up from under them, from a blur, and settles. It is the one moment in the
+   app that is a moment, and it was a re-render — bars one frame, words the
+   next, nothing to say that the thing the screen exists for had just
+   happened. A reader who has asked for less motion gets the words at once
+   (the veil is hidden in the reduced-motion rule below). */
+.answer--theirs {
+  position: relative;
+}
+
+.answer__veil {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  animation: veil-out 650ms ease 150ms both;
+  transform-origin: left center;
+}
+
+@keyframes veil-out {
+  to {
+    opacity: 0;
+    transform: scaleX(0.72);
+  }
+}
+
+.answer--revealing .answer__text {
+  animation: words-in 900ms ease 380ms both;
+}
+
+/* Your own sentence, just sent, settles into its card the same way — shorter,
+   and from no distance: it was yours already. */
+.answer__text--settling {
+  animation: words-in 550ms ease both;
+}
+
+@keyframes words-in {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
 }
 
 .answer__editor {
@@ -654,17 +1220,18 @@ button.status__now:active {
   cursor: default;
 }
 
-/* Quiet by default: a rule and a line of type, the way a footnote to the day
-   would be set. The date is months away or not yet booked nearly all the time,
-   and a component in that state has no business being the heaviest object on
-   the screen — it was a black slab, the only one in a warm paper palette, and
-   its commonest content was a prompt to go and do something. */
+/* The reunion.
+
+   Without a date: a line of type, the way a footnote to the day would be set,
+   with an empty chip asking to be filled. With one: a card — the date is what
+   the wait points at, and it earns the weight. Inside the card, one tap is
+   the whole face (the sky that day), and the word to change the date sits
+   under it on its own, small. */
 .countdown {
   background: none;
   border: 0;
-  border-top: 1px solid var(--border);
   border-radius: 0;
-  padding: 13px 2px 0;
+  padding: 2px 2px 0;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -673,17 +1240,38 @@ button.status__now:active {
   width: 100%;
   font-family: inherit;
   text-align: left;
+  color: inherit;
   cursor: pointer;
+  transition: transform 150ms ease;
 }
 
-/* Close enough to be an event. It takes on a card, and that it has one at all
-   is itself the message — readable across a room, which a number never is. */
-.countdown--near {
-  border: 1px solid rgba(176, 86, 60, 0.4);
+.countdown:active {
+  transform: scale(0.99);
+}
+
+.countdown--card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: var(--card);
-  padding: 15px 17px;
-  align-items: center;
+  cursor: default;
+  overflow: hidden;
+}
+
+.countdown--card:active {
+  transform: none;
+}
+
+/* The face of the card: what is true, and the way. Not a control — what
+   moves the sky lives on the rail. */
+.countdown__face {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 14px;
 }
 
 /* Editing happens in place, so the card grows downward instead of sending you
@@ -699,11 +1287,33 @@ button.status__now:active {
   padding: 14px;
 }
 
+/* The hour field, under the date, labelled — the one input on the card that
+   is allowed to stay empty. */
+.countdown__time {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+input.field__input[type='time'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .countdown__kicker {
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--ink-pale);
+  color: var(--terracotta);
+}
+
+.countdown__row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
 }
 
 .countdown__where {
@@ -712,9 +1322,24 @@ button.status__now:active {
   color: var(--ink-muted);
 }
 
-.countdown--near .countdown__where {
+.countdown--card .countdown__where {
   font-size: 15px;
   color: var(--ink);
+  text-wrap: pretty;
+}
+
+/* No date yet: an empty slot that says so and asks to be filled. A chip rather
+   than a dashed field, deliberately — the answer card above it is a page you
+   write on, and this is a value you set. */
+.countdown__action {
+  flex-shrink: 0;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--terracotta);
+  border: 1px dashed rgba(176, 86, 60, 0.5);
+  border-radius: 999px;
+  padding: 5px 13px;
+  white-space: nowrap;
 }
 
 .countdown__count {
@@ -726,32 +1351,93 @@ button.status__now:active {
 
 .countdown__number {
   font-family: var(--display);
-  font-size: 20px;
+  font-size: 44px;
   line-height: 1;
   color: var(--terracotta);
   font-variant-numeric: tabular-nums;
-}
-
-.countdown--near .countdown__number {
-  font-size: 40px;
 }
 
 /* "today" and "tomorrow" stand in for the number, and a word set at the
    number's size would push the sentence off the row. */
 .countdown__word {
   font-family: var(--display);
-  font-size: 17px;
+  font-size: 28px;
   line-height: 1;
   color: var(--terracotta);
-}
-
-.countdown--near .countdown__word {
-  font-size: 26px;
 }
 
 .countdown__unit {
   font-size: 11px;
   color: var(--ink-pale);
+}
+
+/* The way there: a hairline from one city to the other, the part behind you
+   drawn solid in the control colour, the dot at the head of it. It is the
+   same fraction that moves the traveller on the map — one number, two
+   pictures — and it is what a count of days cannot show: that every day it
+   is a little further. */
+.countdown__way {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.countdown__end {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-pale);
+}
+
+.countdown__end--to {
+  color: var(--terracotta-dark);
+}
+
+.countdown__track {
+  position: relative;
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+}
+
+.countdown__done {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--terracotta);
+  border-radius: 1px;
+  transition: width 600ms ease;
+}
+
+.countdown__dot {
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: var(--terracotta);
+  box-shadow: 0 0 0 3px var(--card);
+  transition: left 600ms ease;
+}
+
+/* The small word under the face. */
+.countdown__change {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--terracotta);
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  text-align: left;
+  padding: 8px 16px 10px;
+  cursor: pointer;
 }
 
 /* ---------- chrome ---------- */
@@ -764,19 +1450,26 @@ button.status__now:active {
   flex-shrink: 0;
 }
 
+/* Last child of the column and sticky to the bottom of the viewport: on a
+   short screen it simply ends the column, on a long one it stays in view while
+   the page scrolls under it, and at the very end it is back in its own place.
+   Nothing reserves room for it, nothing computes its height — one row of
+   labels plus the home indicator's strip. */
 .tabs {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  flex-shrink: 0;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  /* Sits on the bottom edge, clear of the home indicator. The home indicator's
-     own strip is already unusable; the bar should not add a second empty one
-     above it, so its own padding is kept tight. */
-  padding: 10px 0 calc(10px + var(--safe-bottom));
+  align-items: center;
+  padding: 12px 0 calc(12px + var(--safe-bottom));
+  background: var(--card);
+  box-shadow: 0 -1px 0 var(--border), 0 -10px 18px -12px rgba(74, 56, 42, 0.16);
   text-align: center;
   font-size: 11px;
   letter-spacing: 0.1em;
   color: var(--ink-muted);
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
 }
 
 .tabs__item {
@@ -805,10 +1498,6 @@ button.status__now:active {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  min-height: 0;
 }
 
 .screen__title {
@@ -825,6 +1514,15 @@ button.status__now:active {
   font-style: italic;
   margin: 0;
 }
+
+/* The Today column: the band, then the page under it. Not a scroller of its
+   own — the document scrolls, see html/body. */
+.screen-scroll {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 
 .field {
   display: flex;
@@ -848,6 +1546,29 @@ button.status__now:active {
   border-radius: 10px;
   padding: 10px 12px;
   width: 100%;
+}
+
+/* A date field on iOS keeps the platform's own box, and that box does not obey
+   `box-sizing: border-box` — so `width: 100%` sets the CONTENT width and the
+   two twelve-pixel paddings are added on top. The field ends up exactly 24px
+   wider than the card it sits in, which is what pushed it out past the right
+   edge of the reunion card.
+   Dropping the native appearance hands the layout back to the page: the box
+   sizes like every other field, and the value stops being centred by the
+   platform, which also puts it in line with the passphrase field above it. The
+   picker itself is untouched — that is the platform's, and tapping still opens
+   it. */
+input.field__input[type='date'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+input.field__input[type='date']::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
 }
 
 .field__row {
@@ -900,9 +1621,521 @@ button.status__now:active {
   margin: 0;
 }
 
+/* "Saved", under the names: there when it has just happened, gone a moment
+   later, and never a layout shift either way. */
+.us__saved {
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.us__saved--on {
+  opacity: 1;
+}
+
+/* ---------- your own questions ---------- */
+
+/* A question is a sentence, not a form field: the box is tall enough to hold
+   one without scrolling and does not offer a drag handle that would fight the
+   page for the gesture. */
+.questions__editor {
+  min-height: 74px;
+  line-height: 1.4;
+  resize: none;
+}
+
+.questions__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0 2px;
+}
+
+.questions__item + .questions__item {
+  border-top: 1px solid var(--border);
+}
+
+/* The same face the question wears on the home screen, a size down: what is
+   listed here is what will be asked there. */
+.questions__text {
+  font-family: var(--display);
+  font-size: 19px;
+  line-height: 1.25;
+  text-wrap: pretty;
+}
+
+.questions__second {
+  font-size: 14px;
+  line-height: 1.35;
+  font-style: italic;
+  color: var(--ink-pale);
+  text-wrap: pretty;
+}
+
+.questions__meta {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.questions__drop {
+  align-self: flex-start;
+  padding-left: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
     animation: none !important;
   }
+
+  /* With its fade gone the veil would sit on her words for a second and a
+     half. The words simply appear instead. */
+  .answer__veil {
+    display: none;
+  }
+}
+
+/* The instrument, not the app: a block of numbers that looks like one, so that
+   nobody mistakes it for a screen somebody designed. Shown only after five taps
+   on the heading under „Us" — see `Diagnostics`. */
+.diag {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* ---------- map ---------- */
+
+/* The picture of the distance. Runs up under the island like the band does,
+   and like the band it is drawn, not photographed: a sea, a coast, the night
+   where the sun says it is. The whole thing is one SVG scaled to the width,
+   cropped top and bottom rather than letterboxed — a map with a frame is a
+   diagram, a map that meets the edges is a place. */
+.map {
+  position: relative;
+  height: calc(300px + var(--safe-top));
+  overflow: hidden;
+  background: #c9d6de;
+  /* The same hand-off to CSS the band uses: a drag here winds time. */
+  touch-action: pan-y;
+  cursor: ew-resize;
+}
+
+.map__scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.map__land {
+  fill: var(--map-land);
+  stroke: rgba(74, 56, 42, 0.28);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  /* Not the sea's edge but the land's: a hint of shore, the way the horizon
+     line in the band is a hint of ground. */
+  filter: drop-shadow(0 0 6px rgba(74, 56, 42, 0.12));
+}
+
+/* Night. The colour the band goes at midnight, so a dark Baltic on the map and
+   a dark sky on Today read as the same night. mix-blend keeps the coast
+   visible under it — the land goes to a deep blue-brown, not to nothing. */
+.map__night rect {
+  fill: var(--night);
+  mix-blend-mode: multiply;
+}
+
+/* The way between them: a thin line that draws itself once when the screen
+   opens, the length of it being the point. Dashed because it is a distance,
+   not a road. */
+.map__arc {
+  fill: none;
+  stroke: var(--terracotta);
+  stroke-width: 1.6;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0.9;
+  transition: stroke-dashoffset 1400ms cubic-bezier(0.4, 0, 0.2, 1) 200ms;
+}
+
+.map--drawn .map__arc {
+  stroke-dashoffset: 0;
+}
+
+.map__distance {
+  font-family: var(--body);
+  font-size: 22px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  fill: var(--terracotta-dark);
+  /* A halo of paper, so the number stays legible over sea, land or night. */
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 6px;
+  stroke-linejoin: round;
+  opacity: 0;
+  transition: opacity 600ms ease 1200ms;
+}
+
+.map--drawn .map__distance {
+  opacity: 1;
+}
+
+.map__dot {
+  fill: var(--terracotta);
+  stroke: var(--paper);
+  stroke-width: 3;
+}
+
+/* The traveller on the day: a small point on the line, in paper with the
+   line's colour round it, so that it reads as something on the way rather
+   than as a third city. */
+.map__traveller {
+  fill: var(--paper);
+  stroke: var(--terracotta);
+  stroke-width: 2.5;
+}
+
+/* Your own city is the one with the darker heart — the same distinction the
+   answer cards make, yours drawn a shade firmer than theirs. */
+.map__city--yours .map__dot {
+  fill: var(--terracotta-dark);
+}
+
+/* Where the sun is up, the city breathes: a ring that swells and fades, slow
+   as breathing. It is the one animation on the page, and only where there is
+   light — a city in the night lies still. */
+.map__halo {
+  fill: none;
+  stroke: var(--terracotta);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: map-breathe 3.6s ease-out infinite;
+}
+
+@keyframes map-breathe {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* The reunion: a quiet ring around the city one of you is travelling to. */
+.map__reunion {
+  fill: none;
+  stroke: var(--terracotta-dark);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 4;
+  opacity: 0.8;
+}
+
+.map__label {
+  font-family: var(--display);
+  font-size: 34px;
+  fill: var(--ink);
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 7px;
+  stroke-linejoin: round;
+}
+
+.map__clock {
+  font-family: var(--body);
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ink-muted);
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 6px;
+  stroke-linejoin: round;
+}
+
+/* In the dark the halo turns: pale words on a night-coloured stroke, so a city
+   under the terminator is written the way its sky is lit. Per city, because at
+   dawn one of them is in the light and the other is not. */
+.map__city:not(.map__city--lit) .map__label,
+.map__city:not(.map__city--lit) .map__clock {
+  fill: var(--paper);
+  stroke: var(--night);
+}
+
+.map--night .map__distance {
+  fill: #e8a87c;
+  stroke: var(--night);
+}
+
+/* The two numbers the map shows but cannot say out loud. */
+.facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.facts__item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.facts__key {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.facts__value {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 28px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.facts__unit {
+  display: block;
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--ink-muted);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- chronicle ---------- */
+
+/* What the two of you have, as one figure. The number is set at the size of
+   the day's question and in the control colour, because it is the one number
+   in the app that may be proud of itself: it counts finished rounds and only
+   ever goes up. Beside it, in the small type, what it counts and since when. */
+.tally {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.tally__number {
+  font-family: var(--display);
+  font-size: 44px;
+  line-height: 1;
+  color: var(--terracotta);
+  font-variant-numeric: tabular-nums;
+}
+
+.tally__unit {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--ink-muted);
+}
+
+.tally__since {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ink-pale);
+}
+
+.tally__mark {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+}
+
+/* A finished round from the past, found again: the record's own typography,
+   in a card, so that it reads as something put in front of you and not as
+   the first entry of the list under it. */
+.find {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.find__kicker {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+}
+
+/* A record, read like a page rather than an inbox: a date, the questions of
+   that day, and what each of you said. The one thing on it that can be touched
+   is a line you never wrote (`.chron__write`); everything else is a quote. */
+.chron {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chron__date {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+}
+
+.chron__round {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* One language here, unlike the home screen: in a list of past days the second
+   line is noise. The question is the heading of what was said under it. */
+.chron__question {
+  font-family: var(--display);
+  font-size: 19px;
+  line-height: 1.25;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.chron__said {
+  font-size: 15px;
+  line-height: 1.45;
+  margin: 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+  text-wrap: pretty;
+}
+
+.chron__said--pending {
+  color: var(--ink-pale);
+  font-style: italic;
+}
+
+/* The one line on the page that can be touched: your missing answer. Same
+   shape as a quote, drawn in the control colour, with the caret the empty card
+   on Today uses — the mark that means "your words go here" and nothing else.
+   The rule on its left is dashed for the same reason the empty card's border
+   is: a field, not a finished note. */
+.chron__write {
+  font-family: inherit;
+  background: none;
+  border: 0;
+  border-left: 2px dashed rgba(176, 86, 60, 0.55);
+  text-align: left;
+  cursor: text;
+  width: 100%;
+  padding: 0 0 0 10px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: inherit;
+}
+
+.chron__write:active {
+  border-left-color: var(--terracotta);
+}
+
+.chron__editing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-left-color: var(--terracotta);
+}
+
+.chron__editing .answer__editor {
+  min-height: 72px;
+}
+
+/* "written later, on …": a fact about when, set small under the words. */
+.chron__late {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+/* The name reads as a label on the quote, not as part of the sentence. */
+.chron__who {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 2px;
+}
+
+/* The form for a question of your own, opened in place under the day. One
+   field; the other language behind a line, because two empty boxes read as a
+   form and one reads as a place to say something. */
+.ask {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ask__more {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--terracotta);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* What is waiting in the pool, under the line that opens the form: a footnote
+   like the one above the line, and for a few seconds after adding, the thanks. */
+.daily__pool {
+  margin: 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-pale);
+}
+
+.daily__pool--thanks {
+  color: var(--terracotta);
+}
+
+/* Hers, not yet asked: listed as existing, in the voice of a note. */
+.questions__text--sealed {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--ink-pale);
+}
+
+/* The way to your own questions. A line of text, not a button: it sits under
+   the day's last answer and must not compete with it. */
+.daily__ask {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--terracotta);
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  margin-top: 2px;
+  cursor: pointer;
 }

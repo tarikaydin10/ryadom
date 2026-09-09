@@ -1,29 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SkyBand } from '../components/SkyBand';
+import { TimeRail } from '../components/TimeRail';
 import { QuestionBlock } from '../components/QuestionBlock';
 import { AnswerPair } from '../components/AnswerPair';
+import { RoundDone } from '../components/RoundDone';
 import { CountdownCard } from '../components/CountdownCard';
 import { useI18n } from '../i18n';
 import { useNow, useOnline, useSyncStatus, useWeather } from '../lib/hooks';
 import { useSettings } from '../data/settings-context';
-import { BAND_ORDER } from '../content/cities';
-import { skyDay, slotOf, statusFor } from '../sky/engine';
+import { BAND_ORDER, CITIES } from '../content/cities';
+import { rowAt, skyDay, statusFor } from '../sky/engine';
 import { dateKey } from '../lib/day';
+import { useScrub } from '../lib/scrub';
 import { questionFor } from '../content/questions';
-import { displayName, sidesFor } from '../data/settings';
+import { MAX_ROUNDS, promptAuthor } from '../content/prompt';
+import { displayName, reunionDestination, sidesFor } from '../data/settings';
 import { getPair } from '../data/pair';
-import { loadDay, saveMyAnswer, type DayAnswers } from '../data/answers';
-import { dayAndMonth, timeOfDay } from '../lib/format';
+import { loadDay, saveMyAnswer, type RoundView } from '../data/answers';
+import { pruneDrafts } from '../data/drafts';
+import { getQuestions } from '../data/db';
+import { QuestionForm } from '../components/QuestionForm';
+
 import { subscribeSync } from '../data/sync';
 
-const EMPTY_DAY: DayAnswers = { mine: null, theirs: null, partner: null };
-
 /**
- * How far the sky can be wound. Sun and moon are arithmetic and would happily go
- * anywhere; the weather reaches seven days, and past a fortnight this stops
- * being a gesture and starts being a date picker.
+ * The day before the local store has answered, and on a device that has never
+ * reached a server: the question of the day, derived from the date, with two
+ * empty cards under it. Anything asynchronous here would show a blank block
+ * for a frame or two on every launch, and the block is the page.
  */
-const SCRUB_LIMIT_MS = 14 * 24 * 60 * 60 * 1000;
+const openingRound = (date: string): RoundView[] => [
+  {
+    slot: 0,
+    prompt: { kind: 'bundled', question: questionFor(date, 0) },
+    mine: null,
+    theirs: null,
+    partnerAnswered: false,
+    partnerAt: null,
+    partnerSize: 2,
+  },
+];
 
 export function Today() {
   const { t, locale } = useI18n();
@@ -33,94 +49,152 @@ export function Today() {
   const weather = useWeather();
   const sync = useSyncStatus();
 
-  /** Null while the sky follows real time; a moment while a drag holds it. */
-  const [scrubMs, setScrubMs] = useState<number | null>(null);
-  const [day, setDay] = useState<DayAnswers>(EMPTY_DAY);
+  const { scrubMs, shownMs, scrubTo, windTo, reachMs, backToNow } = useScrub(now);
+  const [rounds, setRounds] = useState<RoundView[]>(() => openingRound(dateKey(now)));
   const [saving, setSaving] = useState(false);
+  // Whether `rounds` is the store's word or the opening guess — see the scroll
+  // effect below, which must not treat the first real answer as a round opening.
+  const fromStore = useRef(false);
 
   const today = dateKey(now);
-  const question = questionFor(today);
 
   const refresh = useCallback(() => {
-    void loadDay(today).then(setDay);
+    void loadDay(today).then((loaded) => {
+      fromStore.current = true;
+      setRounds(loaded);
+    });
   }, [today]);
 
+  // Four in the morning: the day starts again from its own first question
+  // rather than leaving yesterday's answers on the screen until the store has
+  // answered.
+  useEffect(() => {
+    fromStore.current = false;
+    setRounds(openingRound(today));
+    pruneDrafts(today);
+  }, [today]);
   useEffect(refresh, [refresh]);
   // Whatever the courier brings in — their answer, an acknowledgement — shows up
   // without the user doing anything.
   useEffect(() => subscribeSync(() => refresh()), [refresh]);
 
-  const shownMs = scrubMs ?? now;
   const table = skyDay(shownMs);
-  const row = table.rows[slotOf(shownMs)] ?? table.rows[0]!;
-  const scrubbedToAnotherDay = scrubMs !== null && dateKey(shownMs) !== today;
+  const row = rowAt(shownMs);
+  // The reunion, offered on the rail as a place to wind the sky to.
+  const destination = reunionDestination(settings.reunion, locale, { today: t('countdown.today'), tomorrow: t('countdown.tomorrow') }, now);
 
-  const scrubTo = (ms: number) => {
-    cancelRewind();
-    const limit = SCRUB_LIMIT_MS;
-    setScrubMs(Math.min(now + limit, Math.max(now - limit, ms)));
-  };
-
-  /**
-   * Coming back to now is a journey, not a jump.
-   *
-   * Snapping cuts from one sky to another and loses the one thing worth seeing:
-   * the light running back across both cities. So it winds — longer for a longer
-   * way, but never long enough to become a wait. A reader who has asked not to be
-   * moved gets the jump instead.
-   */
-  const rewind = useRef<number | null>(null);
-  const cancelRewind = () => {
-    if (rewind.current !== null) cancelAnimationFrame(rewind.current);
-    rewind.current = null;
-  };
-
-  const backToNow = () => {
-    const from = scrubMs;
-    if (from === null) return;
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) {
-      setScrubMs(null);
-      return;
-    }
-
-    const started = performance.now();
-    const distance = Math.abs(Date.now() - from);
-    // A few hours winds back briskly; a fortnight takes a breath longer.
-    const duration = Math.min(2200, 600 + (distance / (24 * 60 * 60 * 1000)) * 260);
-    const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
-
-    const step = (frame: number) => {
-      const progress = Math.min(1, (frame - started) / duration);
-      // Aimed at the live clock, not a frozen one, so it lands on now rather
-      // than on where now was when the finger lifted.
-      setScrubMs(from + (Date.now() - from) * ease(progress));
-      if (progress < 1) {
-        rewind.current = requestAnimationFrame(step);
-        return;
-      }
-      rewind.current = null;
-      setScrubMs(null);
-    };
-    rewind.current = requestAnimationFrame(step);
-  };
-
-  useEffect(() => cancelRewind, []);
-
-  // Layout is geographic and identical on both devices; only the wording below
-  // depends on which side of the sky the reader is standing on — and that comes
-  // from the side chosen at unlock, so it cannot drift.
   const member = getPair()?.member ?? 'a';
   const sides = sidesFor(member, settings);
   const yourCity = sides.yours;
   const partnerName = displayName(sides.partnerName, locale);
+  const partnerTz = CITIES[sides.theirs].tz;
 
-  const onSave = (text: string) => {
-    setSaving(true);
-    void saveMyAnswer(today, question.id, text)
-      .then(refresh)
-      .finally(() => setSaving(false));
+  // Finished rounds unfolded by a tap, by slot. Never folded again by the page:
+  // see RoundDone.
+  const [unfolded, setUnfolded] = useState<number[]>([]);
+  const onOpen = useCallback((slot: number) => setUnfolded((slots) => [...slots, slot]), []);
+
+  // Stable across renders, so winding the sky does not re-render the answers.
+  // Which round is being written into travels as an argument rather than in a
+  // closure, for the same reason.
+  const onSave = useCallback(
+    (slot: number, questionId: string, text: string) => {
+      setSaving(true);
+      void saveMyAnswer(today, slot, questionId, text)
+        .then(refresh)
+        .finally(() => setSaving(false));
+    },
+    [today, refresh],
+  );
+
+  /**
+   * Who asked. Nothing at all for a question out of the table — it is the app
+   * asking, which needs no announcing — and a name for one of your own, because
+   * whose question it is is most of what makes it different.
+   */
+  const byline = (round: RoundView): string | null => {
+    const author = promptAuthor(round.prompt);
+    if (author === null) return null;
+    return author === member ? t('question.askedByYou') : t('question.askedBy', { name: partnerName });
   };
+
+  const last = rounds[rounds.length - 1];
+  const lastClosed = Boolean(last?.mine) && (last?.partnerAnswered ?? false);
+  /**
+   * What the open round leads to, said in one line under it.
+   *
+   * "When does the next question come?" is the question this page cannot
+   * answer by showing, because the answer is not a time — it is the other one
+   * of you. It used to be said only once you had written and they had not,
+   * which left the two commoner moments silent: a fresh question with nothing
+   * under it, where nobody has been told that answering opens another; and
+   * their answer waiting behind your empty card, where a tap buys more than the
+   * card admits. So the line is there for as long as the round is open, and it
+   * changes with whose move it is. The third round is the day's last, which is
+   * worth knowing before rather than after. And once the day is full, it says
+   * so — quietly, so "nothing more today" is a fact on the page rather than the
+   * absence of one.
+   */
+  const footnote = (): string | null => {
+    if (!last) return null;
+    if (lastClosed) return rounds.length >= MAX_ROUNDS ? t('question.dayFull') : null;
+    if (rounds.length >= MAX_ROUNDS) return t('question.lastOfDay');
+    return last.partnerAnswered ? t('question.nextWhenYou') : t('question.nextWhenBoth');
+  };
+
+  /**
+   * A round that opens while you are looking is shown, not merely appended.
+   *
+   * It opens under the round you both just finished, and that round — a
+   * question in two languages and two answers — is a screen tall on a phone. So
+   * the best moment of the day, her answer unlocked and a new question with it,
+   * happened below the fold with nothing to say it had. This scrolls the new
+   * round to the top once the page holds more rounds than it did a moment ago.
+   * Only then: a launch that lands on an afternoon's third question stays where
+   * every launch starts, with the sky, and the day is read downward from there.
+   * `known` is null until the store has answered, so the first load — one
+   * opening round becoming the day's real list — is not mistaken for news.
+   */
+  const daily = useRef<HTMLElement>(null);
+  const known = useRef<number | null>(null);
+  const seen = useRef<RoundView[]>([]);
+  // The slot that opened while you were looking, for the page to bring in
+  // rather than merely append; cleared again once the day is redrawn.
+  const [opening, setOpening] = useState<number | null>(null);
+  useEffect(() => {
+    /**
+     * A round that finishes under your eyes stays at full size.
+     *
+     * Her answer arriving is the moment the app is for, and it used to be
+     * shown as a fold: the instant both texts existed the pair collapsed to
+     * two quotes, and the reveal on her card never had a card to happen in.
+     * So a round whose partner text arrives while the page is up is added to
+     * the unfolded set before it can fold — it was open when you left it and
+     * it stays open, with her words settling in where the bars were.
+     */
+    if (known.current !== null) {
+      const arrived = rounds.filter((round) => {
+        const before = seen.current.find((old) => old.slot === round.slot);
+        return before !== undefined && before.theirs === null && round.theirs !== null && round.mine !== null;
+      });
+      if (arrived.length > 0) setUnfolded((slots) => [...slots, ...arrived.map((round) => round.slot)]);
+
+      if (rounds.length > known.current) {
+        const last = rounds[rounds.length - 1];
+        if (last) setOpening(last.slot);
+        // Where to go: to the round that just came open, when one did — her
+        // answer and, one screen below it, the new question — and otherwise
+        // to the new question itself. Scrolling straight to the new question
+        // would carry the reveal off the top before it had played.
+        const target = arrived.length > 0 ? rounds.length - 2 : rounds.length - 1;
+        const items = daily.current?.querySelectorAll<HTMLElement>('.round');
+        items?.[target]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    seen.current = rounds;
+    known.current = fromStore.current ? rounds.length : null;
+  }, [rounds]);
+  useEffect(() => setOpening(null), [today]);
 
   const netline = (): string | null => {
     if (!online) return t('net.offline');
@@ -131,9 +205,52 @@ export function Today() {
   };
 
   const line = netline();
+  const note = footnote();
+
+  /**
+   * Asking something of your own, here, under the question that just came.
+   *
+   * It used to be a line that switched to the chronicle tab, where the form
+   * sat under a hundred past days: the wish to ask arrives on this page and
+   * was sent on a journey. Now the line opens the form in place, the way the
+   * reunion and a late answer are edited where they are read. Under it, what
+   * is waiting in the pool — yours as a count, hers as the fact that there is
+   * one, which is all this device is told (see `sealed`).
+   */
+  const [asking, setAsking] = useState(false);
+  const [thanked, setThanked] = useState(false);
+  const [waiting, setWaiting] = useState({ mine: 0, theirs: 0 });
+  const countWaiting = useCallback(() => {
+    void getQuestions().then((questions) => {
+      const open = questions.filter((question) => !question.deleted && question.usedOn === null);
+      setWaiting({
+        mine: open.filter((question) => question.author === member).length,
+        theirs: open.filter((question) => question.author !== member).length,
+      });
+    });
+  }, [member]);
+  useEffect(countWaiting, [countWaiting]);
+  useEffect(() => subscribeSync(() => countWaiting()), [countWaiting]);
+  useEffect(() => {
+    if (!thanked) return;
+    const timer = window.setTimeout(() => setThanked(false), 6000);
+    return () => window.clearTimeout(timer);
+  }, [thanked]);
+  const onAdded = () => {
+    setAsking(false);
+    setThanked(true);
+    countWaiting();
+  };
+  const poolLine = (): string | null => {
+    if (thanked) return t('question.added');
+    if (waiting.theirs > 0) return t('question.theirsWaiting', { name: partnerName });
+    if (waiting.mine > 0) return t('question.yoursWaiting', { count: waiting.mine });
+    return null;
+  };
+  const pool = poolLine();
 
   return (
-    <>
+    <div className="screen-scroll">
       <SkyBand
         row={row}
         day={table}
@@ -142,29 +259,71 @@ export function Today() {
         rightCity={BAND_ORDER.right}
         weather={weather}
         onScrubTo={scrubTo}
-        onScrubEnd={() => undefined}
+      />
+
+      <TimeRail
+        now={now}
+        ms={shownMs}
+        live={scrubMs === null}
+        limitMs={reachMs}
+        onScrubTo={scrubTo}
+        onNow={backToNow}
+        destination={destination}
+        onGo={windTo}
       />
 
       <div className={`status ${scrubMs !== null ? 'status--preview' : ''}`}>
         <span className="status__text">{t(`sky.status.${statusFor(row, yourCity)}`)}</span>
-        {scrubMs === null ? (
-          <span className="status__now" aria-hidden="true">
-            {t('sky.now')}
-          </span>
-        ) : (
-          <button className="status__now" onClick={backToNow}>
-            {`${scrubbedToAnotherDay ? `${dayAndMonth(shownMs, locale)} ` : ''}${timeOfDay(shownMs, locale)} · ${t('sky.backToNow')}`}
-          </button>
-        )}
       </div>
 
       {line && <div className="netline">{line}</div>}
 
       <div className="content">
-        <QuestionBlock question={question} />
-        <AnswerPair day={day} partnerName={partnerName} saving={saving} onSave={onSave} />
-        <CountdownCard />
+        {/* The question and the two answers are one thing and are kept in one
+            region — the kicker titles it, the band holds it. The reunion is a
+            different subject and stays outside, on bare paper.
+
+            A day is several of those now, oldest first, so the page reads
+            downward the way the day went: what was asked this morning and what
+            you both said, folded to the words once both of you have said them,
+            and at the bottom, at full size, the one still open. */}
+        <section className="daily" aria-label={t('question.kickerPlain')} ref={daily}>
+          {rounds.map((round) =>
+            round.mine && round.theirs && !unfolded.includes(round.slot) ? (
+              <div className="round" key={round.slot}>
+                <RoundDone round={round} partnerName={partnerName} onOpen={onOpen} />
+              </div>
+            ) : (
+              <div className={round.slot === opening ? 'round round--opening' : 'round'} key={round.slot}>
+                <QuestionBlock
+                  prompt={round.prompt}
+                  kicker={round.slot === 0 ? t('question.kickerPlain') : t('question.kickerMore')}
+                  byline={byline(round)}
+                />
+                <AnswerPair
+                  round={round}
+                  date={today}
+                  partnerName={partnerName}
+                  partnerTz={partnerTz}
+                  saving={saving}
+                  onSave={onSave}
+                />
+              </div>
+            ),
+          )}
+          {note && <p className="daily__note">{note}</p>}
+          {asking ? (
+            <QuestionForm autoFocus onAdded={onAdded} />
+          ) : (
+            <button className="daily__ask" onClick={() => setAsking(true)}>
+              {t('question.askSomething')}
+            </button>
+          )}
+          {pool && <p className={thanked ? 'daily__pool daily__pool--thanks' : 'daily__pool'}>{pool}</p>}
+        </section>
+
+        <CountdownCard shownMs={shownMs} />
       </div>
-    </>
+    </div>
   );
 }

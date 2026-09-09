@@ -1,8 +1,9 @@
-# Rjadom · Рядом
+# Ryadom · Рядом
 
 Eine private PWA für zwei Menschen in Hamburg und Kaliningrad: ein astronomisch
-korrekter Himmel über beiden Städten, die Frage des Tages mit Lock-In, und der
-Countdown bis zum Wiedersehen.
+korrekter Himmel über beiden Städten, die Frage des Tages mit Lock-In — und noch
+eine, sobald beide geantwortet haben —, eigene Fragen, und der Countdown bis zum
+Wiedersehen.
 
 Umgesetzt nach dem Design-Handoff „Zwei — Home-Screen (Variante 2d)". Das Design
 ist übernommen, die Sprache ist neu: die App spricht **Russisch und Englisch**,
@@ -64,9 +65,9 @@ Weitere Skripte: `npm run typecheck`, `npm run icons` (App-Icons neu zeichnen),
 
 ## Die fünf Anforderungen
 
-### 1 · Die App heißt Rjadom (Рядом)
+### 1 · Die App heißt Ryadom (Рядом)
 
-Der Name steht im Manifest als `Rjadom · Рядом`, in `index.html` und auf dem
+Der Name steht im Manifest als `Ryadom · Рядом`, in `index.html` und auf dem
 Sperrbildschirm. Ein Eigenname wird nicht übersetzt — er wird transliteriert, und
 beide Schreibungen stehen nebeneinander.
 
@@ -127,7 +128,12 @@ Die lokale Datenbank ist die Wahrheit, nicht ein Cache des Servers.
   alter Wert mit Zeitstempel ist besser als eine leere Zeile.
 * **Fragen sind eingebaut**, nicht abgerufen. Sonst wäre ausgerechnet das
   wichtigste Element des Screens das einzige, das ohne Netz fehlt. Beide Geräte
-  leiten dieselbe Frage aus demselben Datum ab.
+  leiten die erste Frage des Tages aus demselben Datum ab. Jede weitere Runde
+  öffnet der Server, sobald beide geantwortet haben — dafür braucht es ihn
+  ohnehin, denn nur er weiß, ob die Gegenseite geschrieben hat
+  ([ADR-0012](docs/adr/0012-runden-statt-einer-frage-pro-tag.md)). Wartet eine
+  eigene Frage, wird sie die Frage des Tages; die Tabelle füllt nur auf
+  ([ADR-0016](docs/adr/0016-eigene-fragen-zuerst-auch-als-frage-des-tages.md)).
 * Der Service Worker cacht die gesamte App-Shell samt Schriften, also startet sie
   auch offline.
 
@@ -192,7 +198,8 @@ Durchprobieren).
 **Was das nicht ist:** Verschlüsselung. Die Antworten liegen unverschlüsselt in
 der lokalen Datenbank — wer das entsperrte Telefon in der Hand hält, liest mit.
 Der Schutz gilt gegen Fremde im Netz, nicht gegen jemanden mit eurem Gerät.
-Nehmt eine lange, zufällige Passphrase; der Sperrbildschirm schlägt eine vor.
+Nehmt eine lange, zufällige Passphrase — `deploy/README.md` zeigt, wie ihr
+beim Einrichten eine erzeugt.
 
 ### Lock-In: ihre Antwort erscheint erst, wenn du geschrieben hast
 
@@ -224,7 +231,7 @@ laufende App nie umwerfen, nur eine neue Version verhindern.
 
 Zwei Varianten, beide in `deploy/README.md`:
 
-**A — Rjadom allein auf dem Server.** Caddy auf dem Host, der Node-Prozess als
+**A — Ryadom allein auf dem Server.** Caddy auf dem Host, der Node-Prozess als
 systemd-Dienst auf Loopback:
 
 ```
@@ -239,8 +246,8 @@ dem abhängen, was ständig neu gebaut wird.
 
 Nach außen spricht in beiden Fällen nur Caddy; der Node-Prozess ist nie direkt
 erreichbar. `DATA_DIR` liegt bewusst außerhalb des Deploy-Verzeichnisses
-(`/var/lib/rjadom`), damit ein Deploy eure Antworten nicht anfassen kann. Die
-Passphrase steht nur in `/etc/rjadom.env` auf dem Server — nie im Repository,
+(`/var/lib/ryadom`), damit ein Deploy eure Antworten nicht anfassen kann. Die
+Passphrase steht nur in `/etc/ryadom.env` auf dem Server — nie im Repository,
 nie im Build, nie in der CI.
 
 Der Health-Check nach jedem Deploy prüft genau zwei Dinge: `GET /` muss **200**
@@ -266,12 +273,13 @@ selbst, setze `WEATHER_ORIGIN` auf dem Server passend zu `VITE_WEATHER_BASE_URL`
 ```
 src/
   i18n/           Wörterbücher (en/ru) und Sprachlogik
-  content/        Städte, Fragenkatalog
+  content/        Städte, Fragenkatalog, Auflösung der Rundenfrage
   sky/            Himmelsband: Tagestabelle, Farben, Positionen (SunCalc)
   weather/        Open-Meteo: Abruf, Cache, WMO-Codes
   data/           IndexedDB, Einstellungen, Outbox, Sync, Passphrase
   components/     Himmelsband, Frage, Antwortpaar, Countdown, Tabs
-  screens/        Heute, Mы (Einstellungen), Sperrbildschirm, Platzhalter
+  screens/        Heute, Karte, Chronik (Rückblick + eigene Fragen), Mы, Sperrbildschirm
+  map/            Küste (generiert), Projektion, Terminator, Luftlinie
 server/           Referenz-Sync-Server, ohne Abhängigkeiten
 scripts/          Icons zeichnen, Schriften holen
 ```
@@ -281,8 +289,13 @@ scripts/          Icons zeichnen, Schriften holen
 | Route | Zweck |
 |---|---|
 | `GET /api/session` | Prüft die Passphrase (für den Sperrbildschirm) |
-| `GET /api/days/:date` | Eigene Antwort; die der anderen Seite nur, wenn die eigene existiert |
-| `PUT /api/days/:date/answer` | Antwort schreiben, gibt denselben Tag zurück |
+| `GET /api/days/:date` | Die Runden des Tages; die Antwort der anderen Seite je Runde nur, wenn die eigene existiert |
+| `GET /api/days?since=ms` | Alle Tage, an denen seit `since` (Serveruhr) eine Runde aufging oder jemand schrieb — so holt die Chronik ihren Verlauf nach; dieselbe Lock-In-Regel je Runde ([ADR-0014](docs/adr/0014-chronik-verlauf-vom-server.md)) |
+| `PUT /api/days/:date/answer` | Antwort schreiben (Feld `slot` = Runde, ohne Angabe die erste), gibt denselben Tag zurück |
+| `GET /api/questions` | Die eigenen Fragen des Paares — die noch ungestellten der Gegenseite versiegelt, ohne Text ([ADR-0019](docs/adr/0019-versiegelte-fragen-und-fragen-auf-today.md)) |
+| `PUT /api/questions/:id` | Eigene Frage anlegen, ändern oder zurückziehen; Antwort ist wieder die ganze Liste |
+| `GET /api/push` | Der öffentliche VAPID-Schlüssel, mit dem das Telefon ein Abo löst |
+| `PUT /api/push` | Abo hinterlegen — oder mit `{ remove: true }` wieder entfernen |
 
 Auth über `x-pair-member: a|b` und `x-pair-secret`. Konflikte lösen sich per
 *last write wins* über `updatedAt` — und da jede Seite nur ihren eigenen Eintrag
@@ -292,8 +305,13 @@ schreibt, entscheidet das nur zwischen Handy und Tablet derselben Person.
 
 ## Was bewusst offen ist
 
-* **Karte und Chronik** haben noch keine Design-Vorlage. Sie sind ehrliche
-  Platzhalter statt geratener Screens.
+* Die **Karte** ist ein Bild, kein Werkzeug: die Ostseeküste als Vektor-
+  Silhouette im Bundle (Natural Earth, Public Domain — keine Kacheln von
+  fremden Servern), die Nacht dort, wo die Sonne sie hinstellt, die ehrliche
+  Luftlinie, und die Stadt des nächsten Wiedersehens markiert. Zeit wird wie
+  im Band gewunden. Konzept in [docs/konzepte/karte.md](docs/konzepte/karte.md).
+* Der **gemeinsame Tag** wechselt um vier Uhr morgens, nicht um Mitternacht
+  ([ADR-0017](docs/adr/0017-tagesgrenze-vier-uhr.md)).
 * Der **Zeit-Regler** aus dem Prototyp ist, wie im Handoff vorgesehen, kein
   Bedienelement mehr: über das Himmelsband wischen fährt durch den Tag, „назад к
   сейчас / back to now" springt zurück. Die Geste behält die Regler-Konvention —
@@ -305,6 +323,15 @@ schreibt, entscheidet das nur zwischen Handy und Tablet derselben Person.
   wenn der Server selbst nicht mehr vertrauenswürdig sein soll.
 
 ---
+
+## Weiterlesen
+
+* **[CLAUDE.md](CLAUDE.md)** — Arbeitsanweisung für Claude Code und andere
+  Werkzeuge: Kommandos, Prüfrezept, Arbeitsregeln, iOS-Wissen.
+* **[docs/adr/](docs/adr/README.md)** — Entscheidungen mit den verworfenen
+  Alternativen. Wer etwas am Layout, am Sync oder an der Absicherung ändern
+  will, liest zuerst dort, was schon einmal versucht wurde.
+* **[docs/tech-debt.md](docs/tech-debt.md)** — was bekannt und offen ist.
 
 ## Fremde Bestandteile
 

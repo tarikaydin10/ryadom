@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { I18nProvider } from './i18n';
 import { SettingsProvider } from './data/settings-context';
+import { carryOverStorage } from './data/carry-over';
+import { healViewport } from './lib/viewport';
 import './styles.css';
 
 /**
@@ -67,6 +69,15 @@ function keepFresh(): void {
 }
 
 keepFresh();
+
+// The keyboard's leftovers, and the record of what was done about them — both
+// live in `lib/viewport.ts` now, because the second is only readable next to
+// the first. See ADR-0010.
+healViewport();
+
+// Before the first render, because the passphrase and the language are both
+// read while it is being built.
+carryOverStorage();
 
 const container = document.getElementById('root');
 if (!container) throw new Error('missing #root');

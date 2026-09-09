@@ -1,54 +1,223 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n';
 import { clock } from '../lib/format';
-import { PAIR_TIMEZONE } from '../lib/day';
-import type { DayAnswers } from '../data/answers';
+import { promptId } from '../content/prompt';
+import type { RoundView } from '../data/answers';
+import type { AnswerRecord } from '../data/db';
+import { clearDraft, loadDraft, saveDraft } from '../data/drafts';
 
 interface Props {
-  day: DayAnswers;
+  round: RoundView;
+  /** The day the round belongs to — the draft is kept under it. */
+  date: string;
   partnerName: string;
+  /** Their city's zone, so the time they wrote reads as their evening. */
+  partnerTz: string;
   saving: boolean;
-  onSave(text: string): void;
+  /**
+   * Stable across renders, and told which round it is writing into rather than
+   * closing over it — a fresh closure per round would re-render every card on
+   * every frame of a scrub, which is the one thing the page below the band must
+   * not do.
+   */
+  onSave(slot: number, questionId: string, text: string): void;
+}
+
+interface TheirsProps {
+  theirs: AnswerRecord | null;
+  partnerAnswered: boolean;
+  partnerName: string;
+  partnerTz: string;
+  partnerAt: number | null;
+  /** How much she wrote, in bars — the shape of the closed page. */
+  partnerSize: number;
+}
+
+/** One to four bars, the last of them short: as much as she wrote, and not a word of it. */
+function Bars({ count }: { count: number }) {
+  const bars = Math.min(4, Math.max(1, count));
+  return (
+    <>
+      {Array.from({ length: bars }, (_, index) => (
+        <span key={index} className={index === bars - 1 ? 'answer__bar answer__bar--short' : 'answer__bar'} aria-hidden="true" />
+      ))}
+    </>
+  );
+}
+
+/** How long the bars take to become her words, and the words to settle. */
+const REVEAL_MS = 1400;
+
+/**
+ * True for a moment after something that was not there arrives.
+ *
+ * The best second of the day — her answer coming unlocked — used to happen as a
+ * plain re-render: bars one frame, text the next, and nothing to say that the
+ * thing the whole screen is built around had just taken place. This notices
+ * the transition and hands the card a window in which to show it. Only the
+ * transition: a card that mounts with the text already in it has nothing to
+ * reveal, and a card whose text merely changes was edited, not opened.
+ */
+function useArrival(present: boolean, forMs: number): boolean {
+  const was = useRef(present);
+  const [arrived, setArrived] = useState(false);
+  useEffect(() => {
+    const fresh = present && !was.current;
+    was.current = present;
+    if (!fresh) return;
+    setArrived(true);
+    const timer = window.setTimeout(() => setArrived(false), forMs);
+    return () => window.clearTimeout(timer);
+  }, [present, forMs]);
+  return arrived;
+}
+
+/**
+ * Her side, which is a card you read rather than one you touch.
+ *
+ * That is the whole of its affordance and it is deliberate: nothing here invites
+ * a tap, because there is nothing here to do. The only way to open it is to
+ * write on your own side, and the pair of cards says so by looking like an open
+ * page next to a closed one.
+ *
+ * The time beside her name is her clock, not the pair's calendar zone: the band
+ * above shows two clocks side by side, and "22:14" next to her name means the
+ * hour it was for her when she wrote, which is the only sense the number has.
+ *
+ * One sentence per state, not two. It used to say "has not written yet" in the
+ * middle and "waiting for their answer" at the foot, and the second line only
+ * repeated the first in a smaller size.
+ */
+function TheirAnswer({ theirs, partnerAnswered, partnerName, partnerTz, partnerAt, partnerSize }: TheirsProps) {
+  const { t, locale } = useI18n();
+  const revealing = useArrival(theirs !== null, REVEAL_MS);
+
+  return (
+    <div className={revealing ? 'answer answer--theirs answer--revealing' : 'answer answer--theirs'}>
+      <span className="answer__label">
+        {partnerName}
+        {partnerAt !== null ? ` · ${clock(partnerAt, partnerTz, locale)}` : ''}
+      </span>
+
+      {theirs ? (
+        <>
+          {/* The bars she was behind, drawn once more over the words for the
+              length of the reveal so that they can be seen going — the moment
+              is the bars becoming text, not text where bars were. */}
+          {revealing && (
+            <span className="answer__veil" aria-hidden="true">
+              <Bars count={partnerSize} />
+            </span>
+          )}
+          <p className="answer__text">{theirs.text}</p>
+        </>
+      ) : partnerAnswered ? (
+        <Bars count={partnerSize} />
+      ) : (
+        <span className="answer__placeholder">{t('answer.notYet')}</span>
+      )}
+
+      <div className="answer__spacer" />
+      {!theirs && partnerAnswered && <span className="answer__foot">{t('answer.hidden')}</span>}
+    </div>
+  );
 }
 
 /**
  * The lock-in: their answer appears only once yours exists.
  *
- * The bars below are empty elements, not their words behind a filter. The
- * plaintext of a locked answer is never delivered to this device — the server
- * withholds it (see `server/index.js`), so there is nothing here to reveal with
- * a devtools inspector. What is shown before unlocking is only what is fair to
- * show: that they wrote, and when.
+ * The bars are empty elements, not their words behind a filter. The plaintext of
+ * a locked answer is never delivered to this device — the server withholds it
+ * (see `server/index.js`), so there is nothing here to reveal with a devtools
+ * inspector. What is shown before unlocking is only what is fair to show: that
+ * they wrote, and when.
  */
-export function AnswerPair({ day, partnerName, saving, onSave }: Props) {
-  const { t, locale } = useI18n();
+export const AnswerPair = memo(function AnswerPair({ round, date, partnerName, partnerTz, saving, onSave }: Props) {
+  const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
+  // Words typed before the app was last put away, found on this device when the
+  // card mounted. Shown in the card so you can see they are still here, and
+  // put back in the editor when you open it.
+  const [kept, setKept] = useState(() => loadDraft(date, round.slot));
   const editor = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (editing) editor.current?.focus();
   }, [editing]);
 
-  const mine = day.mine;
-  const theirs = day.theirs;
-  const partnerAnswered = day.partner?.answered ?? theirs !== null;
-  const partnerAt = theirs?.createdAt ?? day.partner?.answeredAt ?? null;
+  const { mine, theirs, partnerAnswered, partnerAt, partnerSize } = round;
+  const their = { theirs, partnerAnswered, partnerName, partnerTz, partnerAt, partnerSize };
+  // Sending is a commitment: once hers is open, yours is what she read. The
+  // server refuses a later edit too (409 "sealed"); hiding the button is what
+  // keeps that from ever being a surprise.
+  const sealed = mine !== null && theirs !== null;
+  // Your own words, just sent: they settle into the card rather than appearing
+  // in it, so that pressing Send reads as having done something.
+  const settling = useArrival(mine !== null, REVEAL_MS);
+
+  /**
+   * Under your answer, one line about where it is. "Saved on this device" is
+   * true of a sentence still in the outbox, and it was all the card said even
+   * when the next thing to happen — her answer coming open — was seconds away.
+   * While that is what the send is buying, the line says so.
+   */
+  const foot = (): string => {
+    if (mine?.syncedAt) return t('answer.synced');
+    if (partnerAnswered && !theirs) return t('answer.opening');
+    return t('answer.pending');
+  };
 
   const beginEdit = () => {
-    setDraft(mine?.text ?? '');
+    setDraft(kept || mine?.text || '');
     setEditing(true);
+  };
+
+  const change = (text: string) => {
+    setDraft(text);
+    saveDraft(date, round.slot, text);
+  };
+
+  const close = () => {
+    clearDraft(date, round.slot);
+    setKept('');
+    setEditing(false);
   };
 
   const commit = () => {
     const text = draft.trim();
-    if (!text) {
-      setEditing(false);
-      return;
-    }
-    onSave(text);
-    setEditing(false);
+    if (text) onSave(round.slot, promptId(round.prompt), text);
+    close();
   };
+
+  /**
+   * Nothing written yet: the whole card is the way in.
+   *
+   * It used to be a card with a small button of placeholder text inside it. It
+   * looked like a field but only the words were tappable, and a field you have
+   * to hit exactly is not a field. As a button it is one target the size of the
+   * thing being asked for, it takes a press like a control, and the caret in it
+   * says the one thing no border can — that your words go here.
+   *
+   * With a draft waiting, the card shows the draft instead of the invitation:
+   * the words you left are the invitation.
+   */
+  if (!mine && !editing) {
+    return (
+      <div className="answers">
+        <button
+          className={partnerAnswered ? 'answer answer--mine answer--empty answer--urgent' : 'answer answer--mine answer--empty'}
+          onClick={beginEdit}
+        >
+          <span className="answer__label">{t('answer.you')}</span>
+          <span className={kept ? 'answer__placeholder answer__prompt answer__prompt--draft' : 'answer__placeholder answer__prompt'}>
+            {kept || (partnerAnswered ? t('answer.placeholderUrgent') : t('answer.placeholder'))}
+          </span>
+        </button>
+        <TheirAnswer {...their} />
+      </div>
+    );
+  }
 
   return (
     <div className="answers">
@@ -61,7 +230,7 @@ export function AnswerPair({ day, partnerName, saving, onSave }: Props) {
               ref={editor}
               className="answer__editor"
               value={draft}
-              onChange={(event) => setDraft(event.target.value)}
+              onChange={(event) => change(event.target.value)}
               placeholder={t('answer.placeholder')}
               aria-label={t('answer.you')}
             />
@@ -69,51 +238,26 @@ export function AnswerPair({ day, partnerName, saving, onSave }: Props) {
               <button className="button" onClick={commit} disabled={saving || draft.trim().length === 0}>
                 {t('answer.send')}
               </button>
-              <button className="button button--ghost" onClick={() => setEditing(false)}>
+              <button className="button button--ghost" onClick={close}>
                 {t('answer.cancel')}
               </button>
             </div>
           </>
-        ) : mine ? (
-          <>
-            <p className="answer__text">{mine.text}</p>
-            <div style={{ flex: 1 }} />
-            <button className="button button--ghost" style={{ alignSelf: 'flex-start' }} onClick={beginEdit}>
-              {t('answer.edit')}
-            </button>
-            <span className="answer__foot">{mine.syncedAt ? t('answer.synced') : t('answer.pending')}</span>
-          </>
         ) : (
-          <button
-            className="answer__placeholder"
-            onClick={beginEdit}
-            style={{ background: 'none', border: 0, padding: 0, textAlign: 'left', font: 'inherit', fontStyle: 'italic', color: 'var(--ink-pale)', cursor: 'text' }}
-          >
-            {t('answer.placeholder')}
-          </button>
+          <>
+            <p className={settling ? 'answer__text answer__text--settling' : 'answer__text'}>{mine!.text}</p>
+            <div className="answer__spacer" />
+            {!sealed && (
+              <button className="button button--ghost answer__edit" onClick={beginEdit}>
+                {t('answer.edit')}
+              </button>
+            )}
+            <span className="answer__foot">{foot()}</span>
+          </>
         )}
       </div>
 
-      <div className="answer answer--theirs">
-        <span className="answer__label">
-          {partnerName}
-          {partnerAt !== null ? ` · ${clock(partnerAt, PAIR_TIMEZONE, locale)}` : ''}
-        </span>
-
-        {theirs ? (
-          <p className="answer__text">{theirs.text}</p>
-        ) : partnerAnswered ? (
-          <>
-            <span className="answer__bar" aria-hidden="true" />
-            <span className="answer__bar answer__bar--short" aria-hidden="true" />
-          </>
-        ) : (
-          <span className="answer__placeholder">{t('answer.notYet')}</span>
-        )}
-
-        <div style={{ flex: 1 }} />
-        {!theirs && <span className="answer__foot">{partnerAnswered ? t('answer.hidden') : t('answer.waiting')}</span>}
-      </div>
+      <TheirAnswer {...their} />
     </div>
   );
-}
+});
