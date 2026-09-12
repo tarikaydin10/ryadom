@@ -95,14 +95,15 @@ verifiziert, wenn Aydin es auf dem Gerät gesehen hat. Sag das ausdrücklich.
 src/screens/      Today, Map, Chronicle (Rückblick + eigene Fragen), Us, Lock
 src/map/          Küste (von scripts/make-coast.mjs erzeugt), Projektion, Nacht, Luftlinie
 src/components/   SkyBand, TimeRail, QuestionBlock, AnswerPair, RoundDone (fertige Runde,
-                  gefaltet), CountdownCard, TabBar, QuestionPool (eigene Fragen),
-                  Diagnostics (versteckt unter „Us")
+                  gefaltet), Reaction + RoundTalk (das Nachwort: Zeichen und Notizen,
+                  nur an fertigen Runden), CountdownCard, TabBar, QuestionPool
+                  (eigene Fragen), Diagnostics (versteckt unter „Us")
 src/content/      Städte, Fragentabelle (drei Tiefen), Fragen aus dem Himmel (occasions.ts),
                   Auflösung der Rundenfrage (prompt.ts)
 src/sky/          Tagestabelle, Farben, Sonne/Mond (SunCalc) — rechnet lokal
 src/weather/      Open-Meteo, 7 Tage stündlich, ein Request für beide Städte
 src/data/         IndexedDB (Wahrheit), Outbox, Sync, Passphrase, Settings, Fragen-Pool,
-                  Entwürfe (localStorage, bis gesendet), Badge, Export
+                  Entwürfe (localStorage, bis gesendet), Nachwort (talk.ts), Badge, Export
 src/lib/          Tag (dateKey, vier Uhr), Format, Hooks, Scrub, Nachtpapier (paper.ts)
 src/i18n/         Wörterbücher en/ru, Spracherkennung
 src/styles.css    Eine Datei. Layout-Modell: siehe Kopf der Datei und ADR-0008

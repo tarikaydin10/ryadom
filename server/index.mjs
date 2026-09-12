@@ -92,6 +92,26 @@ const MAX_QUESTION_CHARS = 300;
 const MAX_QUESTIONS = 200;
 
 /**
+ * What may be said about a finished round, and how much of it.
+ *
+ * The six are a closed list, held here as well as in the app: an open emoji
+ * keyboard is a place to be clever, and this is a place to say one thing —
+ * love, moved, laughter, surprise, an embrace, thanks. The server checks the
+ * list because it is the server that keeps the file, and a field that takes any
+ * string eventually holds one.
+ *
+ * A note is one short sentence. Two hundred and eighty characters is enough to
+ * say "I did not know that about you" and too few to move the conversation in
+ * here; the round's own answers are still the place where things are said. The
+ * cap per round exists so a bug cannot grow the file without end, not as a rule
+ * anybody is meant to feel.
+ */
+const REACTIONS = new Set(['❤️', '🥹', '😂', '😮', '🤗', '🙏']);
+const NOTE_ID_RE = /^n-[A-Za-z0-9_-]{1,64}$/;
+const MAX_NOTE_TEXT = 280;
+const MAX_NOTES_PER_ROUND = 40;
+
+/**
  * A translation is optional, and it says where it came from — a person who
  * typed it or a machine that guessed it. Anything else in that field is
  * dropped rather than believed.
@@ -568,11 +588,42 @@ function roundResponse(round, slot, member) {
     partner.size = Math.min(4, Math.max(1, Math.ceil(theirs.text.length / 80)));
   }
 
-  return {
+  const response = {
     slot,
     question: questionResponse(round.question),
     you: mine ? { text: mine.text, updatedAt: mine.updatedAt } : null,
     partner,
+  };
+  // What was said afterwards travels only once the round is closed, which is
+  // the same rule as the text itself and for the same reason: before that there
+  // is nothing here that belongs to anyone but the two of you together, and a
+  // half-open round must not leak so much as a smiling face.
+  if (mine && theirs) response.talk = talkResponse(round, member);
+  return response;
+}
+
+/**
+ * The afterword of a finished round: one mark each, and the notes under it.
+ *
+ * A reaction that was taken back is stored as an empty string and travels as
+ * one, with the clock of the tap that removed it. Sending null instead would
+ * lose that clock, and a second phone still holding the old mark would have
+ * nothing to compare against and would keep showing it for good.
+ */
+function talkResponse(round, member) {
+  const reaction = (side) => {
+    const mark = round.reactions?.[side];
+    return mark ? { emoji: mark.emoji, at: mark.at } : null;
+  };
+  return {
+    you: reaction(member),
+    partner: reaction(otherMember(member)),
+    notes: (round.notes ?? []).map((note) => ({
+      id: note.id,
+      by: note.by === member ? 'you' : 'them',
+      text: note.text,
+      createdAt: note.createdAt,
+    })),
   };
 }
 
@@ -614,7 +665,12 @@ function dayResponse(date, member) {
 function daysChangedSince(since, member) {
   const touched = (round) =>
     (round.openedAt ?? 0) > since ||
-    ['a', 'b'].some((side) => round[side] && (round[side].touchedAt ?? round[side].updatedAt) > since);
+    ['a', 'b'].some((side) => round[side] && (round[side].touchedAt ?? round[side].updatedAt) > since) ||
+    // A mark or a note is a change to the day as much as an answer is: without
+    // this, a heart put on a round from last Tuesday would reach the other
+    // phone only if something else happened to that day afterwards.
+    ['a', 'b'].some((side) => (round.reactions?.[side]?.touchedAt ?? 0) > since) ||
+    (round.notes ?? []).some((note) => (note.touchedAt ?? note.createdAt) > since);
   const days = Object.entries(store.days)
     .filter(([, day]) => Array.isArray(day.rounds) && day.rounds.some(touched))
     .map(([date]) => date)
@@ -640,10 +696,16 @@ const NOTIFICATIONS = {
   en: {
     answered: { title: 'Ryadom', body: 'An answer arrived — your turn.' },
     unlocked: { title: 'Ryadom', body: 'The answer is open, and there is a new question.' },
+    // The afterword, and as content-free as the rest: which round, let alone
+    // which mark or which words, is the app's to show and not the lock screen's.
+    reacted: { title: 'Ryadom', body: 'A mark on one of the answers.' },
+    said: { title: 'Ryadom', body: 'A word under one of the answers.' },
   },
   ru: {
     answered: { title: 'Рядом', body: 'Пришёл ответ — твоя очередь.' },
     unlocked: { title: 'Рядом', body: 'Ответ открыт, и есть новый вопрос.' },
+    reacted: { title: 'Рядом', body: 'Отклик на один из ответов.' },
+    said: { title: 'Рядом', body: 'Слово под одним из ответов.' },
   },
 };
 
@@ -1079,7 +1141,7 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  const match = /^\/api\/days\/([^/]+)(\/answer)?$/.exec(url.pathname);
+  const match = /^\/api\/days\/([^/]+)(\/answer|\/reaction|\/note)?$/.exec(url.pathname);
   if (!match) {
     send(res, 404, { error: 'not found' });
     return;
@@ -1097,7 +1159,7 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (match[2] && req.method === 'PUT') {
+  if (match[2] === '/answer' && req.method === 'PUT') {
     let body;
     try {
       body = JSON.parse(await readBody(req));
@@ -1196,6 +1258,91 @@ const server = createServer(async (req, res) => {
       if (first) {
         void notify(otherMember(member), theyHadAnswered ? 'unlocked' : 'answered').catch(() => undefined);
       }
+    }
+    send(res, 200, dayResponse(date, member));
+    return;
+  }
+
+  /**
+   * The afterword: a mark on a finished round, and a word under it.
+   *
+   * Only on a round both of you have answered, and that is checked here rather
+   * than trusted from the client — it is the same line the text itself is kept
+   * behind. Before it, a reaction would be a signal travelling out of a closed
+   * round ("that made me laugh" says something about an answer the other one
+   * has not earned yet); after it, both of you are looking at the same page and
+   * there is nothing left to protect.
+   *
+   * One mark per side per round, replaceable and returnable; a note is one
+   * short sentence and stays. Notes are addressed by an id the device makes, so
+   * a retry after a lost connection puts the same sentence there once.
+   */
+  if ((match[2] === '/reaction' || match[2] === '/note') && req.method === 'PUT') {
+    let body;
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch {
+      send(res, 400, { error: 'bad body' });
+      return;
+    }
+    const slot = Number.isInteger(body?.slot) ? Number(body.slot) : 0;
+    const day = store.days[date];
+    const round = Array.isArray(day?.rounds) ? day.rounds[slot] : undefined;
+    if (!bothAnswered(round)) {
+      send(res, 409, { error: 'round not closed' });
+      return;
+    }
+
+    if (match[2] === '/reaction') {
+      const emoji = typeof body?.emoji === 'string' ? body.emoji : '';
+      // The empty string is how a mark is taken back, so it is not a bad one.
+      if (emoji && !REACTIONS.has(emoji)) {
+        send(res, 400, { error: 'bad reaction' });
+        return;
+      }
+      const at = Number.isFinite(body?.at) ? Number(body.at) : Date.now();
+      const marks = (round.reactions ??= {});
+      const existing = marks[member];
+      // Last tap wins, and a slow retry never puts back a mark already changed.
+      if (!existing || existing.at <= at) {
+        const had = Boolean(existing?.emoji);
+        marks[member] = { emoji, at, touchedAt: Date.now() };
+        await persist();
+        // Only a mark where there was none is news. Changing one's mind from a
+        // heart to a laugh is not worth a phone buzzing in another country.
+        if (emoji && !had) void notify(otherMember(member), 'reacted').catch(() => undefined);
+      }
+      send(res, 200, dayResponse(date, member));
+      return;
+    }
+
+    const id = typeof body?.id === 'string' ? body.id : '';
+    const text = typeof body?.text === 'string' ? body.text.trim() : '';
+    if (!NOTE_ID_RE.test(id)) {
+      send(res, 400, { error: 'bad id' });
+      return;
+    }
+    if (!text || text.length > MAX_NOTE_TEXT) {
+      send(res, 400, { error: 'bad text' });
+      return;
+    }
+    const notes = (round.notes ??= []);
+    if (!notes.some((note) => note.id === id)) {
+      if (notes.length >= MAX_NOTES_PER_ROUND) {
+        send(res, 409, { error: 'too many notes' });
+        return;
+      }
+      notes.push({
+        id,
+        by: member,
+        text,
+        createdAt: Number.isFinite(body?.createdAt) ? Number(body.createdAt) : Date.now(),
+        // By this clock, for the chronicle's cursor — the same reason an answer
+        // carries one.
+        touchedAt: Date.now(),
+      });
+      await persist();
+      void notify(otherMember(member), 'said').catch(() => undefined);
     }
     send(res, 200, dayResponse(date, member));
     return;

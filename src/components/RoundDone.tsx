@@ -27,8 +27,10 @@ interface Props {
  * stays unfolded for the session — nobody folds a page back up by hand.
  */
 export const RoundDone = memo(function RoundDone({ round, partnerName, onOpen }: Props) {
-  const { t, locale, other } = useI18n();
+  const { t, tp, locale, other } = useI18n();
   const lines = promptLines(round.prompt, locale, other);
+  const { talk } = round;
+  const notes = talk.notes.length;
 
   return (
     <button className="round-done" onClick={() => onOpen(round.slot)}>
@@ -38,11 +40,24 @@ export const RoundDone = memo(function RoundDone({ round, partnerName, onOpen }:
       <span className="round-done__said">
         <span className="round-done__who">{t('answer.you')}</span>
         {round.mine?.text}
+        {/* The marks travel with the quotes they belong to, as text among text.
+            Nothing here is a control: the whole fold is one button, and a button
+            inside a button is neither. Unfolding it is what opens the six. */}
+        {talk.theirs && <span className="round-done__mark">{talk.theirs.emoji}</span>}
       </span>
       <span className="round-done__said">
         <span className="round-done__who">{partnerName}</span>
         {round.theirs?.text}
+        {talk.mine && <span className="round-done__mark">{talk.mine.emoji}</span>}
       </span>
+      {/* Said afterwards, and said here as a count: the fold is the shape of a
+          finished round and stays it. A dot where something is new. */}
+      {notes > 0 && (
+        <span className="round-done__talk">
+          {notes} {tp('talk.count', notes)}
+          {talk.unseen > 0 && <span className="talk__new" aria-label={t('talk.new')} />}
+        </span>
+      )}
     </button>
   );
 });

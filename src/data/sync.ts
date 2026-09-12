@@ -5,7 +5,9 @@ import {
   fetchQuestions,
   fetchSettings,
   putAnswer as putRemoteAnswer,
+  putNote as putRemoteNote,
   putQuestion as putRemoteQuestion,
+  putReaction as putRemoteReaction,
   putSettings,
   syncConfigured,
   syncEnabled,
@@ -111,6 +113,21 @@ async function applyDay(response: DayResponse): Promise<void> {
       answered: round.partner.answered,
       answeredAt: round.partner.answeredAt,
       ...(round.partner.size ? { answeredSize: round.partner.size } : {}),
+      // The afterword rides on the round that owns it. It is only ever there
+      // for a closed round; `putRound` keeps whatever this device has written
+      // and not yet sent, so a response arriving between a tap and its flush
+      // does not take the mark off the card again.
+      ...(round.talk
+        ? {
+            reactions: { mine: round.talk.you, theirs: round.talk.partner },
+            notes: round.talk.notes.map((note) => ({
+              id: note.id,
+              author: note.by === 'you' ? ('me' as const) : ('them' as const),
+              text: note.text,
+              createdAt: note.createdAt,
+            })),
+          }
+        : {}),
       fetchedAt: now,
     });
 
@@ -166,6 +183,10 @@ async function flushOutbox(): Promise<void> {
     try {
       if (item.kind === 'answer') {
         await applyDay(await putRemoteAnswer(item.date, { slot: item.slot, ...item.payload }));
+      } else if (item.kind === 'reaction') {
+        await applyDay(await putRemoteReaction(item.date, { slot: item.slot, ...item.payload }));
+      } else if (item.kind === 'note') {
+        await applyDay(await putRemoteNote(item.date, { slot: item.slot, ...item.payload }));
       } else {
         await applyQuestions((await putRemoteQuestion(item.questionId, item.payload)).questions);
       }

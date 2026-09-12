@@ -38,6 +38,7 @@ const openingRound = (date: string): RoundView[] => [
     partnerAnswered: false,
     partnerAt: null,
     partnerSize: 2,
+    talk: { mine: null, theirs: null, notes: [], unseen: 0 },
   },
 ];
 
@@ -303,10 +304,12 @@ export function Today() {
                 <AnswerPair
                   round={round}
                   date={today}
+                  yourName={t('answer.you')}
                   partnerName={partnerName}
                   partnerTz={partnerTz}
                   saving={saving}
                   onSave={onSave}
+                  onTalk={refresh}
                 />
               </div>
             ),

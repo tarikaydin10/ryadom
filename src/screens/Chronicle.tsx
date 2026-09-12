@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n';
 import { useSettings } from '../data/settings-context';
 import { getPair } from '../data/pair';
@@ -7,6 +7,9 @@ import { loadHistory, saveMyAnswer, type DayHistory, type RoundView } from '../d
 import { subscribeSync } from '../data/sync';
 import { promptId, promptLines } from '../content/prompt';
 import { QuestionPool } from '../components/QuestionPool';
+import { Reaction } from '../components/Reaction';
+import { RoundTalk } from '../components/RoundTalk';
+import { react } from '../data/talk';
 import { dateInRecord, dayAndMonth, longDate } from '../lib/format';
 import { DAY_MS, dateKey, dateKeyToMs } from '../lib/day';
 import { seeded } from '../lib/random';
@@ -90,12 +93,17 @@ export function Chronicle() {
   const partnerName = displayName(sides.partnerName, locale);
   const yourName = displayName(sides.yourName, locale);
 
-  const refresh = () => void loadHistory().then(setHistory);
-  useEffect(refresh, []);
-  useEffect(() => subscribeSync(() => refresh()), []);
+  // Stable, because the afterword under a round hands it back as "something was
+  // written, read the day again" — from an effect, where a callback rebuilt on
+  // every render would keep the screen reloading itself.
+  const refresh = useCallback(() => void loadHistory().then(setHistory), []);
+  useEffect(refresh, [refresh]);
+  useEffect(() => subscribeSync(() => refresh()), [refresh]);
 
   const save = (date: string, round: RoundView, text: string) =>
     saveMyAnswer(date, round.slot, promptId(round.prompt), text).then(refresh);
+
+  const onReact = (date: string, round: RoundView, emoji: string) => void react(date, round.slot, emoji).then(refresh);
 
   /** "written later, on …" — when the answer's day is not the question's day. */
   const lateLine = (date: string, at: number | null) =>
@@ -147,6 +155,13 @@ export function Chronicle() {
                     <span className="chron__who">{yourName}</span>
                     {round.mine.text}
                     {lateLine(day.date, round.mine.createdAt)}
+                    {/* Their mark on what you wrote, kept with the words it was
+                        put on — the record holds it the way the day did. */}
+                    {round.talk.theirs && (
+                      <span className="chron__mark">
+                        <Reaction mark={round.talk.theirs} ownership="theirs" partnerName={partnerName} />
+                      </span>
+                    )}
                   </p>
                 ) : (
                   <LateAnswer
@@ -160,6 +175,18 @@ export function Chronicle() {
                     <span className="chron__who">{partnerName}</span>
                     {round.theirs.text}
                     {lateLine(day.date, round.theirs.createdAt)}
+                    {/* Yours, and still yours to give: a page from August can be
+                        read for the first time in December, and the mark then is
+                        as true as one put on the day. */}
+                    {round.mine && (
+                      <span className="chron__mark">
+                        <Reaction
+                          mark={round.talk.mine}
+                          ownership="yours"
+                          onPick={(emoji) => onReact(day.date, round, emoji)}
+                        />
+                      </span>
+                    )}
                   </p>
                 ) : (
                   // Their answer exists but is still locked behind your own, or
@@ -169,6 +196,17 @@ export function Chronicle() {
                     <span className="chron__who">{partnerName}</span>
                     {round.partnerAnswered ? t('answer.hidden') : t('answer.notYet')}
                   </p>
+                )}
+                {round.mine && round.theirs && (
+                  <RoundTalk
+                    date={day.date}
+                    slot={round.slot}
+                    talk={round.talk}
+                    yourName={yourName}
+                    partnerName={partnerName}
+                    tone="quiet"
+                    onWritten={refresh}
+                  />
                 )}
               </div>
             );

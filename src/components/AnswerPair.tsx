@@ -3,13 +3,18 @@ import { useI18n } from '../i18n';
 import { clock } from '../lib/format';
 import { promptId } from '../content/prompt';
 import type { RoundView } from '../data/answers';
-import type { AnswerRecord } from '../data/db';
+import type { AnswerRecord, Reaction as Mark } from '../data/db';
 import { clearDraft, loadDraft, saveDraft } from '../data/drafts';
+import { react } from '../data/talk';
+import { Reaction } from './Reaction';
+import { RoundTalk } from './RoundTalk';
 
 interface Props {
   round: RoundView;
   /** The day the round belongs to — the draft is kept under it. */
   date: string;
+  /** What your own side is called on this screen — "You" here, your name in the record. */
+  yourName: string;
   partnerName: string;
   /** Their city's zone, so the time they wrote reads as their evening. */
   partnerTz: string;
@@ -21,6 +26,8 @@ interface Props {
    * not do.
    */
   onSave(slot: number, questionId: string, text: string): void;
+  /** Something was said about the round; the page reads the day again. */
+  onTalk(): void;
 }
 
 interface TheirsProps {
@@ -31,6 +38,11 @@ interface TheirsProps {
   partnerAt: number | null;
   /** How much she wrote, in bars — the shape of the closed page. */
   partnerSize: number;
+  /** Your mark on what she wrote, once the round is closed. Null before that. */
+  mark: Mark | null;
+  onReact(emoji: string): void;
+  /** Only a finished round can be reacted to — see RoundTalk and the server. */
+  sealed: boolean;
 }
 
 /** One to four bars, the last of them short: as much as she wrote, and not a word of it. */
@@ -88,7 +100,17 @@ function useArrival(present: boolean, forMs: number): boolean {
  * middle and "waiting for their answer" at the foot, and the second line only
  * repeated the first in a smaller size.
  */
-function TheirAnswer({ theirs, partnerAnswered, partnerName, partnerTz, partnerAt, partnerSize }: TheirsProps) {
+function TheirAnswer({
+  theirs,
+  partnerAnswered,
+  partnerName,
+  partnerTz,
+  partnerAt,
+  partnerSize,
+  mark,
+  onReact,
+  sealed,
+}: TheirsProps) {
   const { t, locale } = useI18n();
   const revealing = useArrival(theirs !== null, REVEAL_MS);
 
@@ -119,6 +141,14 @@ function TheirAnswer({ theirs, partnerAnswered, partnerName, partnerTz, partnerA
 
       <div className="answer__spacer" />
       {!theirs && partnerAnswered && <span className="answer__foot">{t('answer.hidden')}</span>}
+      {/* Your mark sits on her card, the way it does in every messenger: the
+          thing it is about is what it is attached to. Only once the round is
+          closed — before that there is nothing here to have an opinion on. */}
+      {sealed && (
+        <span className="answer__mark">
+          <Reaction mark={mark} ownership="yours" onPick={onReact} />
+        </span>
+      )}
     </div>
   );
 }
@@ -132,7 +162,16 @@ function TheirAnswer({ theirs, partnerAnswered, partnerName, partnerTz, partnerA
  * inspector. What is shown before unlocking is only what is fair to show: that
  * they wrote, and when.
  */
-export const AnswerPair = memo(function AnswerPair({ round, date, partnerName, partnerTz, saving, onSave }: Props) {
+export const AnswerPair = memo(function AnswerPair({
+  round,
+  date,
+  yourName,
+  partnerName,
+  partnerTz,
+  saving,
+  onSave,
+  onTalk,
+}: Props) {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -146,12 +185,17 @@ export const AnswerPair = memo(function AnswerPair({ round, date, partnerName, p
     if (editing) editor.current?.focus();
   }, [editing]);
 
-  const { mine, theirs, partnerAnswered, partnerAt, partnerSize } = round;
-  const their = { theirs, partnerAnswered, partnerName, partnerTz, partnerAt, partnerSize };
+  const { mine, theirs, partnerAnswered, partnerAt, partnerSize, talk } = round;
   // Sending is a commitment: once hers is open, yours is what she read. The
   // server refuses a later edit too (409 "sealed"); hiding the button is what
   // keeps that from ever being a surprise.
+  //
+  // It is also the line the afterword lives behind: a round both of you have
+  // answered is one you are reading together, and only then is there anything
+  // to react to.
   const sealed = mine !== null && theirs !== null;
+  const onReact = (emoji: string) => void react(date, round.slot, emoji).then(onTalk);
+  const their = { theirs, partnerAnswered, partnerName, partnerTz, partnerAt, partnerSize, mark: talk.mine, onReact, sealed };
   // Your own words, just sent: they settle into the card rather than appearing
   // in it, so that pressing Send reads as having done something.
   const settling = useArrival(mine !== null, REVEAL_MS);
@@ -220,44 +264,67 @@ export const AnswerPair = memo(function AnswerPair({ round, date, partnerName, p
   }
 
   return (
-    <div className="answers">
-      <div className="answer answer--mine">
-        <span className="answer__label">{t('answer.you')}</span>
+    <>
+      <div className="answers">
+        <div className="answer answer--mine">
+          <span className="answer__label">{t('answer.you')}</span>
 
-        {editing ? (
-          <>
-            <textarea
-              ref={editor}
-              className="answer__editor"
-              value={draft}
-              onChange={(event) => change(event.target.value)}
-              placeholder={t('answer.placeholder')}
-              aria-label={t('answer.you')}
-            />
-            <div className="answer__actions">
-              <button className="button" onClick={commit} disabled={saving || draft.trim().length === 0}>
-                {t('answer.send')}
-              </button>
-              <button className="button button--ghost" onClick={close}>
-                {t('answer.cancel')}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className={settling ? 'answer__text answer__text--settling' : 'answer__text'}>{mine!.text}</p>
-            <div className="answer__spacer" />
-            {!sealed && (
-              <button className="button button--ghost answer__edit" onClick={beginEdit}>
-                {t('answer.edit')}
-              </button>
-            )}
-            <span className="answer__foot">{foot()}</span>
-          </>
-        )}
+          {editing ? (
+            <>
+              <textarea
+                ref={editor}
+                className="answer__editor"
+                value={draft}
+                onChange={(event) => change(event.target.value)}
+                placeholder={t('answer.placeholder')}
+                aria-label={t('answer.you')}
+              />
+              <div className="answer__actions">
+                <button className="button" onClick={commit} disabled={saving || draft.trim().length === 0}>
+                  {t('answer.send')}
+                </button>
+                <button className="button button--ghost" onClick={close}>
+                  {t('answer.cancel')}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className={settling ? 'answer__text answer__text--settling' : 'answer__text'}>{mine!.text}</p>
+              <div className="answer__spacer" />
+              {!sealed && (
+                <button className="button button--ghost answer__edit" onClick={beginEdit}>
+                  {t('answer.edit')}
+                </button>
+              )}
+              <span className="answer__foot">{foot()}</span>
+              {/* Hers, on your words. Read-only: a mark is given on the card it
+                  belongs to, and this one is not yours to give. */}
+              {sealed && talk.theirs && (
+                <span className="answer__mark">
+                  <Reaction mark={talk.theirs} ownership="theirs" partnerName={partnerName} />
+                </span>
+              )}
+            </>
+          )}
+        </div>
+
+        <TheirAnswer {...their} />
       </div>
 
-      <TheirAnswer {...their} />
-    </div>
+      {/* Under the pair, not inside it: what gets said afterwards is about the
+          question and both answers at once, which is why it hangs on the round. */}
+      {sealed && (
+        <RoundTalk
+          date={date}
+          slot={round.slot}
+          talk={talk}
+          yourName={yourName}
+          partnerName={partnerName}
+          tone="invite"
+          onWritten={onTalk}
+        />
+      )}
+    </>
   );
 });

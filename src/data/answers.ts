@@ -9,13 +9,30 @@ import {
   getRounds,
   putAnswer,
   type AnswerRecord,
+  type NoteRecord,
   type QuestionRecord,
+  type Reaction,
   type RoundRecord,
 } from './db';
 import { syncNow } from './sync';
 import { syncEnabled } from './api';
 import { promptFor, type Prompt } from '../content/prompt';
 import { loadSettings, type Settings } from './settings';
+
+/**
+ * What was said about a finished round: one mark each, and the notes under it.
+ *
+ * Always here, usually empty. The screens show it only once the round is closed
+ * — before that there is nothing to react to, and the server would refuse it
+ * anyway.
+ */
+export interface TalkView {
+  mine: Reaction | null;
+  theirs: Reaction | null;
+  notes: NoteRecord[];
+  /** Notes of theirs written since this device last had the thread open. */
+  unseen: number;
+}
 
 /** One round of a day, with everything the screen needs to draw it. */
 export interface RoundView {
@@ -28,6 +45,24 @@ export interface RoundView {
   partnerAt: number | null;
   /** How much they wrote, in bars, while it is still locked. */
   partnerSize: number;
+  talk: TalkView;
+}
+
+const EMPTY_TALK: TalkView = { mine: null, theirs: null, notes: [], unseen: 0 };
+
+/** A round's afterword, with "new since you last looked" worked out for the page. */
+function talkView(round: RoundRecord | undefined): TalkView {
+  if (!round) return EMPTY_TALK;
+  const notes = round.notes ?? [];
+  const seenAt = round.notesSeenAt ?? 0;
+  return {
+    // An empty emoji is a mark that was taken back; it travels that way so the
+    // other phone learns of it, and stops being one here.
+    mine: round.reactions?.mine?.emoji ? round.reactions.mine : null,
+    theirs: round.reactions?.theirs?.emoji ? round.reactions.theirs : null,
+    notes,
+    unseen: notes.filter((note) => note.author === 'them' && note.createdAt > seenAt).length,
+  };
 }
 
 /** A day as it will be remembered: its rounds, in the order they were asked. */
@@ -74,6 +109,7 @@ function viewsFor(
         partnerAnswered: round?.answered ?? theirs !== null,
         partnerAt: theirs?.createdAt ?? round?.answeredAt ?? null,
         partnerSize: round?.answeredSize ?? 2,
+        talk: talkView(round),
       };
     })
     // A round they answered and you did not is still part of the record — the

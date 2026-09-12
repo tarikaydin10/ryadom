@@ -111,6 +111,7 @@ body {
 
 /* Actual content stays selectable — an answer is text you may want to copy. */
 .answer__text,
+.talk__note,
 .question__primary,
 .question__secondary,
 input,
@@ -908,6 +909,21 @@ textarea {
   text-wrap: pretty;
 }
 
+/* A mark in the fold, as text among text: the whole fold is one button, so
+   nothing in here is one. It sits at the end of the words it was put on. */
+.round-done__mark {
+  margin-left: 6px;
+  font-size: 13px;
+}
+
+/* And what was said afterwards, as a count — the fold keeps the shape of a
+   finished round and does not open a conversation inside itself. */
+.round-done__talk {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-pale);
+}
+
 .round-done__who {
   display: block;
   font-size: 10px;
@@ -1196,6 +1212,162 @@ textarea {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+/* The afterword: a mark at the foot of a card, and the thread under the round.
+
+   Everything here is small on purpose. The page is a question and two answers;
+   this is what the two of you say about them afterwards, and the day it starts
+   looking like the page is the day it has taken the page over. So: one chip the
+   size of a thumbnail, one line of type under the pair, and nothing at all on a
+   round that is still open — the marks exist only once both of you have
+   written (see RoundTalk, and the server, which refuses the rest). */
+.answer__mark {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  min-height: 26px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--paper);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Nothing given yet: the invitation, and quiet enough that a card without a
+   mark still reads as a card and not as a form with an empty field in it. */
+.mark--empty {
+  color: var(--ink-pale);
+  background: none;
+  border-style: dashed;
+  font-size: 14px;
+}
+
+.mark--theirs {
+  cursor: default;
+}
+
+/* The six, in the place the chip was. Two rows of three on a phone: a card
+   half the screen wide cannot hold six targets worth hitting, and a mark that
+   needs aiming is not worth the tap it saves. */
+.mark__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+}
+
+.mark__pick {
+  flex: 1 1 28%;
+  min-height: 32px;
+  padding: 2px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* The one already given. Tapping it again takes it back, which is the gesture
+   this control has everywhere else. */
+.mark__pick--on {
+  border-color: var(--terracotta);
+  background: rgba(176, 86, 60, 0.12);
+}
+
+/* The thread's own line, folded. Set like the line that opens the question form
+   on the same page — a thing to do, in the colour everything you can do here
+   has. In the record it is set quiet instead: the same line under a hundred
+   past rounds would be a hundred invitations nobody asked for. */
+.talk__line {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--terracotta);
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.talk__line--quiet {
+  color: var(--ink-pale);
+  font-style: italic;
+  letter-spacing: 0;
+}
+
+/* Something written since this device last looked. A dot, not a number: how
+   many is the line's business, and this only has to say "go and see". */
+.talk__new {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--terracotta);
+  vertical-align: 0.1em;
+}
+
+.talk {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* A note is set smaller than an answer and quoted the same way. It is an aside
+   to the round, and it should never be mistaken for what was answered. */
+.talk__note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+/* Inline, unlike the name above a quote: a note is often shorter than its own
+   label, and a name on its own line would double the height of the thread. */
+.talk__who {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-right: 6px;
+}
+
+.talk__foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.talk__editing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 10px;
+  border-left: 2px dashed rgba(176, 86, 60, 0.55);
+}
+
+.talk__editor {
+  min-height: 48px;
+  font-size: 14px;
 }
 
 .button {
@@ -2072,6 +2244,34 @@ input.field__input[type='date']::-webkit-date-and-time-value {
   color: var(--ink-muted);
   font-style: italic;
   margin-top: 2px;
+}
+
+/* A mark in the record, on the quote it was put on. Yours is still a control
+   here — a day from August can be read for the first time in December — and
+   theirs is nothing but text: a page of quotes should not be a page of chips,
+   so only the thing that can be pressed is drawn as though it could be. */
+.chron__mark {
+  display: inline-block;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.chron__mark .mark--theirs {
+  border: 0;
+  background: none;
+  padding: 0;
+  min-width: 0;
+  min-height: 0;
+  font-size: 14px;
+}
+
+/* Smaller than on a card, for the same reason: a hundred past rounds, each
+   with an invitation on it, is a list of chores. */
+.chron__mark .mark--empty {
+  min-width: 24px;
+  min-height: 22px;
+  padding: 1px 6px;
+  font-size: 12px;
 }
 
 /* The name reads as a label on the quote, not as part of the sentence. */

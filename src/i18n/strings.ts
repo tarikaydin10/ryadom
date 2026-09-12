@@ -108,6 +108,23 @@ export const en = {
     writtenAt: 'wrote at {time}',
   },
 
+  // The afterword of a finished round: one mark each, and what gets said under
+  // it. Never a name with a verb — the same build runs on both phones, so
+  // «отозвалась» is wrong on one of them half the time.
+  talk: {
+    react: 'React to this answer',
+    change: 'Change your reaction',
+    pick: 'Pick a reaction',
+    from: 'from {name}',
+    // The folded line, when nothing has been said yet: an invitation on today's
+    // round, a quiet line in the record.
+    add: 'Say something about this',
+    placeholder: 'A word about this one …',
+    count: { one: 'note', few: 'notes', many: 'notes', other: 'notes' } as Plural,
+    hide: 'Fold it up',
+    new: 'new',
+  },
+
   countdown: {
     kicker: 'Reunion',
     // The number is rendered separately, so these are the unit alone.
@@ -372,6 +389,18 @@ export const ru: DeepStringShape<typeof en> = {
     opening: 'Отправляем — и ответ откроется.',
     synced: 'отправлено',
     writtenAt: 'написано в {time}',
+  },
+
+  talk: {
+    react: 'Отозваться на ответ',
+    change: 'Изменить отклик',
+    pick: 'Выбери отклик',
+    from: 'от {name}',
+    add: 'Сказать об этом',
+    placeholder: 'Пара слов об этом …',
+    count: { one: 'заметка', few: 'заметки', many: 'заметок', other: 'заметки' },
+    hide: 'Свернуть',
+    new: 'новое',
   },
 
   countdown: {

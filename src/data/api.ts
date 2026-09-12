@@ -57,6 +57,37 @@ export interface RemoteQuestion {
   sealed?: boolean;
 }
 
+/**
+ * One mark, on a finished round. `at` is the tap's own clock, for last-write-wins.
+ * An empty `emoji` is a mark that was taken back — it keeps its clock so a
+ * device still holding the old one knows which of the two happened later.
+ */
+export interface RemoteReaction {
+  emoji: string;
+  at: number;
+}
+
+/** A word under a finished round, from whichever of you wrote it. */
+export interface RemoteNote {
+  id: string;
+  by: 'you' | 'them';
+  text: string;
+  createdAt: number;
+}
+
+/**
+ * What was said about a round after both of you had answered it.
+ *
+ * Absent — not empty — while the round is still open: the server withholds it
+ * exactly as it withholds the text, so a mark never reaches a device that has
+ * not earned the answer it belongs to.
+ */
+export interface RemoteTalk {
+  you: RemoteReaction | null;
+  partner: RemoteReaction | null;
+  notes: RemoteNote[];
+}
+
 export interface RemoteRound {
   slot: number;
   /**
@@ -80,6 +111,8 @@ export interface RemoteRound {
     /** While locked: how much she wrote, as one to four bars. Never what. */
     size?: number;
   };
+  /** Only on a round both of you have answered. */
+  talk?: RemoteTalk;
 }
 
 /**
@@ -168,6 +201,25 @@ export function putAnswer(
   body: { slot: number; text: string; questionId: string; updatedAt: number },
 ): Promise<DayResponse> {
   return request<DayResponse>(`/api/days/${date}/answer`, { method: 'PUT', body: JSON.stringify(body) });
+}
+
+/**
+ * A mark on a finished round. An empty `emoji` takes it back — the other phone
+ * has to be told that it went, and a missing field cannot say that.
+ */
+export function putReaction(
+  date: string,
+  body: { slot: number; emoji: string; at: number },
+): Promise<DayResponse> {
+  return request<DayResponse>(`/api/days/${date}/reaction`, { method: 'PUT', body: JSON.stringify(body) });
+}
+
+/** A word under a finished round. The id comes from the device, so a retry is not a second note. */
+export function putNote(
+  date: string,
+  body: { slot: number; id: string; text: string; createdAt: number },
+): Promise<DayResponse> {
+  return request<DayResponse>(`/api/days/${date}/note`, { method: 'PUT', body: JSON.stringify(body) });
 }
 
 export interface QuestionsResponse {

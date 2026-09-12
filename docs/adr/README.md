@@ -31,6 +31,7 @@ diesem Tag gefallen.
 | [0018](0018-fragen-aus-dem-himmel-und-tiefe.md) | Fragen aus dem Himmel, Tiefe je Runde, die Tage der beiden friert der Server ein | Gültig |
 | [0019](0019-versiegelte-fragen-und-fragen-auf-today.md) | Versiegelte Fragen der Gegenseite, Fragen dort, wo der Wunsch entsteht | Gültig |
 | [0020](0020-zaehler-statt-streak-und-nachtpapier.md) | Ein Zähler, der nur wächst; ein Fund von früher; Nachtpapier | Gültig |
+| [0021](0021-nachwort-zeichen-und-notizen-an-der-fertigen-runde.md) | Das Nachwort: ein Zeichen und Notizen an der fertigen Runde | Gültig |
 
 ## Vorlage
 

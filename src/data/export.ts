@@ -37,6 +37,17 @@ interface ExportedRound {
   question: { id: string; kind: 'bundled' | 'pool'; text: Record<string, string> };
   you: { text: string; writtenAt: number } | null;
   partner: { text: string; writtenAt: number } | { locked: true; writtenAt: number | null } | null;
+  /**
+   * What was said about the round afterwards. Absent when nothing was: a file
+   * that carries an empty field under every question is harder to read, and
+   * most rounds will have nothing here.
+   */
+  talk?: {
+    /** Your mark on their answer, and theirs on yours. */
+    yours: string | null;
+    theirs: string | null;
+    notes: { by: 'you' | 'them'; text: string; writtenAt: number }[];
+  };
 }
 
 export interface ExportBundle {
@@ -57,6 +68,20 @@ function questionTexts(round: RoundView): Record<string, string> {
   return texts;
 }
 
+const exportedTalk = (round: RoundView): ExportedRound['talk'] => {
+  const { mine, theirs, notes } = round.talk;
+  if (!mine && !theirs && notes.length === 0) return undefined;
+  return {
+    yours: mine?.emoji ?? null,
+    theirs: theirs?.emoji ?? null,
+    notes: notes.map((note) => ({
+      by: note.author === 'me' ? ('you' as const) : ('them' as const),
+      text: note.text,
+      writtenAt: note.createdAt,
+    })),
+  };
+};
+
 const exportedRound = (round: RoundView): ExportedRound => ({
   slot: round.slot,
   question: { id: promptId(round.prompt), kind: round.prompt.kind, text: questionTexts(round) },
@@ -66,6 +91,7 @@ const exportedRound = (round: RoundView): ExportedRound => ({
     : round.partnerAnswered
       ? { locked: true, writtenAt: round.partnerAt }
       : null,
+  talk: exportedTalk(round),
 });
 
 /** The text file: a day, its questions, what each of you said. No format to explain. */
@@ -97,6 +123,10 @@ function renderText(
       if (round.mine && dateKey(round.mine.createdAt) > day.date) {
         lines.push(`  (${strings.chronicle.late.replace('{date}', dayMonthYear(round.mine.createdAt, locale))})`);
       }
+      // The mark each of you put on what the other wrote, kept with those words
+      // — it is part of what was said, and a record that dropped it would be
+      // missing the answer to half the answers.
+      if (round.talk.theirs) lines.push(`  ${round.talk.theirs.emoji} ${them}`);
       lines.push('');
       lines.push(
         `${them}:`,
@@ -109,7 +139,14 @@ function renderText(
       if (round.theirs && dateKey(round.theirs.createdAt) > day.date) {
         lines.push(`  (${strings.chronicle.late.replace('{date}', dayMonthYear(round.theirs.createdAt, locale))})`);
       }
+      if (round.talk.mine) lines.push(`  ${round.talk.mine.emoji} ${you}`);
       lines.push('');
+      // And what was said under the question afterwards, in the order it was
+      // said, each line with the name of whoever said it.
+      for (const note of round.talk.notes) {
+        lines.push(`  · ${note.author === 'me' ? you : them}: ${note.text}`);
+      }
+      if (round.talk.notes.length > 0) lines.push('');
     }
   }
 

@@ -49,10 +49,30 @@ export interface AnswerRecord {
   syncedAt: number | null;
 }
 
+/** One mark on a finished round. An empty `emoji` is one that was taken back. */
+export interface Reaction {
+  emoji: string;
+  /** The tap's own clock: what decides between this device and your other one. */
+  at: number;
+}
+
+/** A word under a finished round. Written once; never edited, never withdrawn. */
+export interface NoteRecord {
+  /** `n-…`, made on the device that wrote it, so a retry cannot duplicate it. */
+  id: string;
+  author: Author;
+  text: string;
+  createdAt: number;
+}
+
 /**
  * A round as the server last described it: which question it asks, and whether
  * the other side has written. The text of their answer is never in here — it
  * lives in `answers` and only ever arrives once your own has been sent.
+ *
+ * The afterword lives here rather than in a store of its own: a mark and a note
+ * belong to a round the way `answered` does, they arrive on the same response,
+ * and a round that is thrown away takes them with it.
  */
 export interface RoundRecord {
   /** `${date}#${slot}` */
@@ -65,6 +85,15 @@ export interface RoundRecord {
   answeredAt: number | null;
   /** How much they wrote while it is still locked, in bars (1–4). */
   answeredSize?: number;
+  /** Yours and theirs, once the round is closed. Absent on a round from before this existed. */
+  reactions?: { mine: Reaction | null; theirs: Reaction | null };
+  notes?: NoteRecord[];
+  /**
+   * When this device last had the thread open, by the newest note it saw then.
+   * Device-local and never sent anywhere: "there is something new here" is a
+   * fact about this phone, not about the two of you.
+   */
+  notesSeenAt?: number;
   fetchedAt: number;
 }
 
@@ -100,6 +129,8 @@ export interface QuestionRecord {
 
 export type OutboxItem = { id?: number; queuedAt: number; attempts: number; lastError: string | null } & (
   | { kind: 'answer'; date: string; slot: number; payload: { text: string; questionId: string; updatedAt: number } }
+  | { kind: 'reaction'; date: string; slot: number; payload: { emoji: string; at: number } }
+  | { kind: 'note'; date: string; slot: number; payload: { id: string; text: string; createdAt: number } }
   | {
       kind: 'question';
       questionId: string;
@@ -301,6 +332,10 @@ export async function putAnswer(record: AnswerRecord): Promise<void> {
   await store.put('answers', record);
 }
 
+export async function getRound(date: string, slot: number): Promise<RoundRecord | undefined> {
+  return (await db()).get('rounds', roundId(date, slot));
+}
+
 export async function getRounds(date: string): Promise<RoundRecord[]> {
   return (await db()).getAllFromIndex('rounds', 'by-date', date);
 }
@@ -320,8 +355,43 @@ export async function clearDayStores(): Promise<void> {
   await Promise.all([tx.objectStore('answers').clear(), tx.objectStore('rounds').clear(), tx.done]);
 }
 
+/**
+ * The server's description of a round, with this device's afterword kept.
+ *
+ * Everything else about a round is the server's word and is simply replaced.
+ * The afterword cannot be: a mark tapped on a train is in the outbox, not yet
+ * on the server, and a response that arrived in the meantime would otherwise
+ * take it off the screen again. So your own mark is decided by its own clock,
+ * theirs is always theirs, and the notes are the union of both sides — a note
+ * is written once and never changes, so the union is all the merging it needs.
+ *
+ * A response that carries no afterword at all — the round is still open, or the
+ * server predates this — changes nothing here rather than clearing it.
+ */
+function withTalk(existing: RoundRecord, incoming: RoundRecord): RoundRecord {
+  const seen = { notesSeenAt: incoming.notesSeenAt ?? existing.notesSeenAt };
+  if (!incoming.reactions && !incoming.notes) {
+    return { ...incoming, ...seen, reactions: existing.reactions, notes: existing.notes };
+  }
+  const mine = existing.reactions?.mine ?? null;
+  const arrived = incoming.reactions?.mine ?? null;
+  const byId = new Map((existing.notes ?? []).map((note) => [note.id, note]));
+  for (const note of incoming.notes ?? []) byId.set(note.id, note);
+  return {
+    ...incoming,
+    ...seen,
+    reactions: {
+      mine: mine && (!arrived || mine.at > arrived.at) ? mine : arrived,
+      theirs: incoming.reactions?.theirs ?? null,
+    },
+    notes: [...byId.values()].sort((left, right) => left.createdAt - right.createdAt),
+  };
+}
+
 export async function putRound(record: RoundRecord): Promise<void> {
-  await (await db()).put('rounds', record);
+  const store = await db();
+  const existing = await store.get('rounds', record.id);
+  await store.put('rounds', existing ? withTalk(existing, record) : record);
 }
 
 export async function getQuestions(): Promise<QuestionRecord[]> {
@@ -349,9 +419,17 @@ export async function enqueue(item: OutboxDraft): Promise<void> {
     const same =
       existing.kind === 'answer' && item.kind === 'answer'
         ? existing.date === item.date && existing.slot === item.slot
-        : existing.kind === 'question' && item.kind === 'question'
-          ? existing.questionId === item.questionId
-          : false;
+        : // A second tap on the same round replaces the first: what is sent is
+          // the mark that is on the card now, not the way there.
+          existing.kind === 'reaction' && item.kind === 'reaction'
+          ? existing.date === item.date && existing.slot === item.slot
+          : // A note is written once. Only a re-queue of the very same sentence
+            // — a retry — is the same item; two notes on one round are two.
+            existing.kind === 'note' && item.kind === 'note'
+            ? existing.payload.id === item.payload.id
+            : existing.kind === 'question' && item.kind === 'question'
+              ? existing.questionId === item.questionId
+              : false;
     if (same) await tx.store.delete(existing.id);
   }
   await tx.store.add(item as OutboxItem);

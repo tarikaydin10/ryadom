@@ -168,9 +168,9 @@ Countdown gelten erst als verifiziert, wenn Aydin sie auf dem Gerät hatte.
 | Was | Warum nicht |
 |---|---|
 | Push mit Inhalt oder Namen | Der Lock-In gilt auch auf dem Sperrbildschirm; Namen brauchen im Russischen ein Geschlecht (ADR-0013). |
-| Mehr als drei Runden, Runden ohne Lock-In | Dann ist es ein Chat mit Überschrift. Den Chat gibt es schon. |
+| Mehr als drei Runden, Runden ohne Lock-In | Dann ist es ein Chat mit Überschrift. Den Chat gibt es schon. Der Faden unter einer fertigen Runde (ADR-0021) ist die Ausnahme, die die Regel trägt: er existiert erst, wenn beide geantwortet haben, er ist zugeklappt, und er kennt kein „du bist dran“. |
 | Streaks, Zähler mit Druck | Ein Zähler, der bei einem Fehltag auf null fällt, bestraft den falschen Moment. |
-| Reaktionen, Likes | Die Antwort ist die Reaktion. |
+| ~~Reaktionen, Likes~~ | Galt bis 2026-09-12 („die Antwort ist die Reaktion“). Hielt nicht: die nächste Frage kommt in Stunden und handelt von etwas anderem, und für das Gelesene gab es keinen Ort. Jetzt ein Zeichen und ein kurzer Faden — aber nur an einer Runde, die beide beantwortet haben ([ADR-0021](adr/0021-nachwort-zeichen-und-notizen-an-der-fertigen-runde.md)). |
 | Fotos | Größe, Server, Backup, Löschen — verdoppelt die Komplexität für etwas, das jeder Messenger besser kann. Vielleicht einmal *ein* Foto pro Tag, klein. Nicht jetzt. |
 | Eigene Fragen mit Datum | Macht aus einem Einfall eine Terminplanung (ADR-0012). |
 | Frage des Tages und eigene Fragen als zwei Spiele | Zweimal Lock-In oder einmal keiner. Eine Liste, eure zuerst (ADR-0016). |
