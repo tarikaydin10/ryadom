@@ -1341,6 +1341,12 @@ textarea {
   text-wrap: pretty;
 }
 
+/* A note following one from the same person: no name, and tucked up against
+   the one above it, so a run of them reads as one turn of speaking. */
+.talk__note--same {
+  margin-top: -4px;
+}
+
 /* Inline, unlike the name above a quote: a note is often shorter than its own
    label, and a name on its own line would double the height of the thread. */
 .talk__who {

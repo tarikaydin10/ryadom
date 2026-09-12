@@ -90,9 +90,15 @@ export function RoundTalk({ date, slot, talk, yourName, partnerName, tone, onWri
 
   return (
     <div className="talk">
-      {talk.notes.map((note) => (
-        <p className="talk__note" key={note.id}>
-          <span className="talk__who">{note.author === 'me' ? yourName : partnerName}</span>
+      {/* The name only where it changes. Three notes in a row from the same
+          person used to carry the same label three times, which is noise the
+          moment the thread is used the way it is meant to be — several short
+          things, one after another, rather than one speech each. */}
+      {talk.notes.map((note, index) => (
+        <p className={note.author === talk.notes[index - 1]?.author ? 'talk__note talk__note--same' : 'talk__note'} key={note.id}>
+          {note.author !== talk.notes[index - 1]?.author && (
+            <span className="talk__who">{note.author === 'me' ? yourName : partnerName}</span>
+          )}
           {note.text}
         </p>
       ))}
