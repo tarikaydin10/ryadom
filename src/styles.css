@@ -2161,6 +2161,13 @@ input.field__input[type='date']::-webkit-date-and-time-value {
   cursor: default;
 }
 
+/* The same control on the page itself, where it chooses what the page shows:
+   a track one step darker than the paper, so it reads as one control. */
+.segment--fill.segment--page {
+  flex: none;
+  background: var(--card-muted);
+}
+
 /* The segmented control inside a card: one track, equal parts, the chosen one
    lifted — the shape that says "one of these", which a row of loose pills did
    not. The lock screen keeps the loose pills; it has no card to sit in. */
@@ -2211,14 +2218,7 @@ input.field__input[type='date']::-webkit-date-and-time-value {
 }
 
 .questions__item {
-  display: flex;
-  flex-direction: column;
   gap: 4px;
-  padding: 12px 0 2px;
-}
-
-.questions__item + .questions__item {
-  border-top: 1px solid var(--border);
 }
 
 /* The same face the question wears on the home screen, a size down: what is
@@ -2245,9 +2245,21 @@ input.field__input[type='date']::-webkit-date-and-time-value {
   color: var(--ink-muted);
 }
 
+.questions__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 24px;
+}
+
+/* Taking back a question you wrote: the row's own action, set at the size of
+   the meta line it sits on so a list of them is not a list of buttons. */
 .questions__drop {
-  align-self: flex-start;
-  padding-left: 0;
+  min-height: 32px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2647,14 +2659,62 @@ input.field__input[type='date']::-webkit-date-and-time-value {
   margin-top: 2px;
 }
 
+/* A month of the record, and its heading riding along at the top while its
+   days scroll under it — under the status-bar strip, never behind it. */
+.chron__month {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.chron__month-title {
+  position: sticky;
+  top: var(--safe-top);
+  z-index: 4;
+  margin: 0 calc(-1 * var(--gutter)) -6px;
+  padding: 10px var(--gutter) 8px;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.1;
+  text-transform: capitalize;
+  color: var(--ink);
+  background: var(--paper);
+  transition: background-color 900ms ease;
+}
+
+.chron__text {
+  display: block;
+  white-space: pre-wrap;
+}
+
+/* A long answer, folded to its first lines (the count is set inline, from
+   QUOTE_LINES). The ellipsis says there is more; the words open on a tap. */
+.chron__text--folded {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.chron__more {
+  display: block;
+  padding: 2px 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--terracotta);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
 /* A mark in the record, on the quote it was put on. Yours is still a control
    here — a day from August can be read for the first time in December — and
    theirs is nothing but text: a page of quotes should not be a page of chips,
    so only the thing that can be pressed is drawn as though it could be. */
 .chron__mark {
-  display: inline-block;
-  margin-left: 6px;
-  vertical-align: middle;
+  display: block;
+  margin-top: 4px;
 }
 
 /* No pop here: a page of the record opening is not a hundred marks arriving. */

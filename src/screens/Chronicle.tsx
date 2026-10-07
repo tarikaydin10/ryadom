@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 import { useSettings } from '../data/settings-context';
 import { getPair } from '../data/pair';
@@ -10,7 +10,7 @@ import { QuestionPool } from '../components/QuestionPool';
 import { Reaction } from '../components/Reaction';
 import { RoundTalk } from '../components/RoundTalk';
 import { react } from '../data/talk';
-import { dateInRecord, dayAndMonth, longDate } from '../lib/format';
+import { dateInRecord, dayAndMonth, longDate, monthYear } from '../lib/format';
 import { DAY_MS, dateKey, dateKeyToMs } from '../lib/day';
 import { seeded } from '../lib/random';
 import { useNow } from '../lib/hooks';
@@ -86,6 +86,7 @@ export function Chronicle() {
   const { t, tp, locale, other } = useI18n();
   const { settings } = useSettings();
   const [history, setHistory] = useState<DayHistory[]>([]);
+  const [view, setView] = useState<'days' | 'questions'>('days');
   const now = useNow();
 
   const member = getPair()?.member ?? 'a';
@@ -116,105 +117,195 @@ export function Chronicle() {
   const first = finished[finished.length - 1]?.date ?? null;
   const found = findAgain(finished, dateKey(now));
 
+  // The record grouped by month, newest first. The months are the page's
+  // landmarks: a list of a hundred days with nothing but day headings has no
+  // "where am I" in it, and the month heading rides along at the top while its
+  // days scroll under it.
+  const months: { key: string; days: DayHistory[] }[] = [];
+  for (const day of history) {
+    const key = day.date.slice(0, 7);
+    const last = months[months.length - 1];
+    if (last?.key === key) last.days.push(day);
+    else months.push({ key, days: [day] });
+  }
+
+  /*
+   * Two halves, chosen at the top, because the tab held two jobs on one page:
+   * reading what was said, and writing what is still to be asked. The second
+   * lived at the foot of the first, which was fine for a week and unreachable
+   * after a month — under every day there has ever been.
+   */
   return (
     <div className="screen">
       <h1 className="screen__title">{t('tabs.chronicle')}</h1>
-      {history.length === 0 && <p className="screen__note">{t('chronicle.empty')}</p>}
 
-      {/* What the two of you have: the rounds both of you finished, as one
-          number that only ever grows, and the day it started counting. Set
-          large because it is the one figure in the app that is allowed to be
-          proud of itself — nothing about it can be lost by missing a day. */}
-      {count > 0 && first && (
-        <div className="tally">
-          <span className="tally__number">{count}</span>
-          <span className="tally__unit">
-            {MILESTONES.has(count) && <span className="tally__mark">{t('chronicle.milestone')}</span>}
-            {tp('chronicle.count', count)}
-            <span className="tally__since">{t('chronicle.since', { date: dateInRecord(dateKeyToMs(first), locale, now) })}</span>
-          </span>
-        </div>
+      <div className="segment segment--fill segment--page" role="tablist">
+        {(['days', 'questions'] as const).map((id) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={view === id}
+            className={view === id ? 'segment__item segment__item--active' : 'segment__item'}
+            onClick={() => setView(id)}
+          >
+            {id === 'days' ? t('chronicle.viewDays') : t('chronicle.viewQuestions')}
+          </button>
+        ))}
+      </div>
+
+      {view === 'questions' ? (
+        <QuestionPool />
+      ) : (
+        <>
+          {history.length === 0 && <p className="screen__note">{t('chronicle.empty')}</p>}
+
+          {/* What the two of you have: the rounds both of you finished, as one
+              number that only ever grows, and the day it started counting. Set
+              large because it is the one figure in the app that is allowed to be
+              proud of itself — nothing about it can be lost by missing a day. */}
+          {count > 0 && first && (
+            <div className="tally">
+              <span className="tally__number">{count}</span>
+              <span className="tally__unit">
+                {MILESTONES.has(count) && <span className="tally__mark">{t('chronicle.milestone')}</span>}
+                {tp('chronicle.count', count)}
+                <span className="tally__since">{t('chronicle.since', { date: dateInRecord(dateKeyToMs(first), locale, now) })}</span>
+              </span>
+            </div>
+          )}
+
+          {/* One finished round from at least a week ago, found again — the same
+              one all day, on both phones. */}
+          {found && <FoundAgain entry={found} yourName={yourName} partnerName={partnerName} />}
+
+          {months.map((month) => (
+            <section className="chron__month" key={month.key}>
+              <h2 className="chron__month-title">{monthYear(dateKeyToMs(`${month.key}-15`), locale)}</h2>
+              {month.days.map((day) => (
+                <section className="chron" key={day.date}>
+                  <span className="chron__date">{longDate(dateKeyToMs(day.date), locale)}</span>
+                  {day.rounds.map((round) => {
+                    const lines = promptLines(round.prompt, locale, other);
+                    return (
+                      <div className="chron__round" key={round.slot}>
+                        <p className="chron__question" lang={lines.primary.lang}>
+                          {lines.primary.text}
+                        </p>
+                        {round.mine ? (
+                          <Quote who={yourName} text={round.mine.text} late={lateLine(day.date, round.mine.createdAt)}>
+                            {/* Their mark on what you wrote, kept with the words it
+                                was put on — the record holds it the way the day did. */}
+                            {round.talk.theirs && (
+                              <span className="chron__mark">
+                                <Reaction mark={round.talk.theirs} ownership="theirs" partnerName={partnerName} />
+                              </span>
+                            )}
+                          </Quote>
+                        ) : (
+                          <LateAnswer
+                            label={yourName}
+                            prompt={t(round.partnerAnswered ? 'chronicle.writeLate' : 'chronicle.writeLateAlone')}
+                            onSave={(text) => save(day.date, round, text)}
+                          />
+                        )}
+                        {round.theirs ? (
+                          <Quote who={partnerName} text={round.theirs.text} late={lateLine(day.date, round.theirs.createdAt)}>
+                            {/* Yours, and still yours to give: a page from August
+                                can be read for the first time in December, and the
+                                mark then is as true as one put on the day. */}
+                            {round.mine && (
+                              <span className="chron__mark">
+                                <Reaction
+                                  mark={round.talk.mine}
+                                  ownership="yours"
+                                  onPick={(emoji) => onReact(day.date, round, emoji)}
+                                />
+                              </span>
+                            )}
+                          </Quote>
+                        ) : (
+                          // Their answer exists but is still locked behind your
+                          // own, or they have not written. Both are worth saying —
+                          // a gap with no explanation reads as something lost.
+                          <p className="chron__said chron__said--pending">
+                            <span className="chron__who">{partnerName}</span>
+                            {round.partnerAnswered ? t('answer.hidden') : t('answer.notYet')}
+                          </p>
+                        )}
+                        {round.mine && round.theirs && (
+                          <RoundTalk
+                            date={day.date}
+                            slot={round.slot}
+                            talk={round.talk}
+                            yourName={yourName}
+                            partnerName={partnerName}
+                            tone="quiet"
+                            onWritten={refresh}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </section>
+              ))}
+            </section>
+          ))}
+        </>
       )}
+    </div>
+  );
+}
 
-      {/* One finished round from at least a week ago, found again — the same
-          one all day, on both phones. */}
-      {found && <FoundAgain entry={found} yourName={yourName} partnerName={partnerName} />}
+interface QuoteProps {
+  who: string;
+  text: string;
+  late: ReactNode;
+  children?: ReactNode;
+}
 
-      {history.map((day) => (
-        <section className="chron" key={day.date}>
-          <span className="chron__date">{longDate(dateKeyToMs(day.date), locale)}</span>
-          {day.rounds.map((round) => {
-            const lines = promptLines(round.prompt, locale, other);
-            return (
-              <div className="chron__round" key={round.slot}>
-                <p className="chron__question" lang={lines.primary.lang}>
-                  {lines.primary.text}
-                </p>
-                {round.mine ? (
-                  <p className="chron__said">
-                    <span className="chron__who">{yourName}</span>
-                    {round.mine.text}
-                    {lateLine(day.date, round.mine.createdAt)}
-                    {/* Their mark on what you wrote, kept with the words it was
-                        put on — the record holds it the way the day did. */}
-                    {round.talk.theirs && (
-                      <span className="chron__mark">
-                        <Reaction mark={round.talk.theirs} ownership="theirs" partnerName={partnerName} />
-                      </span>
-                    )}
-                  </p>
-                ) : (
-                  <LateAnswer
-                    label={yourName}
-                    prompt={t(round.partnerAnswered ? 'chronicle.writeLate' : 'chronicle.writeLateAlone')}
-                    onSave={(text) => save(day.date, round, text)}
-                  />
-                )}
-                {round.theirs ? (
-                  <p className="chron__said">
-                    <span className="chron__who">{partnerName}</span>
-                    {round.theirs.text}
-                    {lateLine(day.date, round.theirs.createdAt)}
-                    {/* Yours, and still yours to give: a page from August can be
-                        read for the first time in December, and the mark then is
-                        as true as one put on the day. */}
-                    {round.mine && (
-                      <span className="chron__mark">
-                        <Reaction
-                          mark={round.talk.mine}
-                          ownership="yours"
-                          onPick={(emoji) => onReact(day.date, round, emoji)}
-                        />
-                      </span>
-                    )}
-                  </p>
-                ) : (
-                  // Their answer exists but is still locked behind your own, or
-                  // they have not written. Both are worth saying — a gap with no
-                  // explanation reads as something lost.
-                  <p className="chron__said chron__said--pending">
-                    <span className="chron__who">{partnerName}</span>
-                    {round.partnerAnswered ? t('answer.hidden') : t('answer.notYet')}
-                  </p>
-                )}
-                {round.mine && round.theirs && (
-                  <RoundTalk
-                    date={day.date}
-                    slot={round.slot}
-                    talk={round.talk}
-                    yourName={yourName}
-                    partnerName={partnerName}
-                    tone="quiet"
-                    onWritten={refresh}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </section>
-      ))}
+/** How many lines of an answer the record shows before it folds the rest. */
+const QUOTE_LINES = 6;
 
-      <QuestionPool />
+/**
+ * One answer in the record, folded to its first lines when it is long.
+ *
+ * A record of three rounds a day is mostly scrolling past paragraphs to find
+ * a day, and a single long answer used to take a whole screen of it. Six lines
+ * are enough to know which answer it is and to want the rest; a tap on the
+ * words, or on "more", opens it where it stands. Short answers are not touched
+ * and carry no control — "more" appears only where there is more.
+ */
+function Quote({ who, text, late, children }: QuoteProps) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [long, setLong] = useState(false);
+  const body = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    const element = body.current;
+    if (element && !open) setLong(element.scrollHeight > element.clientHeight + 1);
+  }, [text, open]);
+
+  const toggle = long ? () => setOpen((current) => !current) : undefined;
+
+  return (
+    <div className="chron__said">
+      <span className="chron__who">{who}</span>
+      <span
+        ref={body}
+        className={open ? 'chron__text' : 'chron__text chron__text--folded'}
+        style={{ WebkitLineClamp: open ? undefined : QUOTE_LINES }}
+        onClick={toggle}
+      >
+        {text}
+      </span>
+      {long && !open && (
+        <button className="chron__more" onClick={toggle}>
+          {t('chronicle.more')}
+        </button>
+      )}
+      {late}
+      {children}
     </div>
   );
 }
@@ -306,14 +397,8 @@ function FoundAgain({ entry, yourName, partnerName }: FoundProps) {
       <p className="chron__question" lang={lines.primary.lang}>
         {lines.primary.text}
       </p>
-      <p className="chron__said">
-        <span className="chron__who">{yourName}</span>
-        {entry.round.mine?.text}
-      </p>
-      <p className="chron__said">
-        <span className="chron__who">{partnerName}</span>
-        {entry.round.theirs?.text}
-      </p>
+      <Quote who={yourName} text={entry.round.mine?.text ?? ''} late={null} />
+      <Quote who={partnerName} text={entry.round.theirs?.text ?? ''} late={null} />
     </section>
   );
 }

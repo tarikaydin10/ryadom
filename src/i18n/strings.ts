@@ -252,6 +252,11 @@ export const en = {
     // A finished round from at least a week ago, put in front of you again.
     found: 'Found again',
     foundKicker: 'Found again · {date}',
+    // The two halves of the tab: what was said, and what is still to be asked.
+    viewDays: 'Days',
+    viewQuestions: 'Questions',
+    // Under a long answer folded to its first lines.
+    more: 'more',
   },
 
   questions: {
@@ -270,7 +275,12 @@ export const en = {
     // Hers, not yet asked. Listed as existing, never as a sentence.
     sealed: '{name} has one waiting — you will read it when it is asked.',
     save: 'Add',
+    // What is still coming, and what has been asked — two lists, because the
+    // one thing anybody looks for here is which of the two a question is in.
+    // The heading over them in the exported text file.
     list: 'Written by the two of you',
+    upcoming: 'Coming up',
+    askedList: 'Already asked',
     // Says what the emptiness means, rather than only that it is empty: until
     // one of you writes one, the day's questions come out of the table.
     empty: 'Neither of you has written one yet — until then the questions come from the built-in list.',
@@ -505,6 +515,9 @@ export const ru: DeepStringShape<typeof en> = {
     milestone: 'Веха.',
     found: 'Нашлось снова',
     foundKicker: 'Нашлось снова · {date}',
+    viewDays: 'Дни',
+    viewQuestions: 'Вопросы',
+    more: 'ещё',
   },
 
   questions: {
@@ -519,6 +532,8 @@ export const ru: DeepStringShape<typeof en> = {
     sealed: '{name} спрашивает — прочитаешь, когда придёт очередь.',
     save: 'Добавить',
     list: 'Написанное вами',
+    upcoming: 'Впереди',
+    askedList: 'Уже заданы',
     empty: 'Никто из вас ещё не написал — пока их нет, вопросы приходят из встроенного списка.',
     waiting: 'ждёт своей очереди',
     asked: 'задан {date}',

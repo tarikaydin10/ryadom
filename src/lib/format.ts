@@ -44,6 +44,11 @@ export function longDate(ms: number, locale: Locale): string {
   );
 }
 
+/** "October 2026" / «октябрь 2026 г.» — a month of the record, as its heading. */
+export function monthYear(ms: number, locale: Locale): string {
+  return new Intl.DateTimeFormat(intlTag(locale), { month: 'long', year: 'numeric' }).format(new Date(ms));
+}
+
 /** "12 October 2025" / «12 октября 2025 г.» — a day from another year. */
 export function dayMonthYear(ms: number, locale: Locale): string {
   return new Intl.DateTimeFormat(intlTag(locale), { day: 'numeric', month: 'long', year: 'numeric' }).format(
