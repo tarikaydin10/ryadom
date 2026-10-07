@@ -685,8 +685,8 @@ function daysChangedSince(since, member) {
 /**
  * What a notification says.
  *
- * Two sentences, and neither of them contains anything that was written. The
- * lock-in is the point of this app: a notification quoting an answer would put
+ * A handful of sentences, and none of them contains anything that was written.
+ * The lock-in is the point of this app: a notification quoting an answer would put
  * her words on his lock screen before he had written his own, which is exactly
  * what this process refuses to do everywhere else.
  *
@@ -698,15 +698,18 @@ const NOTIFICATIONS = {
   en: {
     answered: { title: 'Ryadom', body: 'An answer arrived — your turn.' },
     unlocked: { title: 'Ryadom', body: 'The answer is open, and there is a new question.' },
-    // The afterword, and as content-free as the rest: which round, let alone
-    // which mark or which words, is the app's to show and not the lock screen's.
-    reacted: { title: 'Ryadom', body: 'A mark on one of the answers.' },
+    // The afterword. A mark carries its emoji: it is said about a round both
+    // of you have already read, so there is no lock-in left for the lock screen
+    // to break, and "❤️" is the whole message — "a mark" would only send you
+    // into the app to find out which one. Which answer and which round stay the
+    // app's, and a note's words stay out like an answer's do.
+    reacted: { title: 'Ryadom', body: '{emoji} on your answer.' },
     said: { title: 'Ryadom', body: 'A word under one of the answers.' },
   },
   ru: {
     answered: { title: 'Рядом', body: 'Пришёл ответ — твоя очередь.' },
     unlocked: { title: 'Рядом', body: 'Ответ открыт, и есть новый вопрос.' },
-    reacted: { title: 'Рядом', body: 'Отклик на один из ответов.' },
+    reacted: { title: 'Рядом', body: '{emoji} на твой ответ.' },
     said: { title: 'Рядом', body: 'Слово под одним из ответов.' },
   },
 };
@@ -718,7 +721,7 @@ const NOTIFICATIONS = {
  * Apple. A subscription the push service calls gone is dropped — the app was
  * deleted or the phone was wiped, and it will never work again.
  */
-async function notify(member, kind) {
+async function notify(member, kind, fill = {}) {
   const box = store.push?.subscriptions?.[member];
   if (!Array.isArray(box) || box.length === 0) return;
   const { keys, made } = vapidKeys(store);
@@ -727,7 +730,8 @@ async function notify(member, kind) {
   let dropped = false;
   for (const subscription of [...box]) {
     const text = NOTIFICATIONS[subscription.lang === 'ru' ? 'ru' : 'en'][kind];
-    const result = await push(subscription, { kind, ...text }, keys);
+    const body = text.body.replace(/\{(\w+)\}/g, (_, key) => fill[key] ?? '');
+    const result = await push(subscription, { kind, ...text, body }, keys);
     if (result !== 'gone') continue;
     const at = box.indexOf(subscription);
     if (at >= 0) box.splice(at, 1);
@@ -1312,7 +1316,7 @@ const server = createServer(async (req, res) => {
         await persist();
         // Only a mark where there was none is news. Changing one's mind from a
         // heart to a laugh is not worth a phone buzzing in another country.
-        if (emoji && !had) void notify(otherMember(member), 'reacted').catch(() => undefined);
+        if (emoji && !had) void notify(otherMember(member), 'reacted', { emoji }).catch(() => undefined);
       }
       send(res, 200, dayResponse(date, member));
       return;

@@ -136,3 +136,11 @@ Dazu drei Korrekturen am Rand:
 - Eine Zeile, die geschrieben wurde, während der Kurier gerade unterwegs war,
   wartete bis zum Fünf-Minuten-Takt. `syncNow` hängt in dem Fall einen Lauf an.
 
+**Push trägt das Zeichen** (2026-10-07, auf Aydins Wunsch). „❤️ auf deine
+Antwort“ statt „Ein Zeichen an einer der Antworten“: das Zeichen ist die ganze
+Nachricht, und ohne es schickte der Push nur in die App, um nachzusehen,
+welches. Mit ADR-0013 verträglich — die Runde ist zu, beide haben gelesen, es
+gibt keinen Lock-In mehr, den der Sperrbildschirm brechen könnte, und ein Emoji
+hat kein Geschlecht. Welche Runde und die Worte einer Notiz bleiben weiter
+draußen. Ein gewechseltes Zeichen meldet weiterhin nichts.
+
