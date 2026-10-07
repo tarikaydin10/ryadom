@@ -20,6 +20,11 @@
   --desk: #ede6da;
   /* Under what floats over the page: the six a mark is picked from. */
   --shadow: rgba(36, 31, 27, 0.28);
+  /* The two of you, as colours: Hamburg's harbour slate, Kaliningrad's amber.
+     Keyed by city, not by "you" and "them", so a person has the same colour on
+     both phones — the colour is who, wherever it is read. */
+  --voice-hamburg: #557386;
+  --voice-kaliningrad: #b07a3c;
   /* The daily band's tint, the ground's earth at almost nothing. */
   --daily-tint: rgba(74, 56, 42, 0.045);
   /* The map's land is a picture, not a page: it keeps the paper's colour
@@ -75,6 +80,8 @@
   --terracotta-dark: #cf8c6e;
   --desk: #14110e;
   --shadow: rgba(0, 0, 0, 0.6);
+  --voice-hamburg: #86a7ba;
+  --voice-kaliningrad: #d6a15f;
   --daily-tint: rgba(255, 235, 200, 0.035);
 
   color-scheme: dark;
@@ -2574,9 +2581,7 @@ input.field__input[type='date']::-webkit-date-and-time-value {
 .chron {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--border);
+  gap: 10px;
 }
 
 .chron__date {
@@ -2659,6 +2664,117 @@ input.field__input[type='date']::-webkit-date-and-time-value {
   margin-top: 2px;
 }
 
+/* One round of the record: a card holding the question, the two voices in
+   the order they spoke, and what was said afterwards. A card, because the round
+   is the unit the two of you lived — the same thing a round is on Today — and
+   a page of loose quotes gave the eye nothing to hold a round together by. */
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 16px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.voice--hamburg {
+  --voice: var(--voice-hamburg);
+}
+
+.voice--kaliningrad {
+  --voice: var(--voice-kaliningrad);
+}
+
+.voice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.voice__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+/* The face: an initial in the person's colour. Not a photo — there is no
+   server for photos, and an initial is enough to be somebody. */
+.voice__face {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-family: var(--display);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--card);
+  background: var(--voice);
+}
+
+.voice__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.voice__time {
+  font-size: 12px;
+  color: var(--ink-pale);
+  font-variant-numeric: tabular-nums;
+}
+
+.voice__corner {
+  margin-left: auto;
+}
+
+.voice__corner .mark {
+  animation: none;
+}
+
+/* The words hang from the name, not from the face: one column of text per
+   card, the faces in a column of their own to the left of it. */
+.voice .chron__text,
+.voice .chron__more,
+.voice .chron__late {
+  margin-left: 32px;
+}
+
+.voice .chron__text {
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.voice--muted .voice__face {
+  opacity: 0.35;
+}
+
+.voice--muted .chron__text {
+  font-style: italic;
+  color: var(--ink-pale);
+}
+
+/* What was said afterwards hangs from the faces' column, on its own rail: a
+   reply under the two of them, not a third voice beside them. */
+.entry .talk,
+.entry .talk__line {
+  margin-left: 11px;
+}
+
+/* Inside a card the line for your missing answer is a row of the card, set
+   in the text column. */
+.entry .chron__write,
+.entry .chron__editing {
+  margin-left: 32px;
+  width: auto;
+}
+
 /* A month of the record, and its heading riding along at the top while its
    days scroll under it — under the status-bar strip, never behind it. */
 .chron__month {
@@ -2699,6 +2815,8 @@ input.field__input[type='date']::-webkit-date-and-time-value {
 
 .chron__more {
   display: block;
+  align-self: flex-start;
+  text-align: left;
   padding: 2px 0;
   font-family: inherit;
   font-size: 13px;

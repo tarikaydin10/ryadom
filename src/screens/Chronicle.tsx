@@ -10,7 +10,8 @@ import { QuestionPool } from '../components/QuestionPool';
 import { Reaction } from '../components/Reaction';
 import { RoundTalk } from '../components/RoundTalk';
 import { react } from '../data/talk';
-import { dateInRecord, dayAndMonth, longDate, monthYear } from '../lib/format';
+import { clock, dateInRecord, dayAndMonth, longDate, monthYear } from '../lib/format';
+import { CITIES, otherCity, type CityId } from '../content/cities';
 import { DAY_MS, dateKey, dateKeyToMs } from '../lib/day';
 import { seeded } from '../lib/random';
 import { useNow } from '../lib/hooks';
@@ -176,7 +177,7 @@ export function Chronicle() {
 
           {/* One finished round from at least a week ago, found again — the same
               one all day, on both phones. */}
-          {found && <FoundAgain entry={found} yourName={yourName} partnerName={partnerName} />}
+          {found && <FoundAgain entry={found} yours={sides.yours} yourName={yourName} partnerName={partnerName} />}
 
           {months.map((month) => (
             <section className="chron__month" key={month.key}>
@@ -186,51 +187,84 @@ export function Chronicle() {
                   <span className="chron__date">{longDate(dateKeyToMs(day.date), locale)}</span>
                   {day.rounds.map((round) => {
                     const lines = promptLines(round.prompt, locale, other);
+                    // The two answers in the order they were written, so the
+                    // card reads as the exchange it was: who went first, and
+                    // how long the other one took. What is missing comes last.
+                    const voices = [
+                      round.mine && {
+                        key: 'mine',
+                        node: (
+                          <Voice
+                            key="mine"
+                            name={yourName}
+                            city={sides.yours}
+                            at={round.mine.createdAt}
+                            text={round.mine.text}
+                            late={lateLine(day.date, round.mine.createdAt)}
+                            // Their mark on what you wrote, in the corner of it.
+                            corner={
+                              round.talk.theirs && (
+                                <Reaction mark={round.talk.theirs} ownership="theirs" partnerName={partnerName} />
+                              )
+                            }
+                          />
+                        ),
+                        at: round.mine.createdAt,
+                      },
+                      round.theirs && {
+                        key: 'theirs',
+                        node: (
+                          <Voice
+                            key="theirs"
+                            name={partnerName}
+                            city={sides.theirs}
+                            at={round.theirs.createdAt}
+                            text={round.theirs.text}
+                            late={lateLine(day.date, round.theirs.createdAt)}
+                            // Yours, and still yours to give: a page from August
+                            // can be read for the first time in December, and the
+                            // mark then is as true as one put on the day.
+                            corner={
+                              round.mine && (
+                                <Reaction
+                                  mark={round.talk.mine}
+                                  ownership="yours"
+                                  onPick={(emoji) => onReact(day.date, round, emoji)}
+                                />
+                              )
+                            }
+                          />
+                        ),
+                        at: round.theirs.createdAt,
+                      },
+                    ]
+                      .filter((voice) => !!voice)
+                      .sort((left, right) => left.at - right.at);
                     return (
-                      <div className="chron__round" key={round.slot}>
+                      <article className="entry" key={round.slot}>
                         <p className="chron__question" lang={lines.primary.lang}>
                           {lines.primary.text}
                         </p>
-                        {round.mine ? (
-                          <Quote who={yourName} text={round.mine.text} late={lateLine(day.date, round.mine.createdAt)}>
-                            {/* Their mark on what you wrote, kept with the words it
-                                was put on — the record holds it the way the day did. */}
-                            {round.talk.theirs && (
-                              <span className="chron__mark">
-                                <Reaction mark={round.talk.theirs} ownership="theirs" partnerName={partnerName} />
-                              </span>
-                            )}
-                          </Quote>
-                        ) : (
+                        {voices.map((voice) => voice.node)}
+                        {!round.mine && (
                           <LateAnswer
                             label={yourName}
                             prompt={t(round.partnerAnswered ? 'chronicle.writeLate' : 'chronicle.writeLateAlone')}
                             onSave={(text) => save(day.date, round, text)}
                           />
                         )}
-                        {round.theirs ? (
-                          <Quote who={partnerName} text={round.theirs.text} late={lateLine(day.date, round.theirs.createdAt)}>
-                            {/* Yours, and still yours to give: a page from August
-                                can be read for the first time in December, and the
-                                mark then is as true as one put on the day. */}
-                            {round.mine && (
-                              <span className="chron__mark">
-                                <Reaction
-                                  mark={round.talk.mine}
-                                  ownership="yours"
-                                  onPick={(emoji) => onReact(day.date, round, emoji)}
-                                />
-                              </span>
-                            )}
-                          </Quote>
-                        ) : (
+                        {!round.theirs && (
                           // Their answer exists but is still locked behind your
                           // own, or they have not written. Both are worth saying —
                           // a gap with no explanation reads as something lost.
-                          <p className="chron__said chron__said--pending">
-                            <span className="chron__who">{partnerName}</span>
-                            {round.partnerAnswered ? t('answer.hidden') : t('answer.notYet')}
-                          </p>
+                          <Voice
+                            name={partnerName}
+                            city={sides.theirs}
+                            at={round.partnerAnswered ? round.partnerAt : null}
+                            text={round.partnerAnswered ? t('answer.hidden') : t('answer.notYet')}
+                            late={null}
+                            muted
+                          />
                         )}
                         {round.mine && round.theirs && (
                           <RoundTalk
@@ -243,7 +277,7 @@ export function Chronicle() {
                             onWritten={refresh}
                           />
                         )}
-                      </div>
+                      </article>
                     );
                   })}
                 </section>
@@ -256,27 +290,40 @@ export function Chronicle() {
   );
 }
 
-interface QuoteProps {
-  who: string;
+interface VoiceProps {
+  name: string;
+  /** Whose city — the colour of the voice, and the clock its time is read on. */
+  city: CityId;
+  at: number | null;
   text: string;
   late: ReactNode;
-  children?: ReactNode;
+  /** What sits in the corner: the mark put on these words, or the way to put one. */
+  corner?: ReactNode;
+  /** A line about an answer rather than an answer: locked, or not written. */
+  muted?: boolean;
 }
 
 /** How many lines of an answer the record shows before it folds the rest. */
 const QUOTE_LINES = 6;
 
 /**
- * One answer in the record, folded to its first lines when it is long.
+ * One answer in the record: who, when, what — and the mark on it.
  *
- * A record of three rounds a day is mostly scrolling past paragraphs to find
- * a day, and a single long answer used to take a whole screen of it. Six lines
- * are enough to know which answer it is and to want the rest; a tap on the
- * words, or on "more", opens it where it stands. Short answers are not touched
- * and carry no control — "more" appears only where there is more.
+ * It used to be a small uppercase name over a block of text, the same for both
+ * of you, so a page of them was text stacked on text and "who said this" had to
+ * be read rather than seen. Now each voice has a face: an initial in the colour
+ * of its city — the same colour for the same person on both phones — the name,
+ * and the time on that person's own clock, the way her card on Today shows it.
+ * The mark sits in the corner of the words it was put on, where every messenger
+ * puts it.
+ *
+ * Folded to its first lines when it is long. A record of three rounds a day is
+ * mostly scrolling past paragraphs to find a day; six lines are enough to know
+ * which answer it is and to want the rest. "more" appears only where there is
+ * more.
  */
-function Quote({ who, text, late, children }: QuoteProps) {
-  const { t } = useI18n();
+function Voice({ name, city, at, text, late, corner, muted = false }: VoiceProps) {
+  const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const [long, setLong] = useState(false);
   const body = useRef<HTMLSpanElement>(null);
@@ -289,8 +336,15 @@ function Quote({ who, text, late, children }: QuoteProps) {
   const toggle = long ? () => setOpen((current) => !current) : undefined;
 
   return (
-    <div className="chron__said">
-      <span className="chron__who">{who}</span>
+    <div className={`voice voice--${city}${muted ? ' voice--muted' : ''}`}>
+      <div className="voice__head">
+        <span className="voice__face" aria-hidden="true">
+          {Array.from(name)[0] ?? '·'}
+        </span>
+        <span className="voice__name">{name}</span>
+        {at !== null && <span className="voice__time">{clock(at, CITIES[city].tz, locale)}</span>}
+        {corner && <span className="voice__corner">{corner}</span>}
+      </div>
       <span
         ref={body}
         className={open ? 'chron__text' : 'chron__text chron__text--folded'}
@@ -305,7 +359,6 @@ function Quote({ who, text, late, children }: QuoteProps) {
         </button>
       )}
       {late}
-      {children}
     </div>
   );
 }
@@ -380,6 +433,7 @@ function LateAnswer({ label, prompt, onSave }: LateProps) {
 
 interface FoundProps {
   entry: Finished;
+  yours: CityId;
   yourName: string;
   partnerName: string;
 }
@@ -388,7 +442,7 @@ interface FoundProps {
  * A memory, set the way the record sets a day, in a card so that it reads as
  * something put in front of you rather than as the first entry of the list.
  */
-function FoundAgain({ entry, yourName, partnerName }: FoundProps) {
+function FoundAgain({ entry, yours, yourName, partnerName }: FoundProps) {
   const { t, locale, other } = useI18n();
   const lines = promptLines(entry.round.prompt, locale, other);
   return (
@@ -397,8 +451,14 @@ function FoundAgain({ entry, yourName, partnerName }: FoundProps) {
       <p className="chron__question" lang={lines.primary.lang}>
         {lines.primary.text}
       </p>
-      <Quote who={yourName} text={entry.round.mine?.text ?? ''} late={null} />
-      <Quote who={partnerName} text={entry.round.theirs?.text ?? ''} late={null} />
+      <Voice name={yourName} city={yours} at={entry.round.mine?.createdAt ?? null} text={entry.round.mine?.text ?? ''} late={null} />
+      <Voice
+        name={partnerName}
+        city={otherCity(yours)}
+        at={entry.round.theirs?.createdAt ?? null}
+        text={entry.round.theirs?.text ?? ''}
+        late={null}
+      />
     </section>
   );
 }
