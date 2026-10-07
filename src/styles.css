@@ -1370,13 +1370,15 @@ textarea {
    hundred past rounds would be a hundred invitations nobody asked for. */
 .talk__line {
   align-self: flex-start;
+  /* Where the thread would hang, so opening it does not move the line. */
+  margin-left: 12px;
+  padding: 4px 0 4px 11px;
   font-family: inherit;
   font-size: 12px;
   font-style: italic;
   color: var(--ink-pale);
   background: none;
   border: 0;
-  padding: 4px 0;
   cursor: pointer;
 }
 
@@ -1392,20 +1394,27 @@ textarea {
   vertical-align: 0.1em;
 }
 
+/* The afterword is a reply lane, not a third quote. In the first version every
+   note had the same left rule and nearly the size of an answer, and on the
+   phone a thread under a round read as more answers to the question — the two
+   things the page holds were drawn as one. Now the whole thread hangs one step
+   in from the answers on a single hairline, set smaller and quieter: the
+   answers are the page, this is what was said in its margin. One rail for the
+   thread rather than one per note, so a run of lines reads as one exchange. */
 .talk {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  margin: 2px 0 0 12px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
 }
 
-/* A note is set smaller than an answer and quoted the same way. It is an aside
-   to the round, and it should never be mistaken for what was answered. */
 .talk__note {
   margin: 0;
   font-size: 14px;
   line-height: 1.45;
-  padding-left: 10px;
-  border-left: 2px solid var(--border);
+  color: var(--ink-muted);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   text-wrap: pretty;
@@ -1414,11 +1423,11 @@ textarea {
 /* A note following one from the same person: no name, and tucked up against
    the one above it, so a run of them reads as one turn of speaking. */
 .talk__note--same {
-  margin-top: -4px;
+  margin-top: -3px;
 }
 
-/* Theirs, and new to this device: the quote line starts in terracotta and
-   settles to the ordinary one, so the eye finds it once and is then left
+/* Theirs, and new to this device: it lights up in the ink of an answer and
+   settles back into the margin, so the eye finds it once and is then left
    alone. */
 .talk__note--new {
   animation: note-new 2.6s ease 0.4s both;
@@ -1426,10 +1435,10 @@ textarea {
 
 @keyframes note-new {
   from {
-    border-left-color: var(--terracotta);
+    color: var(--ink);
   }
   to {
-    border-left-color: var(--border);
+    color: var(--ink-muted);
   }
 }
 
@@ -1455,22 +1464,19 @@ textarea {
 /* Inline, unlike the name above a quote: a note is often shorter than its own
    label, and a name on its own line would double the height of the thread. */
 .talk__who {
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--ink-muted);
+  color: var(--ink-pale);
   margin-right: 6px;
 }
 
-/* The field under the round: one line set like a quote that has not been
-   written yet — the same indent and rule as a note, the rule dashed — with the
-   arrow at its end once there is something to send. */
+/* The field: the next line of the thread, not yet written, on the same rail —
+   with the arrow at its end once there is something to send. */
 .talk__compose {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  padding-left: 10px;
-  border-left: 2px dashed var(--border);
 }
 
 .talk__field {
@@ -1500,7 +1506,8 @@ textarea {
   outline: none;
 }
 
-.talk__compose:focus-within {
+/* Writing lights the rail, so it is plain which thread the words go to. */
+.talk:focus-within {
   border-left-color: var(--terracotta);
 }
 
@@ -1824,6 +1831,26 @@ input.field__input[type='time'] {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+/* The strip behind the status bar. Every screen but Today and the map runs
+   paper right up to the top edge, and once the page scrolled, the record went
+   on underneath the clock and the battery, both legible at once and neither
+   readable (2026-10-07, a screenshot of the chronicle). Sticky rather than
+   fixed, like the tab bar and for the same reason — a fixed layer on iOS is
+   what the keyboard bug moves (ADR-0010). Its margins cancel its height and
+   the column's gap exactly, so nothing below it moves: the strip lies over the
+   top of the screen's own padding, which is where the island already was. */
+.screen::before {
+  content: '';
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  flex: none;
+  height: var(--safe-top);
+  margin: calc(-24px - var(--safe-top)) calc(-1 * var(--gutter)) 6px;
+  background: var(--paper);
+  transition: background-color 900ms ease;
 }
 
 .screen__title {
