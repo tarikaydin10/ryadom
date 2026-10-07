@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useLayoutEffect, useSyncExternalStore } from 'react';
 import { rowAt } from '../sky/engine';
 import type { CityId } from '../content/cities';
 
@@ -49,12 +49,19 @@ export const isDuskIn = (city: CityId, now: number): boolean => rowAt(now).alt[c
 
 /**
  * Keeps the root element's `data-night` in step with the sun and the
- * preference. `now` ticks on the minute, which is as often as dusk needs.
+ * preference. `now` ticks on the minute, which is as often as dusk needs; null
+ * means there is no city to ask yet, and the paper stays light.
+ *
+ * A layout effect, not an effect: it has to land before the first frame. As
+ * an effect it landed after it, so every launch at night painted light paper
+ * and then dimmed it over the 900 ms the dusk transition takes — with the type
+ * already in its night colour, the heading pale on pale and unreadable for
+ * that second (2026-10-07, seen on the lock screen).
  */
-export function useNightPaper(city: CityId, now: number): void {
+export function useNightPaper(city: CityId, now: number | null): void {
   const preference = usePaperPreference();
-  useEffect(() => {
-    const night = preference === 'sun' && isDuskIn(city, now);
+  useLayoutEffect(() => {
+    const night = preference === 'sun' && now !== null && isDuskIn(city, now);
     if (night) document.documentElement.dataset.night = '';
     else delete document.documentElement.dataset.night;
   }, [preference, city, now]);

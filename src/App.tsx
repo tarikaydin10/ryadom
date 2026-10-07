@@ -24,8 +24,10 @@ export function App() {
   const [, force] = useState(0);
   const now = useNow();
   // The paper follows the sun of the city this phone is in; before unlocking
-  // nobody knows which, and the lock screen reads in daylight.
-  useNightPaper(cityOf(getPair()?.member ?? 'a'), unlocked ? now : 0);
+  // nobody knows which, and the lock screen reads in daylight. (It used to ask
+  // the sun about the moment 0 — midnight, 1 January 1970, in Hamburg — and so
+  // was dark at every hour.)
+  useNightPaper(cityOf(getPair()?.member ?? 'a'), unlocked ? now : null);
 
   useEffect(() => {
     if (!unlocked) return;
