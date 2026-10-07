@@ -197,6 +197,8 @@ export const en = {
     notSet: 'not set',
     device: 'This device',
     forget: 'Forget this device',
+    // The second tap. The first only arms it: this one cannot be undone here.
+    forgetConfirm: 'Tap again to forget',
     forgetHint: 'Removes the passphrase from this device. Your answers stay on the server.',
     dayBoundary: 'The shared day starts at midnight in {tz}, so you both get the same question at the same moment.',
     // Reached by tapping the heading five times. The wording assumes the reader
@@ -461,6 +463,7 @@ export const ru: DeepStringShape<typeof en> = {
     notSet: 'не выбрано',
     device: 'Это устройство',
     forget: 'Забыть это устройство',
+    forgetConfirm: 'Нажми ещё раз, чтобы забыть',
     forgetHint: 'Пароль удалится с устройства. Ответы останутся на сервере.',
     dayBoundary: 'Общий день начинается в полночь по зоне {tz} — так вопрос у вас обоих меняется одновременно.',
     notifications: 'Уведомления',
