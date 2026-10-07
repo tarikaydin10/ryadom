@@ -26,9 +26,12 @@ self.addEventListener('push', (event) => {
   // The dot on the icon, set here because the app is not running to set it:
   // whichever of the two sentences arrived, there is something for you inside.
   // The app clears it again on the next look, from what is actually true. A
-  // note typed by the other side is read here and now, and marks nothing.
+  // note typed by the other side is read here and now, and marks nothing; nor
+  // does a mark or a word under a finished round — the dot means one thing,
+  // "her answer is waiting behind yours" (ADR-0021).
+  const quiet = payload.kind === 'note' || payload.kind === 'reacted' || payload.kind === 'said';
   const badge =
-    payload.kind !== 'note' && typeof self.navigator?.setAppBadge === 'function'
+    !quiet && typeof self.navigator?.setAppBadge === 'function'
       ? self.navigator.setAppBadge(1).catch(() => undefined)
       : Promise.resolve();
 

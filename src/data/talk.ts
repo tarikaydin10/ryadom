@@ -30,6 +30,9 @@ export const REACTIONS = ['❤️', '🥹', '😂', '😮', '🤗', '🙏'] as c
 
 export type ReactionEmoji = (typeof REACTIONS)[number];
 
+/** The one a double tap on her words gives. */
+export const HEART: ReactionEmoji = REACTIONS[0];
+
 export const MAX_NOTE_TEXT = 280;
 
 function newNoteId(): string {

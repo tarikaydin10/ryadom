@@ -1,6 +1,6 @@
 # ADR-0021 · Das Nachwort: ein Zeichen und Notizen an der fertigen Runde
 
-**Status:** Gültig
+**Status:** Gültig — Bedienung am 2026-10-07 überarbeitet (siehe Nachtrag)
 **Datum:** 2026-09-12
 
 ## Kontext
@@ -97,3 +97,42 @@ beantwortet haben**.
 - Der Export trägt beides mit (Text und JSON). Es gehört zum Geschriebenen.
 - Auf einer offenen Runde ändert sich an der Seite **nichts** — kein Element,
   keine Zeile. Das ist die Bedingung, unter der das hier gebaut wurde.
+
+## Nachtrag 2026-10-07 — die Bedienung, knapper
+
+Gebaut, aber nie auf `main` gekommen; vor dem Merge noch einmal im Browser aus
+beiden Richtungen durchgespielt. Drei Dinge hielten nicht:
+
+- **Drei Taps für „ha“.** Die Zeile „Sag etwas dazu“ öffnete einen leeren
+  Faden, der nur dieselbe Zeile noch einmal enthielt — der erste Tap änderte
+  sichtbar nichts —, und erst der zweite öffnete ein Feld mit Senden und
+  Abbrechen. Jetzt steht unter einer fertigen Runde auf Today **das Feld
+  selbst**, eine Zeile hoch, gesetzt wie ein noch ungeschriebenes Zitat; ein Tap
+  setzt den Cursor. Return sendet (auf dem Telefon heißt die Taste „Senden“),
+  der Pfeil erscheint erst, wenn etwas dasteht, und das Feld bleibt für die
+  nächste Zeile offen. In der Chronik bleibt der Faden eine leise Zeile, bis man
+  ihn öffnet oder etwas Neues darin steht; ohne Notizen öffnet derselbe Tap
+  direkt das Feld. „Zuklappen“ gibt es nicht mehr — nichts in dieser App faltet
+  man von Hand wieder zu.
+- **Das „+“ war kein Zeichen für „reagieren“**, und die sechs öffneten sich
+  als zwei Reihen Knöpfe *in* ihrer Karte, die dabei um zwei Reihen wuchs.
+  Jetzt: das Gesicht mit Plus, das jeder Messenger dafür hat, und die sechs in
+  einer Leiste, die über der Seite schwebt (Tapback) und am Fensterrand
+  gehalten wird.
+- **Der schnellste Weg fehlte.** Ein **Doppeltipp auf ihre Worte ist ein
+  Herz**, mit einem großen Herz, das kurz über ihrer Antwort aufgeht. Er nimmt
+  nie zurück; ändern und zurücknehmen geht über den Chip. Gezählt aus zwei
+  Klicks statt aus `dblclick`, das iOS nicht verlässlich liefert —
+  **auf dem iPhone noch nicht gesehen.**
+
+Dazu drei Korrekturen am Rand:
+
+- Der Push für ein Zeichen oder eine Notiz setzte den Punkt auf dem App-Icon.
+  Das widersprach der eigenen Entscheidung oben; `push-sw.js` lässt ihn für
+  `reacted` und `said` jetzt weg.
+- Mehrere kurze Zeilen hintereinander summten das andere Telefon jedes Mal an.
+  Eine Notiz innerhalb von drei Minuten nach der eigenen letzten unter
+  derselben Runde meldet nichts mehr; die erste eines Laufs genügt.
+- Eine Zeile, die geschrieben wurde, während der Kurier gerade unterwegs war,
+  wartete bis zum Fünf-Minuten-Takt. `syncNow` hängt in dem Fall einen Lauf an.
+

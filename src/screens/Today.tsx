@@ -38,7 +38,7 @@ const openingRound = (date: string): RoundView[] => [
     partnerAnswered: false,
     partnerAt: null,
     partnerSize: 2,
-    talk: { mine: null, theirs: null, notes: [], unseen: 0 },
+    talk: { mine: null, theirs: null, notes: [], unseen: 0, seenAt: 0 },
   },
 ];
 

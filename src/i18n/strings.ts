@@ -116,12 +116,12 @@ export const en = {
     change: 'Change your reaction',
     pick: 'Pick a reaction',
     from: 'from {name}',
-    // The folded line, when nothing has been said yet: an invitation on today's
-    // round, a quiet line in the record.
+    // The folded line in the record when nothing has been said yet, and the
+    // field's own label.
     add: 'Say something about this',
-    placeholder: 'A word about this one …',
+    // The field under today's round: the invitation is the empty field itself.
+    placeholder: 'Say something about this …',
     count: { one: 'note', few: 'notes', many: 'notes', other: 'notes' } as Plural,
-    hide: 'Fold it up',
     new: 'new',
   },
 
@@ -399,7 +399,6 @@ export const ru: DeepStringShape<typeof en> = {
     add: 'Сказать об этом',
     placeholder: 'Пара слов об этом …',
     count: { one: 'заметка', few: 'заметки', many: 'заметок', other: 'заметки' },
-    hide: 'Свернуть',
     new: 'новое',
   },
 

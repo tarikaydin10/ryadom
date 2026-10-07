@@ -287,10 +287,21 @@ async function pullHistory(): Promise<void> {
 }
 
 let running: Promise<void> | null = null;
+/**
+ * Asked for while a sync was already under way. That one may have read the
+ * outbox before the newest write went in, and the write would then wait for the
+ * five-minute heartbeat — which nobody notices for an answer, and everybody
+ * notices for the second of two quick lines under a round. So the run that is
+ * going ends by starting one more.
+ */
+let again = false;
 
 export function syncNow(dates: string[] = activeDates()): Promise<void> {
   if (!syncEnabled()) return Promise.resolve();
-  if (running) return running;
+  if (running) {
+    again = true;
+    return running;
+  }
 
   running = (async () => {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -317,6 +328,10 @@ export function syncNow(dates: string[] = activeDates()): Promise<void> {
       emit({ state: navigator.onLine === false ? 'offline' : 'error', error: message });
     } finally {
       running = null;
+      if (again) {
+        again = false;
+        void syncNow().catch(() => undefined);
+      }
     }
   })();
 

@@ -32,6 +32,8 @@ export interface TalkView {
   notes: NoteRecord[];
   /** Notes of theirs written since this device last had the thread open. */
   unseen: number;
+  /** When it last had it open — what tells the thread which of the notes are new. */
+  seenAt: number;
 }
 
 /** One round of a day, with everything the screen needs to draw it. */
@@ -48,7 +50,7 @@ export interface RoundView {
   talk: TalkView;
 }
 
-const EMPTY_TALK: TalkView = { mine: null, theirs: null, notes: [], unseen: 0 };
+const EMPTY_TALK: TalkView = { mine: null, theirs: null, notes: [], unseen: 0, seenAt: 0 };
 
 /** A round's afterword, with "new since you last looked" worked out for the page. */
 function talkView(round: RoundRecord | undefined): TalkView {
@@ -62,6 +64,7 @@ function talkView(round: RoundRecord | undefined): TalkView {
     theirs: round.reactions?.theirs?.emoji ? round.reactions.theirs : null,
     notes,
     unseen: notes.filter((note) => note.author === 'them' && note.createdAt > seenAt).length,
+    seenAt,
   };
 }
 

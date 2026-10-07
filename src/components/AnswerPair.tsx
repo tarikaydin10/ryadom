@@ -1,11 +1,11 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useI18n } from '../i18n';
 import { clock } from '../lib/format';
 import { promptId } from '../content/prompt';
 import type { RoundView } from '../data/answers';
 import type { AnswerRecord, Reaction as Mark } from '../data/db';
 import { clearDraft, loadDraft, saveDraft } from '../data/drafts';
-import { react } from '../data/talk';
+import { HEART, react } from '../data/talk';
 import { Reaction } from './Reaction';
 import { RoundTalk } from './RoundTalk';
 
@@ -60,6 +60,9 @@ function Bars({ count }: { count: number }) {
 /** How long the bars take to become her words, and the words to settle. */
 const REVEAL_MS = 1400;
 
+/** Two taps closer together than this are one double tap — the system's own feel. */
+const DOUBLE_TAP_MS = 320;
+
 /**
  * True for a moment after something that was not there arrives.
  *
@@ -88,9 +91,11 @@ function useArrival(present: boolean, forMs: number): boolean {
  * Her side, which is a card you read rather than one you touch.
  *
  * That is the whole of its affordance and it is deliberate: nothing here invites
- * a tap, because there is nothing here to do. The only way to open it is to
- * write on your own side, and the pair of cards says so by looking like an open
- * page next to a closed one.
+ * a tap while it is closed, because there is nothing here to do. The only way to
+ * open it is to write on your own side, and the pair of cards says so by looking
+ * like an open page next to a closed one. Once both of you have answered there
+ * is one thing to do with her words — answer them back with a mark — and the
+ * card takes it as a double tap or from the chip at its foot.
  *
  * The time beside her name is her clock, not the pair's calendar zone: the band
  * above shows two clocks side by side, and "22:14" next to her name means the
@@ -113,9 +118,36 @@ function TheirAnswer({
 }: TheirsProps) {
   const { t, locale } = useI18n();
   const revealing = useArrival(theirs !== null, REVEAL_MS);
+  const lastTap = useRef(0);
+  const [hearts, setHearts] = useState(0);
+
+  // A double tap on her words is a heart, the gesture everybody already has in
+  // their thumbs from every photo they ever liked. Counted by hand from two
+  // clicks rather than from `dblclick`, which iOS does not reliably send; the
+  // page has double-tap zoom switched off (html, body), so both taps arrive.
+  // It never takes a heart back: a second double tap is the same "yes" again,
+  // and the chip at the foot is where a mark is changed or withdrawn.
+  const tap = (event: MouseEvent<HTMLDivElement>) => {
+    if (!sealed || (event.target as Element).closest('.mark__holder')) return;
+    const now = event.timeStamp;
+    if (now - lastTap.current > DOUBLE_TAP_MS) {
+      lastTap.current = now;
+      return;
+    }
+    lastTap.current = 0;
+    // A desktop double click also selects the word under it.
+    window.getSelection()?.removeAllRanges();
+    setHearts((count) => count + 1);
+    if (mark?.emoji !== HEART) onReact(HEART);
+  };
 
   return (
-    <div className={revealing ? 'answer answer--theirs answer--revealing' : 'answer answer--theirs'}>
+    <div className={revealing ? 'answer answer--theirs answer--revealing' : 'answer answer--theirs'} onClick={tap}>
+      {hearts > 0 && (
+        <span key={hearts} className="answer__heart" aria-hidden="true">
+          {HEART}
+        </span>
+      )}
       <span className="answer__label">
         {partnerName}
         {partnerAt !== null ? ` · ${clock(partnerAt, partnerTz, locale)}` : ''}

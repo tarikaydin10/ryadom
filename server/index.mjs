@@ -110,6 +110,8 @@ const REACTIONS = new Set(['❤️', '🥹', '😂', '😮', '🤗', '🙏']);
 const NOTE_ID_RE = /^n-[A-Za-z0-9_-]{1,64}$/;
 const MAX_NOTE_TEXT = 280;
 const MAX_NOTES_PER_ROUND = 40;
+/** A note this soon after your previous one under the same round buzzes nobody. */
+const NOTE_QUIET_MS = 3 * 60 * 1000;
 
 /**
  * A translation is optional, and it says where it came from — a person who
@@ -1332,6 +1334,10 @@ const server = createServer(async (req, res) => {
         send(res, 409, { error: 'too many notes' });
         return;
       }
+      // The thread is written as several short lines in a row. The first of a
+      // run buzzes her phone; the rest arrive while she is already reading.
+      const lastOwn = notes.findLast((note) => note.by === member);
+      const burst = lastOwn && Date.now() - lastOwn.touchedAt < NOTE_QUIET_MS;
       notes.push({
         id,
         by: member,
@@ -1342,7 +1348,7 @@ const server = createServer(async (req, res) => {
         touchedAt: Date.now(),
       });
       await persist();
-      void notify(otherMember(member), 'said').catch(() => undefined);
+      if (!burst) void notify(otherMember(member), 'said').catch(() => undefined);
     }
     send(res, 200, dayResponse(date, member));
     return;

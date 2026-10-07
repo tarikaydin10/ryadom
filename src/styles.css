@@ -18,6 +18,8 @@
   --night: #12111f;
   /* The desk the phone-sized column lies on, seen only on a wide window. */
   --desk: #ede6da;
+  /* Under what floats over the page: the six a mark is picked from. */
+  --shadow: rgba(36, 31, 27, 0.28);
   /* The daily band's tint, the ground's earth at almost nothing. */
   --daily-tint: rgba(74, 56, 42, 0.045);
   /* The map's land is a picture, not a page: it keeps the paper's colour
@@ -72,6 +74,7 @@
   --terracotta: #d4785a;
   --terracotta-dark: #cf8c6e;
   --desk: #14110e;
+  --shadow: rgba(0, 0, 0, 0.6);
   --daily-tint: rgba(255, 235, 200, 0.035);
 
   color-scheme: dark;
@@ -1226,88 +1229,155 @@ textarea {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex-wrap: wrap;
   margin-top: 2px;
+}
+
+/* The anchor the six float from. */
+.mark__holder {
+  position: relative;
+  display: inline-flex;
 }
 
 .mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 30px;
-  min-height: 26px;
-  padding: 2px 8px;
+  min-width: 34px;
+  min-height: 28px;
+  padding: 2px 9px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--paper);
+  background: var(--card);
+  color: var(--ink);
   font-family: inherit;
   font-size: 15px;
   line-height: 1;
   cursor: pointer;
+  /* Every mark arrives with a small pop — yours as you pick it, theirs as it
+     comes in. It is keyed by the emoji, so a change pops too. */
+  animation: mark-pop 380ms cubic-bezier(0.3, 1.5, 0.6, 1) both;
 }
 
-/* Nothing given yet: the invitation, and quiet enough that a card without a
-   mark still reads as a card and not as a form with an empty field in it. */
+@keyframes mark-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}
+
+/* Nothing given yet: the face with the plus, the sign every messenger uses for
+   "react", quiet enough that a card without a mark still reads as a card and
+   not as a form with an empty field in it. No pop: an invitation that bounces
+   at you every time the page opens is asking too loudly. */
 .mark--empty {
   color: var(--ink-pale);
   background: none;
-  border-style: dashed;
-  font-size: 14px;
+  border-color: transparent;
+  padding: 2px 6px;
+  animation: none;
 }
 
 .mark--theirs {
   cursor: default;
 }
 
-/* The six, in the place the chip was. Two rows of three on a phone: a card
-   half the screen wide cannot hold six targets worth hitting, and a mark that
-   needs aiming is not worth the tap it saves. */
-.mark__row {
+/* The six, in a bar that floats over the page from the chip — a tapback. It
+   used to open inside the card as two rows of buttons, and the card grew by
+   their height under her answer. Where it ends up horizontally is measured
+   (see Reaction): the chip can be at either edge. */
+.mark__bar {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: -6px;
+  z-index: 5;
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  width: 100%;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 24px -10px var(--shadow);
+  animation: bar-in 220ms cubic-bezier(0.3, 1.4, 0.6, 1) both;
+  transform-origin: 24px bottom;
+}
+
+@keyframes bar-in {
+  from {
+    transform: scale(0.6) translateY(6px);
+    opacity: 0;
+  }
 }
 
 .mark__pick {
-  flex: 1 1 28%;
-  min-height: 32px;
-  padding: 2px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  font-size: 17px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  font-size: 22px;
   line-height: 1;
   cursor: pointer;
+  transition: transform 120ms ease;
 }
 
-/* The one already given. Tapping it again takes it back, which is the gesture
-   this control has everywhere else. */
+.mark__pick:active {
+  transform: scale(1.25);
+}
+
+/* The one already given. Tapping it again takes it back. */
 .mark__pick--on {
-  border-color: var(--terracotta);
-  background: rgba(176, 86, 60, 0.12);
+  background: var(--card-muted);
 }
 
-/* The thread's own line, folded. Set like the line that opens the question form
-   on the same page — a thing to do, in the colour everything you can do here
-   has. In the record it is set quiet instead: the same line under a hundred
-   past rounds would be a hundred invitations nobody asked for. */
+/* The heart a double tap leaves on her card: large, in the middle of her words,
+   and gone in under a second. The one moment of fireworks in the afterword,
+   because it is the one gesture that is pure feeling. */
+.answer__heart {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 4;
+  font-size: 64px;
+  line-height: 1;
+  pointer-events: none;
+  animation: heart 820ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+@keyframes heart {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0;
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 1;
+  }
+  45% {
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -70%) scale(0.9);
+    opacity: 0;
+  }
+}
+
+/* The thread's folded line, in the record. Set quiet: the same line under a
+   hundred past rounds would be a hundred invitations nobody asked for. */
 .talk__line {
   align-self: flex-start;
   font-family: inherit;
   font-size: 12px;
-  letter-spacing: 0.04em;
-  color: var(--terracotta);
+  font-style: italic;
+  color: var(--ink-pale);
   background: none;
   border: 0;
   padding: 4px 0;
   cursor: pointer;
-}
-
-.talk__line--quiet {
-  color: var(--ink-pale);
-  font-style: italic;
-  letter-spacing: 0;
 }
 
 /* Something written since this device last looked. A dot, not a number: how
@@ -1347,6 +1417,41 @@ textarea {
   margin-top: -4px;
 }
 
+/* Theirs, and new to this device: the quote line starts in terracotta and
+   settles to the ordinary one, so the eye finds it once and is then left
+   alone. */
+.talk__note--new {
+  animation: note-new 2.6s ease 0.4s both;
+}
+
+@keyframes note-new {
+  from {
+    border-left-color: var(--terracotta);
+  }
+  to {
+    border-left-color: var(--border);
+  }
+}
+
+/* Written while the thread was on screen — yours just sent, or theirs just
+   arrived: it slides into the thread rather than appearing in it. */
+.talk__note--fresh {
+  animation: note-in 320ms ease both;
+}
+
+.talk__note--fresh.talk__note--new {
+  animation:
+    note-in 320ms ease both,
+    note-new 2.6s ease 0.4s both;
+}
+
+@keyframes note-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
 /* Inline, unlike the name above a quote: a note is often shorter than its own
    label, and a name on its own line would double the height of the thread. */
 .talk__who {
@@ -1357,24 +1462,65 @@ textarea {
   margin-right: 6px;
 }
 
-.talk__foot {
+/* The field under the round: one line set like a quote that has not been
+   written yet — the same indent and rule as a note, the rule dashed — with the
+   arrow at its end once there is something to send. */
+.talk__compose {
   display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.talk__editing {
-  display: flex;
-  flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
   padding-left: 10px;
-  border-left: 2px dashed rgba(176, 86, 60, 0.55);
+  border-left: 2px dashed var(--border);
 }
 
-.talk__editor {
-  min-height: 48px;
-  font-size: 14px;
+.talk__field {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  resize: none;
+  overflow: hidden;
+  font-family: inherit;
+  /* The answer editor's size, a step over the note's: what you are typing
+     should be easier to read than what is already said. */
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--ink);
 }
+
+.talk__field::placeholder {
+  color: var(--terracotta);
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.talk__field:focus {
+  outline: none;
+}
+
+.talk__compose:focus-within {
+  border-left-color: var(--terracotta);
+}
+
+.talk__send {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 1px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--terracotta);
+  color: var(--card);
+  cursor: pointer;
+  animation: mark-pop 260ms cubic-bezier(0.3, 1.5, 0.6, 1) both;
+}
+
 
 .button {
   font-family: inherit;
@@ -1872,6 +2018,12 @@ input.field__input[type='date']::-webkit-date-and-time-value {
   .answer__veil {
     display: none;
   }
+
+  /* Likewise the heart of a double tap, which without its animation would
+     stay on her words for good. The mark at the foot of the card says it. */
+  .answer__heart {
+    display: none;
+  }
 }
 
 /* The instrument, not the app: a block of numbers that looks like one, so that
@@ -2262,6 +2414,11 @@ input.field__input[type='date']::-webkit-date-and-time-value {
   vertical-align: middle;
 }
 
+/* No pop here: a page of the record opening is not a hundred marks arriving. */
+.chron__mark .mark {
+  animation: none;
+}
+
 .chron__mark .mark--theirs {
   border: 0;
   background: none;
@@ -2274,10 +2431,10 @@ input.field__input[type='date']::-webkit-date-and-time-value {
 /* Smaller than on a card, for the same reason: a hundred past rounds, each
    with an invitation on it, is a list of chores. */
 .chron__mark .mark--empty {
-  min-width: 24px;
+  min-width: 26px;
   min-height: 22px;
-  padding: 1px 6px;
-  font-size: 12px;
+  padding: 0 4px;
+  opacity: 0.7;
 }
 
 /* The name reads as a label on the quote, not as part of the sentence. */
