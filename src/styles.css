@@ -1464,7 +1464,9 @@ textarea {
 /* Inline, unlike the name above a quote: a note is often shorter than its own
    label, and a name on its own line would double the height of the thread. */
 .talk__who {
-  font-size: 9px;
+  /* The smallest size on the page and no smaller: 9px was set to make the
+     name recede, and at 85 % page zoom it stopped being a name. */
+  font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-pale);
@@ -1509,6 +1511,22 @@ textarea {
 /* Writing lights the rail, so it is plain which thread the words go to. */
 .talk:focus-within {
   border-left-color: var(--terracotta);
+}
+
+/* The marks and the arrow are drawn small and hit large. A chip of 26×22 at
+   the end of a quote, or an arrow of 30, is a target that needs aiming, and
+   Apple's floor for a finger is 44 points; the invisible margin around each
+   brings it there without making the page any louder. */
+.mark,
+.talk__send {
+  position: relative;
+}
+
+.mark::after,
+.talk__send::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }
 
 .talk__send {
